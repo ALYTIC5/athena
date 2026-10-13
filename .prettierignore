@@ -1,0 +1,8 @@
+dist/
+.astro/
+node_modules/
+package-lock.json
+private/
+docs/
+*.md
+*.mdx

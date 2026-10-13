@@ -1,0 +1,9 @@
+title = "Athena gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic teaching secrets carry the ATHENA_FAKE marker"
+regexTarget = "match"
+regexes = ['''ATHENA_FAKE''']

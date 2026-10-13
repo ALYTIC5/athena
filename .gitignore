@@ -1,0 +1,39 @@
+# Private and personal (never commit)
+private/
+*progress*.json
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Dependencies, build output and caches
+node_modules/
+dist/
+.astro/
+playwright-report/
+test-results/
+coverage/
+.lighthouseci/
+.pyodide-cache/
+*.log
+
+# Python (labs and validation)
+__pycache__/
+.venv/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Tool state
+.claude-flow/
