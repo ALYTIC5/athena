@@ -1,0 +1,16 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import Exercise from '../../components/Exercise.astro';
+
+// Sample exercises render only in end-to-end builds (ATHENA_SAMPLES=1). They are never published.
+export function getStaticPaths() {
+  return process.env.ATHENA_SAMPLES === '1' ? [{ params: { slug: 'exercises' } }] : [];
+}
+---
+
+<StarlightPage frontmatter={{ title: 'Sample exercises' }}>
+  <h2>Make</h2>
+  <Exercise id="sample-make-total-minutes" />
+  <h2>Write tests</h2>
+  <Exercise id="sample-write-tests-clamp" />
+</StarlightPage>
