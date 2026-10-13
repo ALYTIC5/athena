@@ -1,0 +1,56 @@
+id: sample-make-total-minutes
+lesson: sample
+runtime: python
+kind: make
+pools: [lesson]
+title: Total minutes of completed calls
+difficulty: 1
+competencies: [py.functions]
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write `total_minutes(calls)`. Each call is a dict with a `status` and a whole number of `minutes`.
+  Return the total minutes of calls whose status is `"completed"`. Do not change the input.
+
+  Example: `total_minutes([{"status": "completed", "minutes": 4}, {"status": "missed", "minutes": 0}])` returns `4`.
+starter: |
+  def total_minutes(calls: list[dict]) -> int:
+      ...
+visibleTests: |
+  def test_sums_completed_calls():
+      calls = [{"status": "completed", "minutes": 4}, {"status": "completed", "minutes": 6}]
+      assert total_minutes(calls) == 10
+hiddenTests: |
+  def test_empty_list():
+      assert total_minutes([]) == 0
+
+  def test_ignores_other_statuses():
+      calls = [{"status": "missed", "minutes": 9}, {"status": "completed", "minutes": 2}]
+      assert total_minutes(calls) == 2
+
+  def test_input_unchanged():
+      calls = [{"status": "completed", "minutes": 3}]
+      total_minutes(calls)
+      assert calls == [{"status": "completed", "minutes": 3}]
+feedback:
+  - test: test_ignores_other_statuses
+    message: "Only calls with status 'completed' count towards the total."
+hints:
+  - 'Which calls should be counted, and which skipped?'
+  - 'Loop over the calls, keep a running total, and add minutes only when the status matches.'
+  - "total = 0\nfor call in calls:\n    if call['status'] == ____:\n        total += ____\nreturn total"
+referenceSolution: |
+  def total_minutes(calls: list[dict]) -> int:
+      return sum(c["minutes"] for c in calls if c["status"] == "completed")
+wrongSolutions:
+  - label: 'Counts every call regardless of status'
+    code: |
+      def total_minutes(calls: list[dict]) -> int:
+          return sum(c["minutes"] for c in calls)
+  - label: 'Counts completed calls instead of adding their minutes'
+    code: |
+      def total_minutes(calls: list[dict]) -> int:
+          return len([c for c in calls if c["status"] == "completed"])
+explanation: |
+  A generator expression filters and sums in one pass, so the cost is linear in the number of calls
+  and the input is never modified. A plain loop with a running total is equally correct.

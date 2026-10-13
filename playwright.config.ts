@@ -5,8 +5,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run preview -- --port 4321',
     url: 'http://localhost:4321/athena/',
-    reuseExistingServer: true,
-    timeout: 180000,
+    reuseExistingServer: false,
+    timeout: 240000,
+    env: { ATHENA_SAMPLES: '1' },
   },
   use: { baseURL: 'http://localhost:4321/athena/' },
   projects: [

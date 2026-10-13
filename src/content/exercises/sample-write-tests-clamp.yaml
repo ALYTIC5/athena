@@ -1,0 +1,85 @@
+id: sample-write-tests-clamp
+lesson: sample
+runtime: python
+kind: write-tests
+pools: [lesson]
+title: Test a clamp function
+difficulty: 2
+competencies: [py.pytest]
+timeoutMs: 20000
+packages: [pytest]
+prompt: |
+  `clamp(value, low, high)` keeps a number inside a range and raises `ValueError` if `low` is greater than `high`.
+  Write pytest tests in `test_*` functions. Import it with `from impl import clamp`.
+  Your tests must pass on the correct version and fail on every buggy version.
+starter: |
+  from impl import clamp
+
+
+  def test_inside_range():
+      assert clamp(5, 0, 10) == 5
+implementations:
+  correct: |
+    def clamp(value, low, high):
+        if low > high:
+            raise ValueError("low must not exceed high")
+        return max(low, min(value, high))
+  buggy:
+    - label: 'Ignores the lower bound'
+      code: |
+        def clamp(value, low, high):
+            if low > high:
+                raise ValueError("low must not exceed high")
+            return min(value, high)
+    - label: 'Ignores the upper bound'
+      code: |
+        def clamp(value, low, high):
+            if low > high:
+                raise ValueError("low must not exceed high")
+            return max(low, value)
+    - label: 'Does not reject an inverted range'
+      code: |
+        def clamp(value, low, high):
+            return max(low, min(value, high))
+referenceSolution: |
+  import pytest
+  from impl import clamp
+
+
+  def test_inside_range():
+      assert clamp(5, 0, 10) == 5
+
+
+  def test_below_low():
+      assert clamp(-3, 0, 10) == 0
+
+
+  def test_above_high():
+      assert clamp(99, 0, 10) == 10
+
+
+  def test_inverted_range_raises():
+      with pytest.raises(ValueError):
+          clamp(1, 10, 0)
+wrongSolutions:
+  - label: 'Only tests a value inside the range'
+    code: |
+      from impl import clamp
+
+
+      def test_inside_range():
+          assert clamp(5, 0, 10) == 5
+  - label: 'Forgets the inverted range'
+    code: |
+      from impl import clamp
+
+
+      def test_below_low():
+          assert clamp(-3, 0, 10) == 0
+
+
+      def test_above_high():
+          assert clamp(99, 0, 10) == 10
+explanation: |
+  Each buggy version breaks one behaviour: the lower bound, the upper bound, or the error for an inverted range.
+  A good test suite has at least one test per behaviour, including the error case with `pytest.raises`.

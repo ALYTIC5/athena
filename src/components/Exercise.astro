@@ -1,0 +1,30 @@
+---
+import { getEntry } from 'astro:content';
+import { Code } from '@astrojs/starlight/components';
+import { ExerciseIsland } from './ExerciseIsland';
+import { url } from '../lib/url';
+
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+const exercise = await getEntry('exercises', id);
+if (!exercise) throw new Error(`Unknown exercise: ${id}`);
+const e = exercise.data;
+---
+
+<ExerciseIsland
+  client:visible
+  id={id}
+  lessonTitle={e.title ?? id}
+  kind={e.kind}
+  promptText={e.prompt}
+  starter={e.starter}
+  visibleTests={e.visibleTests ?? ''}
+  timeoutMs={e.timeoutMs}
+  packages={e.packages}
+  dataUrl={url(`data/exercises/${id}.json`)}
+>
+  <Code code={e.starter} lang="python" />
+</ExerciseIsland>
