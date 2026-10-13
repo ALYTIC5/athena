@@ -4,6 +4,7 @@ import {
   creditFor,
   gradePython,
   gradeWriteTests,
+  isUnaided,
   runPython,
   shouldNudgeStuck,
   solutionUnlocked,
@@ -48,6 +49,8 @@ export interface ExerciseIslandProps {
   timeoutMs: number;
   packages: string[];
   dataUrl: string;
+  /** Called after each Check; `unaided` is true only for a full-credit pass. */
+  onChecked?: ((result: { passed: boolean; unaided: boolean }) => void) | undefined;
   children?: ReactNode;
 }
 
@@ -271,6 +274,15 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       setPassed(ok);
       if (!ok) setFailedChecks((n) => n + 1);
       record(ok, hintsShown, solutionViewed);
+      props.onChecked?.({
+        passed: ok,
+        unaided: isUnaided({
+          passed: ok,
+          hintsUsed: Math.min(3, hintsShown) as 0 | 1 | 2 | 3,
+          tutorUsed,
+          solutionViewed,
+        }),
+      });
       setStatus(ok ? 'All checks pass.' : 'Not yet. Read the feedback below.');
     });
 

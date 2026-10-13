@@ -1,0 +1,15 @@
+---
+import { WarmUpIsland } from './quiz/WarmUpIsland';
+import { assertPublished, assertNotOrientation } from '../lib/content/guards';
+
+interface Props {
+  lesson: string;
+  count?: number;
+}
+
+const { lesson, count = 5 } = Astro.props;
+await assertPublished(lesson, 'WarmUp');
+await assertNotOrientation(lesson, 'WarmUp');
+---
+
+<WarmUpIsland client:visible lesson={lesson} count={count} />

@@ -1,0 +1,14 @@
+id: sample-2-rubric
+lesson: sample-2
+kind: rubric
+competencies: [wri.readme]
+title: Rate a README section
+criteria:
+  - name: Says what the project is
+    levels:
+      - score: 0
+        description: Missing
+      - score: 1
+        description: Mentioned
+      - score: 2
+        description: Clear in one sentence

@@ -1,12 +1,14 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
+import { publishedLessonIds } from '../../../lib/content/published';
 
 /**
  * Hidden tests, hints, feedback and reference solutions, fetched by the island only when the
  * learner presses Check, asks for a hint or unlocks the solution. Wrong solutions never ship.
  */
 export const getStaticPaths = (async () => {
-  const exercises = await getCollection('exercises');
+  const published = await publishedLessonIds();
+  const exercises = (await getCollection('exercises')).filter((e) => published.has(e.data.lesson));
   return exercises.map((e) => ({
     params: { id: e.id },
     props: {

@@ -1,0 +1,14 @@
+---
+import { QuizIsland } from './quiz/QuizIsland';
+import { assertItem } from '../lib/content/guards';
+
+interface Props {
+  lesson: string;
+  item: string;
+}
+
+const { lesson, item } = Astro.props;
+await assertItem(lesson, item, 'predict', 'Predict');
+---
+
+<QuizIsland client:visible lesson={lesson} item={item} />

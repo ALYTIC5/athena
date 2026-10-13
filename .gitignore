@@ -37,3 +37,4 @@ Thumbs.db
 
 # Tool state
 .claude-flow/
+src/generated/

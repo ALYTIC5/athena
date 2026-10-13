@@ -1,0 +1,14 @@
+---
+import { QuizIsland } from './quiz/QuizIsland';
+import { assertPublished } from '../lib/content/guards';
+
+interface Props {
+  lesson: string;
+  chunk?: number | undefined;
+}
+
+const { lesson, chunk } = Astro.props;
+await assertPublished(lesson, 'Quiz');
+---
+
+<QuizIsland client:visible lesson={lesson} chunk={chunk} />

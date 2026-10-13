@@ -1,0 +1,15 @@
+---
+import { MasteryCheckIsland } from './quiz/MasteryCheckIsland';
+import { assertPublished, assertNotOrientation } from '../lib/content/guards';
+
+interface Props {
+  lesson: string;
+  count?: number;
+}
+
+const { lesson, count = 8 } = Astro.props;
+await assertPublished(lesson, 'MasteryCheck');
+await assertNotOrientation(lesson, 'MasteryCheck');
+---
+
+<MasteryCheckIsland client:visible lesson={lesson} count={count} />

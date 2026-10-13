@@ -1,0 +1,13 @@
+---
+import { InterviewIsland } from './quiz/InterviewIsland';
+import { assertPublished } from '../lib/content/guards';
+
+interface Props {
+  lesson: string;
+}
+
+const { lesson } = Astro.props;
+await assertPublished(lesson, 'InterviewCorner');
+---
+
+<InterviewIsland client:visible lesson={lesson} />

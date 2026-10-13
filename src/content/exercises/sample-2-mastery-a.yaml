@@ -1,0 +1,44 @@
+id: sample-2-mastery-a
+lesson: sample-2
+runtime: python
+kind: make
+pools: [mastery]
+title: Double every number
+difficulty: 1
+competencies: [py.functions]
+timeoutMs: 5000
+packages: []
+prompt: Write `double_all(numbers)` returning a new list with every number doubled.
+starter: |
+  def double_all(numbers):
+      ...
+visibleTests: |
+  def test_doubles():
+      assert double_all([1, 2]) == [2, 4]
+hiddenTests: |
+  def test_empty():
+      assert double_all([]) == []
+
+  def test_input_unchanged():
+      nums = [1, 2]
+      double_all(nums)
+      assert nums == [1, 2]
+hints:
+  - What should happen to the original list?
+  - Build a new list while looping.
+  - 'return [____ for n in numbers]'
+referenceSolution: |
+  def double_all(numbers):
+      return [n * 2 for n in numbers]
+wrongSolutions:
+  - label: Mutates the input list
+    code: |
+      def double_all(numbers):
+          for i in range(len(numbers)):
+              numbers[i] *= 2
+          return numbers
+  - label: Adds instead of doubling
+    code: |
+      def double_all(numbers):
+          return [n + 2 for n in numbers]
+explanation: A list comprehension builds a new list and leaves the input unchanged.
