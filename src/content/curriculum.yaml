@@ -1,0 +1,360 @@
+- id: week-1
+  week: 1
+  lessons:
+    - id: start-00
+      title: 'How Athena works'
+      durationMin: 30
+      status: planned
+    - id: git-01
+      title: 'Git and GitHub as a team member'
+      durationMin: 120
+      status: planned
+  lab: []
+  gym:
+    focus: 'Think-aloud approach'
+    target: 0
+- id: week-2
+  week: 2
+  lessons:
+    - id: sec-01
+      title: 'Secrets and security hygiene'
+      durationMin: 90
+      status: planned
+    - id: wri-01
+      title: 'READMEs, pull requests and design notes'
+      durationMin: 75
+      status: planned
+  lab: []
+  gym:
+    focus: 'Approach practice, untimed'
+    target: 2
+- id: week-3
+  week: 3
+  lessons:
+    - id: py-01
+      title: 'Names, values and mutability'
+      durationMin: 165
+      status: planned
+  lab: []
+  gym:
+    focus: 'Approach practice, untimed'
+    target: 2
+- id: week-4
+  week: 4
+  lessons:
+    - id: py-02
+      title: 'Collections and complexity'
+      durationMin: 165
+      status: planned
+  lab: []
+  gym:
+    focus: 'Hashing'
+    target: 2
+- id: week-5
+  week: 5
+  lessons:
+    - id: py-03
+      title: 'Functions in depth'
+      durationMin: 165
+      status: planned
+  lab: []
+  gym:
+    focus: 'Hashing'
+    target: 2
+- id: week-6
+  week: 6
+  lessons:
+    - id: py-04
+      title: 'Errors, files and data formats'
+      durationMin: 120
+      status: planned
+    - id: sql-01
+      title: 'Querying one table'
+      durationMin: 45
+      status: planned
+  lab: []
+  gym:
+    focus: 'Two pointers'
+    target: 2
+- id: week-7
+  week: 7
+  lessons:
+    - id: py-05
+      title: 'Classes, types and packages'
+      durationMin: 120
+      status: planned
+    - id: sql-02
+      title: 'Joins and aggregation'
+      durationMin: 45
+      status: planned
+  lab: []
+  gym:
+    focus: 'Sliding window'
+    target: 2
+- id: week-8
+  week: 8
+  lessons:
+    - id: py-06
+      title: 'Testing with pytest'
+      durationMin: 120
+      status: planned
+    - id: sql-03
+      title: 'Designing schemas'
+      durationMin: 45
+      status: planned
+  lab: []
+  gym:
+    focus: 'Stack'
+    target: 2
+- id: week-9
+  week: 9
+  lessons:
+    - id: sql-04
+      title: 'Indexes, transactions and PostgreSQL from Python'
+      durationMin: 120
+      status: planned
+  lab:
+    - milestone: wa-m1
+      minutes: 45
+  gym:
+    focus: 'Binary search'
+    target: 2
+- id: week-10
+  week: 10
+  lessons:
+    - id: api-01
+      title: 'HTTP and REST'
+      durationMin: 105
+      status: planned
+    - id: oss-01
+      title: 'Your first open-source contribution'
+      durationMin: 60
+      status: planned
+  lab: []
+  gym:
+    focus: 'Code-reading drill 1; 1 mixed'
+    target: 2
+- id: week-11
+  week: 11
+  lessons:
+    - id: api-02
+      title: 'Building APIs with FastAPI'
+      durationMin: 90
+      status: planned
+    - id: api-03
+      title: 'Webhooks done right'
+      durationMin: 75
+      status: planned
+  lab: []
+  gym:
+    focus: 'Recursion'
+    target: 2
+- id: week-12
+  week: 12
+  lessons: []
+  lab:
+    - milestone: wa-m2
+      minutes: 165
+  gym:
+    focus: 'Trees, depth-first'
+    target: 2
+- id: week-13
+  week: 13
+  lessons: []
+  lab:
+    - milestone: wa-m3
+      minutes: 165
+  gym:
+    focus: 'Trees, breadth-first; AI-assisted drill'
+    target: 2
+- id: week-14
+  week: 14
+  lessons:
+    - id: ai-01
+      title: 'LLM APIs and structured output'
+      durationMin: 120
+      status: planned
+  lab:
+    - milestone: wa-m3
+      minutes: 45
+  gym:
+    focus: 'Heaps'
+    target: 2
+- id: week-15
+  week: 15
+  lessons:
+    - id: ai-02
+      title: 'Tool calling and the agent loop'
+      durationMin: 120
+      status: planned
+  lab:
+    - milestone: wa-m4
+      minutes: 45
+  gym:
+    focus: 'Graphs'
+    target: 2
+- id: week-16
+  week: 16
+  lessons:
+    - id: ai-03
+      title: 'Guardrails, prompt injection and cost'
+      durationMin: 75
+      status: planned
+  lab:
+    - milestone: wa-m4
+      minutes: 90
+  gym:
+    focus: 'Sorting and intervals'
+    target: 2
+- id: week-17
+  week: 17
+  lessons: []
+  lab:
+    - milestone: wa-m5
+      minutes: 165
+  gym:
+    focus: 'Code-reading drill 2; 1 mixed'
+    target: 2
+- id: week-18
+  week: 18
+  lessons:
+    - id: ops-01
+      title: 'Docker and CI'
+      durationMin: 90
+      status: planned
+  lab:
+    - milestone: wa-m6
+      minutes: 75
+  gym:
+    focus: 'Mixed set, one medium'
+    target: 2
+- id: week-19
+  week: 19
+  lessons:
+    - id: ops-02
+      title: 'Deploying to the cloud'
+      durationMin: 90
+      status: planned
+  lab:
+    - milestone: wa-m6
+      minutes: 75
+  gym:
+    focus: 'AI-assisted drill 2; 1 medium'
+    target: 2
+- id: week-20
+  week: 20
+  lessons: []
+  lab:
+    - milestone: wa-m7
+      minutes: 165
+  gym:
+    focus: 'Mixed, 1 medium; re-attempts'
+    target: 1
+- id: week-21
+  week: 21
+  lessons:
+    - id: rag-01
+      title: 'Embeddings and vector search'
+      durationMin: 105
+      status: planned
+  lab:
+    - milestone: re-m1
+      minutes: 60
+  gym:
+    focus: 'Mock: project deep-dive'
+    target: 1
+- id: week-22
+  week: 22
+  lessons:
+    - id: rag-02
+      title: 'Retrieval pipelines'
+      durationMin: 105
+      status: planned
+  lab:
+    - milestone: re-m1
+      minutes: 60
+  gym:
+    focus: 'Code-reading drill 3; re-attempts'
+    target: 1
+- id: week-23
+  week: 23
+  lessons:
+    - id: eval-01
+      title: 'Eval sets and retrieval metrics'
+      durationMin: 105
+      status: planned
+  lab:
+    - milestone: re-m2
+      minutes: 60
+  gym:
+    focus: 'STAR stories 1 to 3; behavioural mock'
+    target: 1
+- id: week-24
+  week: 24
+  lessons:
+    - id: eval-02
+      title: 'Experiments and honest reporting'
+      durationMin: 105
+      status: planned
+  lab:
+    - milestone: re-m3
+      minutes: 60
+  gym:
+    focus: 'STAR stories 4 to 6; 1 mixed'
+    target: 1
+- id: week-25
+  week: 25
+  lessons:
+    - id: ops-03
+      title: 'Observability for LLM apps'
+      durationMin: 60
+      status: planned
+  lab:
+    - milestone: re-m3
+      minutes: 30
+    - milestone: re-m4
+      minutes: 75
+  gym:
+    focus: 'Mock: live coding'
+    target: 1
+- id: week-26
+  week: 26
+  lessons:
+    - id: eval-03
+      title: 'Evals in CI'
+      durationMin: 45
+      status: planned
+  lab:
+    - milestone: re-m4
+      minutes: 45
+    - milestone: re-m5
+      minutes: 75
+  gym:
+    focus: 'Mock: concept round (AI and retrieval)'
+    target: 1
+- id: week-27
+  week: 27
+  lessons:
+    - id: sys-01
+      title: 'System design for juniors'
+      durationMin: 105
+      status: planned
+    - id: ts-01
+      title: 'Reading your own TypeScript'
+      durationMin: 60
+      status: planned
+  lab: []
+  gym:
+    focus: 'Mock: system design'
+    target: 1
+- id: week-28
+  week: 28
+  lessons:
+    - id: int-01
+      title: 'Interview readiness'
+      durationMin: 120
+      status: planned
+  lab: []
+  gym:
+    focus: 'Full mock loop'
+    target: 1
