@@ -1,0 +1,41 @@
+id: sample-sql-nearest-memory
+lesson: sample
+runtime: sql
+kind: make
+pools: [lesson]
+title: Nearest memories by cosine distance
+difficulty: 3
+competencies: [rag.pgvector]
+timeoutMs: 10000
+extensions: [vector]
+schema: |
+  CREATE TABLE memories (id integer PRIMARY KEY, body text NOT NULL, embedding vector(3) NOT NULL);
+  INSERT INTO memories VALUES
+    (1, 'Prefers morning appointments', '[1, 0.1, 0]'),
+    (2, 'Allergic to latex', '[0, 1, 0]'),
+    (3, 'Asked to be called after 5pm', '[9, 3, 1]'),
+    (4, 'Usually books for two people', '[0, 0.2, 1]'),
+    (5, 'Likes a reminder the day before', '[0.3, 0.5, 0]');
+prompt: |
+  The query embedding is `'[1, 0, 0]'`. Return the `id` of the 2 nearest memories by cosine distance (the `<=>` operator), nearest first.
+starter: |
+  SELECT id FROM memories ...
+referenceSolution: |
+  SELECT id FROM memories ORDER BY embedding <=> '[1, 0, 0]' LIMIT 2;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Orders by Euclidean distance (<->) instead of cosine distance'
+    code: |
+      SELECT id FROM memories ORDER BY embedding <-> '[1, 0, 0]' LIMIT 2;
+  - label: 'Orders furthest first'
+    code: |
+      SELECT id FROM memories ORDER BY embedding <=> '[1, 0, 0]' DESC LIMIT 2;
+hints:
+  - 'Which pgvector operator measures cosine distance?'
+  - 'Order the rows by the distance between the embedding column and the query vector, then keep the first two.'
+  - "SELECT id FROM memories ORDER BY embedding ____ '[1, 0, 0]' LIMIT ____;"
+explanation: |
+  `<=>` is cosine distance, so a smaller value means a closer direction. Sorting ascending and taking two rows returns the nearest.
+  Euclidean distance (`<->`) also uses length, which can change the order when vectors are not normalised.

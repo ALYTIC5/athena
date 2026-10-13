@@ -1,0 +1,39 @@
+id: sample-sql-no-bookings
+lesson: sample
+runtime: sql
+kind: make
+pools: [lesson]
+title: Customers who have never booked
+difficulty: 2
+competencies: [sql.joins, sql.nulls]
+timeoutMs: 5000
+extensions: []
+schema: |
+  CREATE TABLE customers (id integer PRIMARY KEY, name text NOT NULL);
+  CREATE TABLE bookings (id integer PRIMARY KEY, customer_id integer NOT NULL REFERENCES customers(id), slot timestamptz NOT NULL);
+  INSERT INTO customers VALUES (1, 'Amara Okafor'), (2, 'Jonas Weber'), (3, 'Mei Tanaka'), (4, 'Sofia Reyes');
+  INSERT INTO bookings VALUES (10, 1, '2026-11-02 09:00+00'), (11, 1, '2026-11-09 09:00+00'), (12, 3, '2026-11-03 14:00+00');
+prompt: |
+  List the names of customers who have never made a booking, ordered by name.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL ORDER BY c.name;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Inner join returns only customers who have bookings'
+    code: |
+      SELECT c.name FROM customers c JOIN bookings b ON b.customer_id = c.id ORDER BY c.name;
+  - label: 'Uses = NULL, which is never true'
+    code: |
+      SELECT c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id = NULL ORDER BY c.name;
+hints:
+  - 'Which join keeps customers that have no matching booking row?'
+  - 'Use a left join from customers to bookings, then keep the rows where the booking side is empty.'
+  - 'SELECT c.name FROM customers c LEFT JOIN bookings b ON ____ WHERE b.id ____ NULL ORDER BY c.name;'
+explanation: |
+  A left join keeps every customer and fills the booking columns with NULL when nothing matches, so
+  `b.id IS NULL` picks out customers with no bookings. `= NULL` never matches because NULL is not equal to anything.
+  Alternative: `WHERE NOT EXISTS (SELECT 1 FROM bookings b WHERE b.customer_id = c.id)`, which many people find easier to read.

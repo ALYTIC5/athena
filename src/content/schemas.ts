@@ -85,6 +85,8 @@ export const exerciseSchema = z
       ])
       .optional(),
     checks: z.array(sqlCheck).default([]),
+    planCheck: z.object({ query: z.string(), accept: z.array(z.string()).min(1) }).optional(),
+    queueClaim: z.boolean().optional(),
     explanation: z.string(),
   })
   .refine((e) => e.runtime !== 'sql' || e.schema !== undefined, {

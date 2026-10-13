@@ -18,7 +18,7 @@ export interface PyodideLike {
 }
 
 export type LoadPyodide = () => Promise<PyodideLike>;
-export type Post = (event: WorkerEvent) => void;
+export type Post<R extends { id: number } = PythonResponse> = (event: WorkerEvent<R>) => void;
 
 type PyFn = (arg: string) => string;
 

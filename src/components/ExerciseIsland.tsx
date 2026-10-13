@@ -10,7 +10,14 @@ import {
   type GradeReport,
   type PythonExerciseSpec,
 } from '../lib/grader/grade';
+import {
+  gradeSql,
+  runSql,
+  type SqlExerciseSpec,
+  type SqlGradeReport,
+} from '../lib/grader/sql-grade';
 import { getPythonRunner } from '../lib/runtime/python-client';
+import { getSqlRunner } from '../lib/runtime/sql-client';
 import { update } from '../lib/store/store';
 
 interface HiddenData {
@@ -20,12 +27,21 @@ interface HiddenData {
   referenceSolution: string;
   explanation: string;
   implementations: { correct: string; buggy: { label: string; code: string }[] } | null;
+  sql: {
+    checks: SqlExerciseSpec['checks'];
+    compare: SqlExerciseSpec['compare'];
+    planCheck: SqlExerciseSpec['planCheck'] | null;
+    queueClaim: boolean;
+  } | null;
 }
 
 export interface ExerciseIslandProps {
   id: string;
   lessonTitle: string;
   kind: PythonExerciseSpec['kind'];
+  runtime: 'python' | 'sql';
+  schema?: string | undefined;
+  extensions?: string[] | undefined;
   promptText: string;
   starter: string;
   visibleTests: string;
@@ -40,7 +56,9 @@ type EditorHandle = { getCode(): string; setCode(code: string): void; focus(): v
 const TUTOR_PLACEHOLDER = 'Tutor prompt (placeholder): phase 7 adds the real template.';
 
 export function ExerciseIsland(props: ExerciseIslandProps) {
-  const { id, kind, starter, visibleTests, timeoutMs, packages, dataUrl } = props;
+  const { id, kind, starter, visibleTests, timeoutMs, packages, dataUrl, runtime } = props;
+  const isSql = runtime === 'sql';
+  const languageName = isSql ? 'SQL' : 'Python';
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorHandle | null>(null);
   const [editing, setEditing] = useState(false);
@@ -48,6 +66,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
   const [busy, setBusy] = useState('');
   const [report, setReport] = useState<GradeReport | null>(null);
   const [findings, setFindings] = useState<string[] | null>(null);
+  const [sqlReport, setSqlReport] = useState<SqlGradeReport | null>(null);
   const [hints, setHints] = useState<string[]>([]);
   const [hintsShown, setHintsShown] = useState(0);
   const [tutorUsed, setTutorUsed] = useState(false);
@@ -70,10 +89,12 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
   const mountEditor = useCallback(async () => {
     if (editor.current || !host.current) return;
     setEditing(true);
-    const [{ EditorView, basicSetup }, { python }, { keymap }, { indentWithTab }] =
+    const [{ EditorView, basicSetup }, languageExtension, { keymap }, { indentWithTab }] =
       await Promise.all([
         import('codemirror'),
-        import('@codemirror/lang-python'),
+        isSql
+          ? import('@codemirror/lang-sql').then((m) => m.sql())
+          : import('@codemirror/lang-python').then((m) => m.python()),
         import('@codemirror/view'),
         import('@codemirror/commands'),
       ]);
@@ -84,9 +105,9 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       parent: host.current,
       extensions: [
         basicSetup,
-        python(),
+        languageExtension,
         keymap.of([indentWithTab]),
-        EditorView.contentAttributes.of({ 'aria-label': 'Python code editor' }),
+        EditorView.contentAttributes.of({ 'aria-label': `${languageName} code editor` }),
         EditorView.updateListener.of((u) => {
           if (!u.docChanged) return;
           clearTimeout(timer);
@@ -104,7 +125,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       focus: () => view.focus(),
     };
     view.focus();
-  }, [id, starter]);
+  }, [id, starter, isSql, languageName]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -145,9 +166,27 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
 
   const onProgress = (stage: string) => setStatus(stage + '…');
 
+  const sqlSpec = (): SqlExerciseSpec => ({
+    schema: props.schema ?? '',
+    extensions: props.extensions ?? [],
+    referenceSolution: hidden.current?.referenceSolution ?? '',
+    compare: hidden.current?.sql?.compare ?? 'none',
+    checks: hidden.current?.sql?.checks ?? [],
+    planCheck: hidden.current?.sql?.planCheck ?? undefined,
+    queueClaim: hidden.current?.sql?.queueClaim ?? false,
+    timeoutMs,
+  });
+
   const onRun = () =>
     withBusy('Running', async () => {
       const code = await currentCode();
+      if (isSql) {
+        const r = await runSql(getSqlRunner(onProgress), sqlSpec(), code);
+        setSqlReport(r);
+        setReport(null);
+        setStatus(r.error ? 'Your query raised an error.' : 'Finished running.');
+        return;
+      }
       const r = await runPython(getPythonRunner(onProgress), code, packages, timeoutMs);
       setReport(r);
       setFindings(null);
@@ -207,7 +246,13 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       const h = await loadHidden();
       setHints(h.hints);
       let ok: boolean;
-      if (kind === 'write-tests') {
+      if (isSql) {
+        const r = await gradeSql(getSqlRunner(onProgress), sqlSpec(), code);
+        setSqlReport(r);
+        setReport(null);
+        setFindings(null);
+        ok = r.passed;
+      } else if (kind === 'write-tests') {
         const r = await gradeWriteTests(getPythonRunner(onProgress), spec(undefined, []), code);
         setFindings(r.findings);
         setReport(null);
@@ -234,6 +279,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
     editor.current?.setCode(starter);
     void del(`draft:${id}`).catch(() => undefined);
     setReport(null);
+    setSqlReport(null);
     setFindings(null);
     setStatus('Starter code restored.');
   };
@@ -305,6 +351,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
           type="button"
           onClick={() => void onRunTests()}
           disabled={busy !== '' || kind === 'write-tests'}
+          hidden={isSql}
         >
           Run tests
         </button>{' '}
@@ -364,6 +411,41 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {sqlReport && (
+        <div data-testid="sql-report">
+          {sqlReport.error && <pre data-testid="error">{sqlReport.error}</pre>}
+          {sqlReport.result && (
+            <table data-testid="sql-result">
+              <thead>
+                <tr>
+                  {sqlReport.result.fields.map((f, i) => (
+                    <th key={i} scope="col">
+                      {f}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sqlReport.result.rows.map((row, r) => (
+                  <tr key={r}>
+                    {row.map((cell, c) => (
+                      <td key={c}>{cell === null ? 'NULL' : String(cell)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {sqlReport.mismatch && <p data-testid="mismatch">{sqlReport.mismatch}</p>}
+          {sqlReport.failures.length > 0 && (
+            <ul data-testid="failures">
+              {sqlReport.failures.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {findings && (

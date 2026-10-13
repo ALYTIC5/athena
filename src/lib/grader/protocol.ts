@@ -28,14 +28,14 @@ export interface PythonResponse {
 }
 
 /** Messages a worker sends to its owner. */
-export type WorkerEvent =
+export type WorkerEvent<R extends { id: number } = PythonResponse> =
   | { type: 'progress'; id: number; stage: string }
   | { type: 'started'; id: number }
-  | { type: 'response'; response: PythonResponse }
+  | { type: 'response'; response: R }
   | { type: 'failure'; id: number; message: string };
 
-export type RunOutcome =
-  | { kind: 'done'; response: PythonResponse }
+export type RunOutcome<R extends { id: number } = PythonResponse> =
+  | { kind: 'done'; response: R }
   | { kind: 'timeout'; message: string }
   | { kind: 'failure'; message: string };
 

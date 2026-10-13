@@ -2,23 +2,30 @@ import {
   DEFAULT_TIMEOUT_MS,
   timeoutMessage,
   type PythonRequest,
+  type PythonResponse,
   type RunOutcome,
   type WorkerEvent,
 } from './protocol';
 
 /** A worker as the runner sees it: a Web Worker in the browser, a worker thread under Node. */
-export interface WorkerHandle {
-  post(request: PythonRequest): void;
+export interface WorkerHandle<
+  Req extends { id: number } = PythonRequest,
+  Res extends { id: number } = PythonResponse,
+> {
+  post(request: Req): void;
   terminate(): void | Promise<unknown>;
-  onEvent(listener: (event: WorkerEvent) => void): void;
+  onEvent(listener: (event: WorkerEvent<Res>) => void): void;
   onCrash(listener: (message: string) => void): void;
 }
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-export type RequestBody = DistributiveOmit<PythonRequest, 'id'>;
+export type RequestBody<Req extends { id: number } = PythonRequest> = DistributiveOmit<Req, 'id'>;
 
-export interface Runner {
-  run(body: RequestBody, timeoutMs?: number): Promise<RunOutcome>;
+export interface Runner<
+  Req extends { id: number } = PythonRequest,
+  Res extends { id: number } = PythonResponse,
+> {
+  run(body: RequestBody<Req>, timeoutMs?: number): Promise<RunOutcome<Res>>;
   dispose(): void | Promise<unknown>;
 }
 
@@ -27,17 +34,17 @@ export interface Runner {
  * execution has started (after Pyodide and packages have loaded). On timeout the worker is
  * terminated and a fresh one is created for the next request.
  */
-export function createRunner(
-  spawn: () => WorkerHandle,
-  onProgress?: (stage: string) => void,
-): Runner {
-  let worker: WorkerHandle | undefined;
-  let handler: ((event: WorkerEvent | { type: 'crash'; message: string }) => void) | undefined;
+export function createRunner<
+  Req extends { id: number } = PythonRequest,
+  Res extends { id: number } = PythonResponse,
+>(spawn: () => WorkerHandle<Req, Res>, onProgress?: (stage: string) => void): Runner<Req, Res> {
+  let worker: WorkerHandle<Req, Res> | undefined;
+  let handler: ((event: WorkerEvent<Res> | { type: 'crash'; message: string }) => void) | undefined;
   let nextId = 1;
   let queue: Promise<unknown> = Promise.resolve();
 
   /** Create a worker and wire its listeners once; each request swaps in its own handler. */
-  function current(): WorkerHandle {
+  function current(): WorkerHandle<Req, Res> {
     if (worker) return worker;
     const w = spawn();
     w.onEvent((e) => {
@@ -50,13 +57,13 @@ export function createRunner(
     return w;
   }
 
-  function runOne(body: RequestBody, timeoutMs: number): Promise<RunOutcome> {
+  function runOne(body: RequestBody<Req>, timeoutMs: number): Promise<RunOutcome<Res>> {
     const w = current();
     const id = nextId++;
-    return new Promise<RunOutcome>((resolve) => {
+    return new Promise<RunOutcome<Res>>((resolve) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       let settled = false;
-      const settle = (outcome: RunOutcome, discard: boolean) => {
+      const settle = (outcome: RunOutcome<Res>, discard: boolean) => {
         if (settled) return;
         settled = true;
         if (timer !== undefined) clearTimeout(timer);
@@ -81,7 +88,7 @@ export function createRunner(
           settle({ kind: 'failure', message: e.message }, true);
         }
       };
-      w.post({ ...body, id } as PythonRequest);
+      w.post({ ...body, id } as unknown as Req);
     });
   }
 
