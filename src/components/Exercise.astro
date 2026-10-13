@@ -19,6 +19,9 @@ const e = exercise.data;
   id={id}
   lessonTitle={e.title ?? id}
   kind={e.kind}
+  runtime={e.runtime}
+  schema={e.schema}
+  extensions={e.extensions}
   promptText={e.prompt}
   starter={e.starter}
   visibleTests={e.visibleTests ?? ''}
@@ -26,5 +29,5 @@ const e = exercise.data;
   packages={e.packages}
   dataUrl={url(`data/exercises/${id}.json`)}
 >
-  <Code code={e.starter} lang="python" />
+  <Code code={e.starter} lang={e.runtime === 'sql' ? 'sql' : 'python'} />
 </ExerciseIsland>

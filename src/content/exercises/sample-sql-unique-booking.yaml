@@ -1,0 +1,57 @@
+id: sample-sql-unique-booking
+lesson: sample
+runtime: sql
+kind: make
+pools: [lesson]
+title: Stop double bookings with a constraint
+difficulty: 2
+competencies: [sql.schema]
+timeoutMs: 5000
+extensions: []
+schema: |
+  CREATE TABLE rooms (id integer PRIMARY KEY, name text NOT NULL);
+  INSERT INTO rooms VALUES (1, 'Studio A'), (2, 'Studio B');
+prompt: |
+  Create a table `bookings` with columns `id` (generated identity primary key), `room_id` (integer, references `rooms`), `starts_at` (timestamptz) and `customer` (text).
+  A room must not be booked twice for the same `starts_at`, but different rooms or different times are fine. Enforce this in the table definition.
+starter: |
+  CREATE TABLE bookings (
+    ...
+  );
+referenceSolution: |
+  CREATE TABLE bookings (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    room_id integer NOT NULL REFERENCES rooms(id),
+    starts_at timestamptz NOT NULL,
+    customer text NOT NULL,
+    UNIQUE (room_id, starts_at)
+  );
+compare: none
+checks:
+  - sql: "INSERT INTO bookings (room_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Amara Okafor'); INSERT INTO bookings (room_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Jonas Weber');"
+    expectError: '23505'
+  - "WITH a AS (INSERT INTO bookings (room_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Amara Okafor') RETURNING 1), b AS (INSERT INTO bookings (room_id, starts_at, customer) VALUES (1, '2026-11-02 10:00+00', 'Mei Tanaka') RETURNING 1), c AS (INSERT INTO bookings (room_id, starts_at, customer) VALUES (2, '2026-11-02 09:00+00', 'Sofia Reyes') RETURNING 1) SELECT (SELECT count(*) FROM a) + (SELECT count(*) FROM b) + (SELECT count(*) FROM c) = 3"
+wrongSolutions:
+  - label: 'No constraint, so duplicates are allowed'
+    code: |
+      CREATE TABLE bookings (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        room_id integer NOT NULL REFERENCES rooms(id),
+        starts_at timestamptz NOT NULL,
+        customer text NOT NULL
+      );
+  - label: 'Unique on room only, which blocks every later booking of that room'
+    code: |
+      CREATE TABLE bookings (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        room_id integer NOT NULL REFERENCES rooms(id) UNIQUE,
+        starts_at timestamptz NOT NULL,
+        customer text NOT NULL
+      );
+hints:
+  - 'Which constraint rejects a second row with the same values?'
+  - 'A unique constraint over the two columns that together identify a slot.'
+  - 'UNIQUE (____, ____)'
+explanation: |
+  A composite `UNIQUE (room_id, starts_at)` makes the database reject a second row for the same room and time with SQLSTATE 23505.
+  Checking in application code first is not enough: two requests can pass the check at once. The constraint is the guarantee.

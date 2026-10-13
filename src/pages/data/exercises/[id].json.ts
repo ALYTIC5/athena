@@ -17,6 +17,15 @@ export const getStaticPaths = (async () => {
         referenceSolution: e.data.referenceSolution,
         explanation: e.data.explanation,
         implementations: e.data.implementations ?? null,
+        sql:
+          e.data.runtime === 'sql'
+            ? {
+                checks: e.data.checks,
+                compare: e.data.compare ?? { orderMatters: false, numericTolerance: 0 },
+                planCheck: e.data.planCheck ?? null,
+                queueClaim: e.data.queueClaim ?? false,
+              }
+            : null,
       },
     },
   }));
