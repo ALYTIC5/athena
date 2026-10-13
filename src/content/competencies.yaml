@@ -1,0 +1,615 @@
+- id: sec.secrets
+  track: sec
+  title: 'Keeping secrets out of code and repos'
+  evidence: browser
+  core: true
+- id: sec.history
+  track: sec
+  title: 'Removing leaked secrets from git history'
+  evidence: local
+  core: true
+- id: sec.least-privilege
+  track: sec
+  title: 'Least privilege for keys, tokens and service accounts'
+  evidence: browser
+  core: true
+- id: sec.owasp-basics
+  track: sec
+  title: 'Key risks from the OWASP Top 10:2025'
+  evidence: browser
+  core: true
+- id: git.branching
+  track: git
+  title: 'Branches and a feature-branch workflow'
+  evidence: local
+  core: true
+- id: git.pull-requests
+  track: git
+  title: 'Opening and reviewing pull requests'
+  evidence: local
+  core: true
+- id: git.rebase-merge
+  track: git
+  title: 'Rebase versus merge, and resolving conflicts'
+  evidence: local
+  core: true
+- id: git.undo
+  track: git
+  title: 'Undoing safely: revert, reset, restore'
+  evidence: local
+  core: true
+- id: git.commits
+  track: git
+  title: 'Writing good commits and messages'
+  evidence: local
+  core: true
+- id: wri.readme
+  track: wri
+  title: 'READMEs that get a project understood in 2 minutes'
+  evidence: local
+  core: true
+- id: wri.pr-description
+  track: wri
+  title: 'Pull request descriptions'
+  evidence: local
+  core: true
+- id: wri.design-note
+  track: wri
+  title: 'One-page design notes'
+  evidence: local
+  core: true
+- id: py.values-names
+  track: py
+  title: 'Names, objects and references'
+  evidence: browser
+  core: true
+- id: py.mutability
+  track: py
+  title: 'Mutable and immutable types; copying'
+  evidence: browser
+  core: true
+- id: py.control-flow
+  track: py
+  title: 'Conditions, loops, truthiness'
+  evidence: browser
+  core: true
+- id: py.functions
+  track: py
+  title: 'Defining and calling functions, return values, default arguments'
+  evidence: browser
+  core: true
+- id: py.collections
+  track: py
+  title: 'Lists, tuples, dicts and sets'
+  evidence: browser
+  core: true
+- id: py.comprehensions
+  track: py
+  title: 'Comprehensions and generator expressions'
+  evidence: browser
+  core: true
+- id: py.complexity
+  track: py
+  title: 'Big-O of common operations'
+  evidence: browser
+  core: true
+- id: py.scope-closures
+  track: py
+  title: 'Scope (LEGB) and closures'
+  evidence: browser
+  core: true
+- id: py.args-kwargs
+  track: py
+  title: '`*args`, `**kwargs`, keyword-only arguments'
+  evidence: browser
+  core: true
+- id: py.decorators
+  track: py
+  title: 'Reading and writing simple decorators'
+  evidence: browser
+  core: true
+- id: py.iterators-generators
+  track: py
+  title: 'Iterators and generators'
+  evidence: browser
+  core: true
+- id: py.exceptions
+  track: py
+  title: 'Raising and handling exceptions'
+  evidence: browser
+  core: true
+- id: py.context-managers
+  track: py
+  title: '`with` and context managers'
+  evidence: browser
+  core: true
+- id: py.files-json
+  track: py
+  title: 'Files, paths, JSON and CSV'
+  evidence: browser
+  core: true
+- id: py.datetime
+  track: py
+  title: 'Dates, times and time zones'
+  evidence: browser
+  core: true
+- id: py.classes
+  track: py
+  title: 'Classes, methods and dataclasses'
+  evidence: browser
+  core: true
+- id: py.typing
+  track: py
+  title: 'Type hints and checking them'
+  evidence: browser
+  core: true
+- id: py.packages
+  track: py
+  title: 'Modules, packages, virtual environments and dependencies'
+  evidence: browser
+  core: true
+- id: py.pytest
+  track: py
+  title: 'Testing with pytest'
+  evidence: browser
+  core: true
+- id: py.mocking
+  track: py
+  title: 'Fakes, stubs and mocks'
+  evidence: browser
+  core: true
+- id: py.async
+  track: py
+  title: 'async/await for I/O-bound work'
+  evidence: browser
+  core: true
+- id: sql.select
+  track: sql
+  title: 'Selecting, filtering, sorting and limiting'
+  evidence: browser
+  core: true
+- id: sql.joins
+  track: sql
+  title: 'Inner, left and self joins'
+  evidence: browser
+  core: true
+- id: sql.aggregation
+  track: sql
+  title: 'GROUP BY, HAVING and aggregates'
+  evidence: browser
+  core: true
+- id: sql.subqueries-ctes
+  track: sql
+  title: 'Subqueries and common table expressions'
+  evidence: browser
+  core: true
+- id: sql.window
+  track: sql
+  title: 'Window functions (ROW_NUMBER, running totals)'
+  evidence: browser
+  core: true
+- id: sql.nulls
+  track: sql
+  title: 'NULL behaviour'
+  evidence: browser
+  core: true
+- id: sql.schema
+  track: sql
+  title: 'Schema design, keys and constraints'
+  evidence: browser
+  core: true
+- id: sql.normalisation
+  track: sql
+  title: 'Normalisation and when to denormalise'
+  evidence: browser
+  core: true
+- id: sql.indexes
+  track: sql
+  title: 'Indexes and reading EXPLAIN'
+  evidence: browser
+  core: true
+- id: sql.transactions
+  track: sql
+  title: 'Transactions, ACID and isolation'
+  evidence: browser
+  core: true
+- id: sql.locking-queues
+  track: sql
+  title: 'Row locking and job queues with `FOR UPDATE SKIP LOCKED`'
+  evidence: browser
+  core: true
+- id: sql.migrations
+  track: sql
+  title: 'Migrations'
+  evidence: browser
+  core: true
+- id: sql.parameters
+  track: sql
+  title: 'Parameterised queries and SQL injection'
+  evidence: browser
+  core: true
+- id: sql.jsonb
+  track: sql
+  title: 'JSONB basics'
+  evidence: browser
+  core: true
+- id: api.http
+  track: api
+  title: 'HTTP requests and responses'
+  evidence: browser
+  core: true
+- id: api.methods
+  track: api
+  title: 'Methods, safety and idempotency'
+  evidence: browser
+  core: true
+- id: api.status-codes
+  track: api
+  title: 'Status codes'
+  evidence: browser
+  core: true
+- id: api.rest-design
+  track: api
+  title: 'Resource design, pagination and versioning'
+  evidence: browser
+  core: true
+- id: api.auth
+  track: api
+  title: 'Authentication versus authorisation; API keys, OAuth 2.0 and JWT basics'
+  evidence: browser
+  core: true
+- id: api.fastapi
+  track: api
+  title: 'Building APIs with FastAPI and Pydantic'
+  evidence: local
+  core: true
+- id: api.client
+  track: api
+  title: 'Calling APIs with httpx: timeouts, retries, errors'
+  evidence: browser
+  core: true
+- id: api.webhooks
+  track: api
+  title: 'Receiving webhooks and verifying signatures'
+  evidence: browser
+  core: true
+- id: api.idempotency
+  track: api
+  title: 'Idempotency keys and duplicate events'
+  evidence: browser
+  core: true
+- id: api.retries
+  track: api
+  title: 'Retries with exponential backoff and jitter'
+  evidence: browser
+  core: true
+- id: api.rate-limits
+  track: api
+  title: 'Rate limits and 429 handling'
+  evidence: browser
+  core: true
+- id: ai.llm-basics
+  track: ai
+  title: 'Tokens, context windows, sampling and roles'
+  evidence: browser
+  core: true
+- id: ai.structured-output
+  track: ai
+  title: 'Structured output validated with Pydantic'
+  evidence: browser
+  core: true
+- id: ai.streaming
+  track: ai
+  title: 'Streaming responses'
+  evidence: browser
+  core: true
+- id: ai.providers
+  track: ai
+  title: 'Calling more than one provider behind one interface'
+  evidence: browser
+  core: true
+- id: ai.prompting
+  track: ai
+  title: 'Writing and iterating prompts against a test set'
+  evidence: browser
+  core: true
+- id: ai.tool-calling
+  track: ai
+  title: 'Tool calling'
+  evidence: browser
+  core: true
+- id: ai.agent-loop
+  track: ai
+  title: 'The agent loop: steps, state and stop conditions'
+  evidence: browser
+  core: true
+- id: ai.guardrails
+  track: ai
+  title: 'Guardrails, allowlists and human hand-off'
+  evidence: browser
+  core: true
+- id: ai.prompt-injection
+  track: ai
+  title: 'Prompt injection and mitigations'
+  evidence: browser
+  core: true
+- id: ai.cost-latency
+  track: ai
+  title: 'Cost and latency'
+  evidence: browser
+  core: true
+- id: ai.workflow-vs-agent
+  track: ai
+  title: 'When to use a fixed workflow and when an agent'
+  evidence: browser
+  core: true
+- id: ai.testing
+  track: ai
+  title: 'Testing LLM code with fakes'
+  evidence: browser
+  core: true
+- id: ops.containers
+  track: ops
+  title: 'Images, containers and Dockerfiles'
+  evidence: local
+  core: true
+- id: ops.compose
+  track: ops
+  title: 'Docker Compose for local development'
+  evidence: local
+  core: true
+- id: ops.ci
+  track: ops
+  title: 'CI pipelines in GitHub Actions'
+  evidence: local
+  core: true
+- id: ops.test-pyramid
+  track: ops
+  title: 'The test pyramid'
+  evidence: local
+  core: true
+- id: ops.secrets-ci
+  track: ops
+  title: 'Secrets in CI and production'
+  evidence: local
+  core: true
+- id: ops.deploy
+  track: ops
+  title: 'Deploying a container to a cloud service'
+  evidence: local
+  core: true
+- id: ops.iam
+  track: ops
+  title: 'Cloud identity and least privilege'
+  evidence: local
+  core: true
+- id: ops.environments
+  track: ops
+  title: 'Development, staging and production'
+  evidence: local
+  core: true
+- id: ops.logging
+  track: ops
+  title: 'Structured logging'
+  evidence: local
+  core: true
+- id: ops.tracing-metrics
+  track: ops
+  title: 'Traces, metrics and LLM cost tracking'
+  evidence: local
+  core: true
+- id: ops.rollback
+  track: ops
+  title: 'Rollbacks and safe releases'
+  evidence: local
+  core: true
+- id: rag.embeddings
+  track: rag
+  title: 'Embeddings and similarity'
+  evidence: browser
+  core: true
+- id: rag.chunking
+  track: rag
+  title: 'Chunking'
+  evidence: browser
+  core: true
+- id: rag.pgvector
+  track: rag
+  title: 'Storing and searching vectors in pgvector'
+  evidence: browser
+  core: true
+- id: rag.hybrid
+  track: rag
+  title: 'Hybrid search (keyword plus vector)'
+  evidence: browser
+  core: true
+- id: rag.rerank
+  track: rag
+  title: 'Re-ranking'
+  evidence: browser
+  core: true
+- id: rag.context
+  track: rag
+  title: 'Building context and citing sources'
+  evidence: browser
+  core: true
+- id: eval.datasets
+  track: eval
+  title: 'Building a labelled eval set'
+  evidence: browser
+  core: true
+- id: eval.retrieval-metrics
+  track: eval
+  title: 'Recall@k, precision@k and MRR'
+  evidence: browser
+  core: true
+- id: eval.answer-quality
+  track: eval
+  title: 'Judging answer quality, including LLM-as-judge and its biases'
+  evidence: browser
+  core: true
+- id: eval.experiments
+  track: eval
+  title: 'Running experiments and reporting honestly'
+  evidence: browser
+  core: true
+- id: eval.ci
+  track: eval
+  title: 'Evals in CI as regression gates'
+  evidence: local
+  core: true
+- id: eval.privacy
+  track: eval
+  title: 'Keeping personal data out of eval sets'
+  evidence: browser
+  core: true
+- id: com.clarifying
+  track: com
+  title: 'Asking clarifying questions before building'
+  evidence: local
+  core: true
+- id: com.tradeoffs
+  track: com
+  title: 'Explaining trade-offs'
+  evidence: local
+  core: true
+- id: com.client
+  track: com
+  title: 'Explaining technical decisions to non-technical people'
+  evidence: local
+  core: true
+- id: com.star
+  track: com
+  title: 'Behavioural answers with STAR'
+  evidence: local
+  core: true
+- id: com.project-story
+  track: com
+  title: 'Telling a 2-minute project story'
+  evidence: local
+  core: true
+- id: int.approach
+  track: int
+  title: 'A repeatable approach: clarify, examples, brute force, optimise, code, test, complexity'
+  evidence: interview
+  core: true
+- id: int.big-o
+  track: int
+  title: 'Big-O analysis'
+  evidence: interview
+  core: true
+- id: int.hashing
+  track: int
+  title: 'Arrays and hashing'
+  evidence: interview
+  core: true
+- id: int.two-pointers
+  track: int
+  title: 'Two pointers'
+  evidence: interview
+  core: true
+- id: int.sliding-window
+  track: int
+  title: 'Sliding window'
+  evidence: interview
+  core: true
+- id: int.stack
+  track: int
+  title: 'Stacks'
+  evidence: interview
+  core: true
+- id: int.binary-search
+  track: int
+  title: 'Binary search'
+  evidence: interview
+  core: true
+- id: int.recursion
+  track: int
+  title: 'Recursion'
+  evidence: interview
+  core: true
+- id: int.trees
+  track: int
+  title: 'Trees with DFS and BFS'
+  evidence: interview
+  core: true
+- id: int.heaps
+  track: int
+  title: 'Heaps'
+  evidence: interview
+  core: true
+- id: int.graphs
+  track: int
+  title: 'Graphs with BFS and DFS'
+  evidence: interview
+  core: true
+- id: int.intervals
+  track: int
+  title: 'Sorting and intervals'
+  evidence: interview
+  core: true
+- id: int.code-reading
+  track: int
+  title: 'Reading and fixing unfamiliar code'
+  evidence: interview
+  core: true
+- id: int.ai-assisted
+  track: int
+  title: 'Using an AI assistant in an interview while staying in control'
+  evidence: interview
+  core: true
+- id: sys.components
+  track: sys
+  title: 'Clients, APIs, workers, queues, databases and caches'
+  evidence: local
+  core: true
+- id: sys.scaling
+  track: sys
+  title: 'Scaling basics: stateless services, horizontal scaling, rate limits'
+  evidence: local
+  core: true
+- id: sys.failure
+  track: sys
+  title: 'Failure modes: timeouts, retries, idempotency, dead-letter queues'
+  evidence: local
+  core: true
+- id: sys.tradeoffs
+  track: sys
+  title: 'Making and stating design trade-offs'
+  evidence: local
+  core: true
+- id: ts.types
+  track: ts
+  title: 'TypeScript types, unions and narrowing'
+  evidence: browser
+  core: false
+- id: ts.react
+  track: ts
+  title: 'React components, props, state and effects'
+  evidence: browser
+  core: false
+- id: el.mcp
+  track: el
+  title: 'Building a small MCP server'
+  evidence: browser
+  core: false
+- id: el.frameworks
+  track: el
+  title: 'LangChain or similar versus a hand-written agent loop'
+  evidence: browser
+  core: false
+- id: el.finetuning
+  track: el
+  title: "What fine-tuning is, when it helps and when it doesn't"
+  evidence: browser
+  core: false
+- id: el.workflow-to-code
+  track: el
+  title: 'Moving an n8n workflow into tested Python'
+  evidence: browser
+  core: false
+- id: el.aws
+  track: el
+  title: 'Deploying the same service on AWS'
+  evidence: browser
+  core: false
