@@ -56,13 +56,21 @@ async function serveFromDisk(page: Page) {
   });
 }
 
+/** Hydrate every client:visible island: wait for the custom element, then scroll each into view. */
 async function scrollThrough(page: Page) {
-  await page.evaluate(async () => {
-    for (let y = 0; y < document.body.scrollHeight; y += 500) {
-      window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 40));
-    }
-  });
+  await page.waitForFunction(() => customElements.get('astro-island') !== undefined);
+  for (let round = 0; round < 8; round++) {
+    const remaining = await page.evaluate(async () => {
+      const pending = Array.from(document.querySelectorAll('astro-island[ssr]'));
+      for (const island of pending) {
+        // astro-island has no box of its own, so scroll its first child into view.
+        (island.firstElementChild ?? island).scrollIntoView({ block: 'center' });
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      return pending.length;
+    });
+    if (remaining === 0) break;
+  }
 }
 
 async function setConfidence(q: Locator, label = 'Certain') {
