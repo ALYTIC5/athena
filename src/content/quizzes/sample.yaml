@@ -1,0 +1,122 @@
+lesson: sample
+items:
+  - id: sample-q-single
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.values-names]
+    stem: After `b = a`, where `a` is a list, how many list objects exist?
+    options:
+      - text: Two, because assignment copies
+        correct: false
+        why: Assignment never copies. It only makes another name for the same object.
+      - text: One, with two names
+        correct: true
+        why: Both names refer to one list object, so changes through either name are visible through both.
+  - id: sample-q-multiple
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: multiple
+    competencies: [py.mutability]
+    stem: Which of these are mutable?
+    options:
+      - text: list
+        correct: true
+        why: Lists can change in place.
+      - text: tuple
+        correct: false
+        why: Tuples cannot change after they are created.
+      - text: dict
+        correct: true
+        why: Dicts can change in place.
+  - id: sample-q-short
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 2
+    type: short
+    competencies: [py.values-names]
+    stem: Which operator should you use to compare a value with None?
+    accepted: ['is', 'is None']
+    patterns: []
+    explanation: None is a single object, so `is` checks identity and cannot be fooled by a custom `==`.
+  - id: sample-q-predict
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 2
+    type: predict
+    competencies: [py.mutability]
+    code: |
+      x = [1, 2]
+      y = x
+      y.append(3)
+      print(x)
+    investigate:
+      - Why did x change when only y was touched?
+  - id: sample-q-parsons
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: parsons
+    competencies: [py.functions]
+    lines:
+      - 'def upcoming(bookings, today):'
+      - '    result = []'
+      - '    for b in bookings:'
+      - "        if b['date'] >= today:"
+      - '            result.append(b)'
+      - '    return result'
+    distractors:
+      - '    bookings.remove(b)'
+  - id: sample-q-bug
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: bug
+    competencies: [py.functions]
+    code: |
+      def add_item(item, items=[]):
+          items.append(item)
+          return items
+    buggyLine: 1
+    explanation: The default list is created once and shared by every call that uses the default.
+  - id: sample-q-order
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: order
+    competencies: [git.branching]
+    stem: Put the steps of a feature workflow in order.
+    steps:
+      - Create a branch
+      - Commit in small steps
+      - Push the branch
+      - Open a pull request
+  - id: sample-q-single-b
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [py.functions]
+    stem: What does a function return when it has no return statement?
+    options:
+      - text: None
+        correct: true
+        why: A function without a return statement returns None.
+      - text: '0'
+        correct: false
+        why: Python does not return zero by default.
+  - id: sample-q-single-c
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.values-names]
+    stem: Which statement creates an independent copy of a list `a`?
+    options:
+      - text: b = a
+        correct: false
+        why: That only adds a second name for the same list.
+      - text: b = a.copy()
+        correct: true
+        why: copy() makes a new list with the same items.

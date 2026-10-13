@@ -1,0 +1,16 @@
+---
+interface Props {
+  type?: 'misconception' | 'note' | 'tip';
+  title?: string;
+}
+
+const { type = 'note', title } = Astro.props;
+const label = title ?? { misconception: 'Common misconceptions', note: 'Note', tip: 'Tip' }[type];
+---
+
+<aside class={`athena-callout athena-callout-${type}`} aria-label={label}>
+  <p class="athena-callout-title">
+    <strong>{label}</strong>
+  </p>
+  <slot />
+</aside>

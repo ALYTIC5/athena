@@ -1,0 +1,37 @@
+id: sample-2-mastery-b
+lesson: sample-2
+runtime: python
+kind: make
+pools: [mastery]
+title: Count distinct callers
+difficulty: 1
+competencies: [py.sets]
+timeoutMs: 5000
+packages: []
+prompt: Write `distinct_callers(calls)` returning how many different values of `caller` appear in a list of dicts.
+starter: |
+  def distinct_callers(calls):
+      ...
+visibleTests: |
+  def test_counts():
+      assert distinct_callers([{"caller": "a"}, {"caller": "b"}, {"caller": "a"}]) == 2
+hiddenTests: |
+  def test_empty():
+      assert distinct_callers([]) == 0
+hints:
+  - Which structure keeps one of each value?
+  - Collect the callers into a set, then count it.
+  - "return len({c['caller'] for c in ____})"
+referenceSolution: |
+  def distinct_callers(calls):
+      return len({c["caller"] for c in calls})
+wrongSolutions:
+  - label: Counts every call
+    code: |
+      def distinct_callers(calls):
+          return len(calls)
+  - label: Counts only the first caller
+    code: |
+      def distinct_callers(calls):
+          return 1 if calls else 0
+explanation: A set comprehension collects each caller once, so its length is the number of distinct callers.

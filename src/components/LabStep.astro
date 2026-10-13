@@ -1,0 +1,30 @@
+---
+import { getCollection } from 'astro:content';
+import { url } from '../lib/url';
+
+interface Props {
+  milestone: string;
+}
+
+const { milestone } = Astro.props;
+const weeks = await getCollection('curriculum');
+const listed = weeks.some((w) => w.data.lab.some((l) => l.milestone === milestone));
+if (!listed) throw new Error(`LabStep: milestone ${milestone} is not listed in curriculum.yaml`);
+const docs = await getCollection('docs');
+const page = docs.find((d) => d.id === `labs/${milestone}`);
+---
+
+<aside class="athena-callout" aria-label="Use it in your project">
+  <p class="athena-callout-title">
+    <strong>Use it in your project</strong>
+  </p>
+  {page ? (
+    <p>
+      Next step: <a href={url(`labs/${milestone}/`)}>milestone {milestone}</a>.
+    </p>
+  ) : (
+    <p>
+      Next step: milestone <code>{milestone}</code>. The milestone page is coming soon.
+    </p>
+  )}
+</aside>

@@ -1,0 +1,22 @@
+---
+interface Props {
+  n: number;
+  title: string;
+  /** The learner already knows this from practice: open with a problem, worked example afterwards. */
+  prior?: boolean;
+}
+
+const { n, title, prior = false } = Astro.props;
+---
+
+<section class="athena-chunk" aria-labelledby={`chunk-${n}`}>
+  <h2 id={`chunk-${n}`}>
+    Chunk {n}: {title}
+  </h2>
+  {prior && (
+    <p class="athena-prior">
+      <em>Try the problem first. The worked example comes afterwards, for checking.</em>
+    </p>
+  )}
+  <slot />
+</section>

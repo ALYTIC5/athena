@@ -1,0 +1,130 @@
+lesson: sample-2
+items:
+  - id: sample-2-q-check-single
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.sets]
+    stem: Which is fastest for a membership test on a large collection?
+    options:
+      - text: list
+        correct: false
+        why: A list scans items one by one, so the cost grows with its size.
+      - text: set
+        correct: true
+        why: A set uses hashing, so a membership test takes about constant time.
+  - id: sample-2-q-check-predict
+    pools: [check]
+    chunk: 1
+    type: predict
+    competencies: [py.sets]
+    code: |
+      print("a")
+      int("x")
+    investigate:
+      - Which line raises, and what was printed first?
+  - id: sample-2-q-m1
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.sets]
+    stem: Mastery question 1. Which structure removes duplicates?
+    options:
+      - text: set
+        correct: true
+        why: A set keeps one of each value.
+      - text: tuple
+        correct: false
+        why: A tuple keeps duplicates.
+  - id: sample-2-q-m2
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.sets]
+    stem: Mastery question 2. What does len({1, 1, 2}) return?
+    options:
+      - text: '2'
+        correct: true
+        why: The set holds 1 and 2 only.
+      - text: '3'
+        correct: false
+        why: Duplicate values collapse in a set.
+  - id: sample-2-q-m3
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.dicts]
+    stem: Mastery question 3. How do you read a key without raising when it is missing?
+    options:
+      - text: d.get(key)
+        correct: true
+        why: get() returns None for a missing key.
+      - text: d[key]
+        correct: false
+        why: Indexing raises KeyError when the key is missing.
+  - id: sample-2-q-m4
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.dicts]
+    stem: Mastery question 4. What does iterating over a dict give by default?
+    options:
+      - text: keys
+        correct: true
+        why: Iterating over a dict yields its keys.
+      - text: values
+        correct: false
+        why: Use .values() to iterate over values.
+  - id: sample-2-q-m5
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.complexity]
+    stem: Mastery question 5. What is the cost of a membership test in a list?
+    options:
+      - text: O(n)
+        correct: true
+        why: It may have to look at every item.
+      - text: O(1)
+        correct: false
+        why: That is the typical cost for a set or dict.
+  - id: sample-2-q-m6
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.complexity]
+    stem: Mastery question 6. Which loop style is quadratic when comparing every pair?
+    options:
+      - text: Nested loops over the same list
+        correct: true
+        why: Each item is compared with every other item.
+      - text: One loop with a set lookup
+        correct: false
+        why: That is linear.
+  - id: sample-2-q-m7
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.sets]
+    stem: Mastery question 7. Can a list be an element of a set?
+    options:
+      - text: No, lists are unhashable
+        correct: true
+        why: Set elements must be hashable, and lists can change.
+      - text: Yes
+        correct: false
+        why: A TypeError is raised for unhashable types.
+  - id: sample-2-q-m8
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.dicts]
+    stem: Mastery question 8. Do dicts keep insertion order?
+    options:
+      - text: Yes
+        correct: true
+        why: Dicts keep insertion order in current Python versions.
+      - text: No
+        correct: false
+        why: That was true of very old Python versions only.

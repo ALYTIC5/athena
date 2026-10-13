@@ -1,0 +1,80 @@
+/* Styles for Athena's interactive components. Colours come from Starlight's tokens so contrast holds in light and dark. */
+
+.athena-question {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.athena-question legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+}
+
+.athena-callout {
+  border-inline-start: 0.25rem solid var(--sl-color-accent);
+  background: var(--sl-color-gray-6);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+}
+
+.athena-callout-misconception {
+  border-inline-start-color: var(--sl-color-orange);
+}
+
+.athena-callout-title {
+  margin: 0;
+}
+
+.athena-session-break {
+  text-align: center;
+}
+
+.athena-why[data-correct='true'] {
+  border-inline-start: 0.25rem solid var(--sl-color-green);
+  padding-inline-start: 0.5rem;
+}
+
+.athena-why[data-correct='false'] {
+  border-inline-start: 0.25rem solid var(--sl-color-orange);
+  padding-inline-start: 0.5rem;
+}
+
+.athena-sortable,
+.athena-available {
+  list-style: none;
+  padding-inline-start: 0;
+}
+
+.athena-sortable li,
+.athena-available li {
+  margin: 0.25rem 0;
+}
+
+.athena-sortable button[aria-pressed='true'] {
+  outline: 3px solid var(--sl-color-accent);
+}
+
+.athena-code-line {
+  font-family: var(--sl-font-mono);
+  text-align: start;
+}
+
+.athena-line-tools button {
+  margin-inline-start: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.athena-note {
+  color: var(--sl-color-orange-high);
+}
+
+.athena-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

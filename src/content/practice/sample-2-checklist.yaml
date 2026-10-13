@@ -1,0 +1,10 @@
+id: sample-2-checklist
+lesson: sample-2
+kind: checklist
+competencies: [git.branching]
+title: Practise a feature branch
+steps:
+  - do: git switch -c add-greeting
+    expect: "Switched to a new branch 'add-greeting'"
+  - do: 'git commit -m "feat: add greeting"'
+    expect: One file changed

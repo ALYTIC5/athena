@@ -1,20 +1,30 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import Exercise from '../../components/Exercise.astro';
+import Lesson from '../../samples/lesson.mdx';
 
-// Sample exercises render only in end-to-end builds (ATHENA_SAMPLES=1). They are never published.
+// Sample pages render only in end-to-end builds (ATHENA_SAMPLES=1). They are never published.
 export function getStaticPaths() {
-  return process.env.ATHENA_SAMPLES === '1' ? [{ params: { slug: 'exercises' } }] : [];
+  return process.env.ATHENA_SAMPLES === '1'
+    ? [{ params: { slug: 'exercises' } }, { params: { slug: 'lesson' } }]
+    : [];
 }
+
+const { slug } = Astro.params;
 ---
 
-<StarlightPage frontmatter={{ title: 'Sample exercises' }}>
-  <h2>Make</h2>
-  <Exercise id="sample-make-total-minutes" />
-  <h2>Write tests</h2>
-  <Exercise id="sample-write-tests-clamp" />
-  <h2>SQL</h2>
-  <Exercise id="sample-sql-no-bookings" />
-  <Exercise id="sample-sql-nearest-memory" />
-  <Exercise id="sample-sql-unique-booking" />
+<StarlightPage frontmatter={{ title: slug === 'lesson' ? 'Sample lesson' : 'Sample exercises' }}>
+  {slug === 'lesson' && <Lesson />}
+  {slug === 'exercises' && (
+    <>
+      <h2>Make</h2>
+      <Exercise id="sample-make-total-minutes" />
+      <h2>Write tests</h2>
+      <Exercise id="sample-write-tests-clamp" />
+      <h2>SQL</h2>
+      <Exercise id="sample-sql-no-bookings" />
+      <Exercise id="sample-sql-nearest-memory" />
+      <Exercise id="sample-sql-unique-booking" />
+    </>
+  )}
 </StarlightPage>

@@ -7,7 +7,10 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "truth": "tsx scripts/build-predict-truth.ts",
+    "predev": "npm run truth",
     "dev": "astro dev",
+    "prebuild": "npm run truth",
     "build": "astro build",
     "preview": "astro preview",
     "lint": "eslint . && prettier --check .",
@@ -21,6 +24,7 @@
     "check:full": "npm run check && npm run e2e:all && npm run size"
   },
   "dependencies": {
+    "@astrojs/mdx": "8.0.3",
     "@astrojs/react": "7.0.1",
     "@astrojs/starlight": "0.42.6",
     "@codemirror/commands": "6.11.1",

@@ -1,0 +1,9 @@
+---
+import { PracticeIsland } from './quiz/PracticeIsland';
+
+interface Props {
+  id: string;
+}
+---
+
+<PracticeIsland client:visible id={Astro.props.id} />
