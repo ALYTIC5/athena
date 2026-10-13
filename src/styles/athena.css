@@ -78,3 +78,12 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.athena-due-badge {
+  margin-inline-start: 0.75rem;
+  padding: 0.1rem 0.6rem;
+  border: 1px solid var(--sl-color-accent);
+  border-radius: 999px;
+  font-size: var(--sl-text-sm);
+  white-space: nowrap;
+}

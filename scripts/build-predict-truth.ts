@@ -30,6 +30,20 @@ try {
       truth[item.id] = expectedOutput(r.stdout, r.error);
     }
   }
+
+  // Predict cards: the card front is the code, and the back is shown after the learner answers.
+  const CARD_DIR = 'src/content/cards';
+  for (const file of readdirSync(CARD_DIR).filter((f) => f.endsWith('.yaml'))) {
+    const doc = parse(readFileSync(`${CARD_DIR}/${file}`, 'utf8')) as {
+      cards?: { id: string; type: string; front?: string }[];
+    };
+    for (const c of doc.cards ?? []) {
+      if (c.type !== 'predict' || typeof c.front !== 'string') continue;
+      const r = await runPython(runner, c.front, [], 10000);
+      if (r.timedOut) throw new Error(`Predict card ${c.id} timed out`);
+      truth[c.id] = expectedOutput(r.stdout, r.error);
+    }
+  }
 } finally {
   await runner.dispose();
 }

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { getCollection } from 'astro:content';
 import type { LessonOrder, Question } from '../quiz/types';
+import type { ContentCard } from '../srs/queue';
 
 /**
  * Content of planned lessons is schema-checked but never rendered or shipped. In end-to-end
@@ -82,4 +83,33 @@ export async function publishedQuestions(): Promise<Question[]> {
     }
   }
   return items;
+}
+
+/** Cards of published lessons with the lesson attached; predict cards get build-time ground truth. */
+export async function publishedCards(): Promise<ContentCard[]> {
+  const published = await publishedLessonIds();
+  const truth = loadPredictTruth();
+  const out: ContentCard[] = [];
+  for (const doc of await getCollection('cards')) {
+    if (!published.has(doc.data.lesson)) continue;
+    for (const c of doc.data.cards) {
+      const card: ContentCard = {
+        id: c.id,
+        lesson: doc.data.lesson,
+        type: c.type,
+        competencies: c.competencies,
+        front: c.front,
+        back: c.back,
+      };
+      if (c.type === 'predict') {
+        const expected = truth[c.id];
+        if (expected === undefined) {
+          throw new Error(`No ground truth for predict card ${c.id}. Run \`npm run truth\`.`);
+        }
+        card.expected = expected;
+      }
+      out.push(card);
+    }
+  }
+  return out;
 }

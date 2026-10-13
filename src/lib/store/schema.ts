@@ -85,6 +85,7 @@ const card = z.object({
     lapses: z.int(),
     state: z.enum(['new', 'learning', 'review', 'relearning']),
     lastReview: z.optional(isoTime),
+    learningSteps: z.optional(z.int()),
   }),
   custom: z.optional(
     z.object({ front: z.string(), back: z.string(), competencies: z.array(z.string()) }),

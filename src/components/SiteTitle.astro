@@ -1,0 +1,9 @@
+---
+import Default from '@astrojs/starlight/components/SiteTitle.astro';
+import { DueBadge } from './DueBadge';
+---
+
+<Default>
+  <slot />
+</Default>
+<DueBadge client:load />

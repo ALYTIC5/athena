@@ -31,6 +31,7 @@ export default defineConfig({
     starlight({
       title: 'Athena',
       customCss: ['./src/styles/athena.css'],
+      components: { SiteTitle: './src/components/SiteTitle.astro' },
       plugins: [starlightLinksValidator()],
       sidebar: [
         { label: 'Home', link: '/' },
