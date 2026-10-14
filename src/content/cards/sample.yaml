@@ -1,0 +1,26 @@
+lesson: sample
+cards:
+  - id: sample-c-basic
+    type: basic
+    competencies: [py.values-names]
+    front: Why does b = a not copy a list?
+    back: Assignment gives the same object another name, so no copy is made.
+  - id: sample-c-cloze
+    type: cloze
+    competencies: [py.mutability]
+    front: A list is ____, so it can change in place.
+    back: mutable
+  - id: sample-c-predict
+    type: predict
+    competencies: [py.mutability]
+    front: |
+      a = [1, 2]
+      b = a
+      b.append(3)
+      print(a)
+    back: Both names point at one list, so the change shows through a.
+  - id: sample-c-explain
+    type: explain
+    competencies: [py.functions]
+    front: Why is a mutable default argument a bug?
+    back: The default is created once, so every call that uses it shares and changes the same object.

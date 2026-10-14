@@ -209,6 +209,13 @@ export function mergeData(local: LearnerData, incoming: LearnerData): LearnerDat
   };
 }
 
+/** Same-tab change signal: the `storage` event only fires in other tabs. */
+export const STORE_CHANGED_EVENT = 'athena-store-changed';
+
+function notifyChanged(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(STORE_CHANGED_EVENT));
+}
+
 /** The minimal slice of the Web Storage API the store needs. */
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -241,6 +248,7 @@ export function update(
   const checked = migrate(next);
   if (!checked.ok) throw new Error(checked.error);
   storage.setItem(STORAGE_KEY, JSON.stringify(checked.data));
+  notifyChanged();
   return checked.data;
 }
 
@@ -259,11 +267,13 @@ export function importData(storage: KeyValueStorage, text: string, mode: ImportM
       ? mergeData(current.data, parsed.data)
       : parsed.data;
   storage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  notifyChanged();
   return { ok: true, data: merged };
 }
 
 export function reset(storage: KeyValueStorage): void {
   storage.removeItem(STORAGE_KEY);
+  notifyChanged();
 }
 
 /** Calls `onChange` when another tab writes the store. Returns an unsubscribe function. */
@@ -272,9 +282,14 @@ export function subscribe(
   onChange: () => void,
 ): () => void {
   const handler = (e: Event) => {
+    if (e.type === STORE_CHANGED_EVENT) return onChange();
     const key = (e as StorageEvent).key;
     if (key === null || key === STORAGE_KEY) onChange();
   };
   target.addEventListener('storage', handler);
-  return () => target.removeEventListener('storage', handler);
+  target.addEventListener(STORE_CHANGED_EVENT, handler);
+  return () => {
+    target.removeEventListener('storage', handler);
+    target.removeEventListener(STORE_CHANGED_EVENT, handler);
+  };
 }

@@ -1,0 +1,7 @@
+lesson: sample-2
+cards:
+  - id: sample-2-c-set
+    type: basic
+    competencies: [py.sets]
+    front: Why is a set membership test fast?
+    back: A set hashes its items, so it can jump to the right slot instead of scanning.
