@@ -7,7 +7,14 @@ export const DEFAULT_TIMEOUT_MS = 5000;
 export type PythonRequest =
   | { type: 'run'; id: number; code: string; packages?: string[] }
   | { type: 'tests'; id: number; code: string; tests: string; packages?: string[] }
-  | { type: 'pytest'; id: number; impl: string; tests: string; packages?: string[] };
+  | { type: 'pytest'; id: number; impl: string; tests: string; packages?: string[] }
+  | {
+      type: 'files';
+      id: number;
+      files: Record<string, string>;
+      tests: string;
+      packages?: string[];
+    };
 
 export type TestStatus = 'passed' | 'failed' | 'errored';
 

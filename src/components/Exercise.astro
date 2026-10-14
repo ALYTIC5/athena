@@ -2,6 +2,7 @@
 import { getEntry } from 'astro:content';
 import { Code } from '@astrojs/starlight/components';
 import { ExerciseIsland } from './ExerciseIsland';
+import { publishedLessons } from '../lib/content/published';
 import { url } from '../lib/url';
 
 interface Props {
@@ -12,12 +13,14 @@ const { id } = Astro.props;
 const exercise = await getEntry('exercises', id);
 if (!exercise) throw new Error(`Unknown exercise: ${id}`);
 const e = exercise.data;
+const lessonTitle =
+  (await publishedLessons()).find((l) => l.id === e.lesson)?.title ?? e.title ?? id;
 ---
 
 <ExerciseIsland
   client:visible
   id={id}
-  lessonTitle={e.title ?? id}
+  lessonTitle={lessonTitle}
   kind={e.kind}
   runtime={e.runtime}
   schema={e.schema}

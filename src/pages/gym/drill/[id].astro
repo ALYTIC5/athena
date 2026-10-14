@@ -1,0 +1,27 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { DrillIsland } from '../../../components/gym/DrillIsland';
+import { visibleDrills } from '../../../lib/content/gym';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const drills = await visibleDrills();
+  return drills.map((d) => ({ params: { id: d.data.id }, props: { drill: d.data } }));
+}
+
+const { drill } = Astro.props;
+---
+
+<StarlightPage frontmatter={{ title: drill.title }}>
+  <DrillIsland
+    client:load
+    id={drill.id}
+    kind={drill.kind}
+    title={drill.title}
+    task={drill.task}
+    files={drill.files}
+    failingTest={drill.failingTest}
+    timeLimitMin={drill.timeLimitMin}
+    dataUrl={url(`data/drills/${drill.id}.json`)}
+  />
+</StarlightPage>

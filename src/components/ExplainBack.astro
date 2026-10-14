@@ -1,0 +1,34 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import { ExplainBackIsland } from './prompts/ExplainBackIsland';
+import { assertPublished } from '../lib/content/guards';
+import { isSampleLesson } from '../lib/content/published';
+
+interface Props {
+  lesson: string;
+  exercise: string;
+}
+
+const { lesson, exercise } = Astro.props;
+await assertPublished(lesson, 'ExplainBack');
+
+const ex = await getEntry('exercises', exercise);
+if (!ex) throw new Error(`ExplainBack: unknown exercise "${exercise}"`);
+if (ex.data.pools.includes('mastery') && !ex.data.pools.includes('lesson')) {
+  throw new Error('ExplainBack is never used after mastery make exercises.');
+}
+
+const page = (await getCollection('docs')).find((d) => d.id === `lessons/${lesson}`);
+if (!page && !isSampleLesson(lesson)) {
+  throw new Error(`ExplainBack: no lesson page for "${lesson}"`);
+}
+const objectives = page?.data.objectives ?? ['Explain what your code does and why'];
+---
+
+<ExplainBackIsland
+  client:visible
+  lesson={lesson}
+  exercise={exercise}
+  objectives={objectives}
+  competencies={ex.data.competencies}
+/>

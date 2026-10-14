@@ -17,6 +17,7 @@ export default defineConfig({
         './src/components/Checklist.astro',
         './src/components/Chunk.astro',
         './src/components/Exercise.astro',
+        './src/components/ExplainBack.astro',
         './src/components/InterviewCorner.astro',
         './src/components/LabStep.astro',
         './src/components/MasteryCheck.astro',

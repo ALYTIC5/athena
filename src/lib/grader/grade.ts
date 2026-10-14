@@ -222,3 +222,36 @@ export function shouldNudgeStuck(args: {
 }): boolean {
   return !args.passed && args.now - args.startedAt >= STUCK_AFTER_MS;
 }
+
+/** Run a multi-file program against a test file (code-reading drills). Files are written fresh each run. */
+export async function gradeFiles(
+  runner: Runner,
+  args: { files: Record<string, string>; tests: string; timeoutMs: number; packages?: string[] },
+): Promise<GradeReport> {
+  const outcome = await runner.run(
+    { type: 'files', files: args.files, tests: args.tests, packages: args.packages ?? [] },
+    args.timeoutMs,
+  );
+  if (outcome.kind === 'timeout') {
+    return {
+      passed: false,
+      tests: [],
+      stdout: '',
+      stderr: '',
+      error: outcome.message,
+      timedOut: true,
+    };
+  }
+  if (outcome.kind === 'failure') {
+    return { passed: false, tests: [], stdout: '', stderr: '', error: outcome.message };
+  }
+  const { response } = outcome;
+  if (response.error !== undefined) return emptyReport(response, response.error);
+  const tests = (response.tests ?? []).map((t) => ({ ...t, hidden: false }));
+  return {
+    passed: tests.length > 0 && tests.every((t) => t.status === 'passed'),
+    tests,
+    stdout: response.stdout,
+    stderr: response.stderr,
+  };
+}

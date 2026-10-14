@@ -85,13 +85,19 @@ export function createEngine(loadPyodide: LoadPyodide) {
         return;
       }
 
-      const fn = py.globals.get(
-        req.type === 'tests' ? '_athena_run_tests' : '_athena_run_pytest',
-      ) as PyFn;
+      const fnName =
+        req.type === 'tests'
+          ? '_athena_run_tests'
+          : req.type === 'files'
+            ? '_athena_run_files'
+            : '_athena_run_pytest';
+      const fn = py.globals.get(fnName) as PyFn;
       const payload =
         req.type === 'tests'
           ? { code: req.code, tests: req.tests }
-          : { impl: req.impl, tests: req.tests };
+          : req.type === 'files'
+            ? { files: req.files, tests: req.tests }
+            : { impl: req.impl, tests: req.tests };
       const raw = JSON.parse(fn(JSON.stringify(payload))) as {
         error?: string;
         tests: TestResult[];

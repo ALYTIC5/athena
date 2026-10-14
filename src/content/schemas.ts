@@ -228,6 +228,8 @@ export const drillSchema = z.object({
   title: z.string(),
   competencies: competencyIds,
   files: z.record(z.string(), z.string()),
+  /** AI-assisted drills: what the learner is asked to do. */
+  task: z.string().optional(),
   failingTest: z.string(),
   bugExplanation: z.string(),
   fixedFiles: z.record(z.string(), z.string()),

@@ -1,0 +1,29 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { GymProblemIsland } from '../../../components/gym/GymProblemIsland';
+import { visibleProblems } from '../../../lib/content/gym';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const problems = await visibleProblems();
+  return problems.map((p) => ({ params: { id: p.data.id }, props: { problem: p.data } }));
+}
+
+const { problem } = Astro.props;
+---
+
+<StarlightPage frontmatter={{ title: problem.title }}>
+  <GymProblemIsland
+    client:load
+    id={problem.id}
+    title={problem.title}
+    statement={problem.statement}
+    examples={problem.examples}
+    constraints={problem.constraints}
+    starter={problem.starter}
+    visibleTests={problem.visibleTests}
+    difficulty={problem.difficulty}
+    timeLimitMin={problem.timeLimitMin}
+    dataUrl={url(`data/problems/${problem.id}.json`)}
+  />
+</StarlightPage>
