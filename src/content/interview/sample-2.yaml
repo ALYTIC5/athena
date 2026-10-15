@@ -1,7 +1,7 @@
 lesson: sample-2
 questions:
   - id: sample-2-iq-set-list
-    competencies: [py.sets]
+    competencies: [py.collections]
     question: Why is membership testing in a set faster than in a list?
     modelAnswer: A set stores items by hash, so it can jump to the right slot instead of scanning every item. A list has to compare against items one by one.
     listenFor:

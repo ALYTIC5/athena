@@ -5,7 +5,7 @@ kind: make
 pools: [mastery]
 title: Count distinct callers
 difficulty: 1
-competencies: [py.sets]
+competencies: [py.collections]
 timeoutMs: 5000
 packages: []
 prompt: Write `distinct_callers(calls)` returning how many different values of `caller` appear in a list of dicts.
