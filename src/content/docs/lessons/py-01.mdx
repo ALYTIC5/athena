@@ -1,0 +1,275 @@
+---
+title: Names, values and mutability
+description: How Python names refer to objects, why a function can change your list, and the mutable default argument bug.
+sidebar:
+  order: 30
+lessonId: py-01
+week: 3
+track: py
+durationMin: 165
+anatomy: full
+competencies: [py.values-names, py.mutability, py.control-flow, py.functions]
+prerequisites: [start-00]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting. The bugs in this lesson are some of the most common in real
+  Python code: one list quietly shared by two bookings, a function that changes the list you gave it, a default argument
+  that remembers the last call. They show up in interviews as "what does this print?" questions, and in production as
+  data that changes when nobody touched it.
+objectives:
+  - Explain that names refer to objects and assignment never copies
+  - Predict the effect of mutating a list passed to a function
+  - Explain and avoid the mutable default argument bug
+  - Choose between == and is, and predict which values count as false in an if
+  - Write a function that returns a new list instead of mutating its input, using a shallow or deep copy where needed
+sources:
+  - title: "Python reference: objects, values and types"
+    url: https://docs.python.org/3/reference/datamodel.html#objects-values-and-types
+  - title: "Python tutorial: more on lists"
+    url: https://docs.python.org/3/tutorial/datastructures.html#more-on-lists
+  - title: "Python tutorial: more control flow tools"
+    url: https://docs.python.org/3/tutorial/controlflow.html
+  - title: "copy: shallow and deep copy operations"
+    url: https://docs.python.org/3/library/copy.html
+  - title: "Python FAQ: why are default values shared between objects?"
+    url: https://docs.python.org/3/faq/programming.html#why-are-default-values-shared-between-objects
+  - title: "Python FAQ: why doesn't list.sort() return the sorted list?"
+    url: https://docs.python.org/3/faq/design.html#why-doesn-t-list-sort-return-the-sorted-list
+  - title: "Python reference: identity comparisons"
+    url: https://docs.python.org/3/reference/expressions.html#is-not
+  - title: "Python reference: truth value testing"
+    url: https://docs.python.org/3/library/stdtypes.html#truth-value-testing
+---
+
+<WarmUp lesson="py-01" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting. The bugs in this lesson are some of the most common in real Python code: one list quietly shared by two bookings, a function that changes the list you gave it, a default argument that remembers the last call. They show up in interviews as "what does this print?" questions, and in production as data that changes when nobody touched it.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Explain that names refer to objects and assignment never copies.
+2. Predict the effect of mutating a list passed to a function.
+3. Explain and avoid the mutable default argument bug.
+4. Choose between `==` and `is`, and predict which values count as false in an `if`.
+5. Write a function that returns a new list instead of mutating its input, using a shallow or deep copy where needed.
+
+<Callout type="note" title="What this lesson assumes">
+
+You can read simple Python: `def`, `return`, `for`, `if`, and indexing into a list or dict. If a line looks unfamiliar, read the [Python tutorial on control flow](https://docs.python.org/3/tutorial/controlflow.html) first.
+
+</Callout>
+
+<Chunk n={1} title="Names point to objects">
+
+In Python, a variable is a **name** that refers to an **object**. The statement `b = a` does not copy anything. It gives the object that `a` refers to a second name. `id(x)` shows a number that identifies the object, and `is` compares those identities.
+
+Some objects can change in place. They are **mutable**: lists, dicts and sets. Others are **immutable**: numbers, strings and tuples. A tuple's own items cannot be replaced, but a mutable object stored inside a tuple can still change.
+
+When you write `title = title + "!"` you do not change the string. You build a new string and point the name at it. Two names for one mutable object means a change through one name shows through the other.
+
+`is` asks whether two names refer to the same object. `==` asks whether two objects are equal.
+
+**Worked example.** Read the comments from top to bottom.
+
+```python
+calls = ["alice", "bayu"]   # one list object, with the name `calls`
+backup = calls              # a second name for the SAME list
+calls.append("chen")        # change the list through one name
+print(backup)               # ['alice', 'bayu', 'chen']: both names see it
+print(calls is backup)      # True: one object, two names
+print(id(calls) == id(backup))   # True: the same identity number
+```
+
+An immutable object behaves differently, because it can never be changed in place.
+
+```python
+title = "Dr"
+other = title        # a second name for the same string
+title = title + "!"  # builds a NEW string and rebinds `title`
+print(title)         # Dr!
+print(other)         # Dr: the first string was never changed
+```
+
+<Predict lesson="py-01" item="py-01-q-predict-alias" />
+
+<Exercise id="py-01-faded-alias" />
+
+<Quiz lesson="py-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "Assignment copies the value." It never does. `b = a` adds a name.
+- "Immutable means the name cannot change." The object cannot change, but a name can always be pointed at a different object.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Copies, and functions that change their inputs">
+
+A function parameter is a name for the object the caller passed in. Python does not copy arguments, so a function that changes a mutable argument in place changes the caller's data. To avoid surprises, build and return a new object, or copy first.
+
+`list(x)`, `x.copy()` and `x[:]` make a **shallow copy**: a new outer list that holds the same inner objects. For a list of lists, the inner lists are still shared. `copy.deepcopy(x)` copies the inner objects too. A dict copies the same way: `dict(d)` or `d.copy()`, and `{**d, "key": value}` builds a copy with one key changed (later keys win).
+
+**Worked example.** A function that returns a new list and leaves its input alone.
+
+```python
+def add_slot(slots, new_slot):
+    updated = list(slots)      # a new outer list
+    updated.append(new_slot)   # changes only the new list
+    return updated
+
+morning = ["09:00"]
+longer = add_slot(morning, "10:00")
+print(morning)   # ['09:00']: unchanged
+print(longer)    # ['09:00', '10:00']
+```
+
+A shallow copy shares inner objects; a deep copy does not.
+
+```python
+import copy
+
+rows = [["a"], ["b"]]
+shallow = list(rows)
+deep = copy.deepcopy(rows)
+rows[0].append("x")
+print(shallow)   # [['a', 'x'], ['b']]: the inner list is shared
+print(deep)      # [['a'], ['b']]: fully independent
+```
+
+A dict copy with one key changed.
+
+```python
+booking = {"id": "b1", "slot": "09:00"}
+moved = {**booking, "slot": "11:00"}    # a new dict; the later key wins
+print(booking["slot"], moved["slot"])   # 09:00 11:00
+```
+
+<Predict lesson="py-01" item="py-01-q-predict-function-mutates" />
+
+<Exercise id="py-01-faded-copy" />
+
+<Quiz lesson="py-01" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "A function gets its own copy of the list." It gets another name for the caller's list.
+- "`items.sort()` returns the sorted list." It sorts in place and returns `None`. Use `sorted(items)` for a new list.
+- "`a += [x]` and `a = a + [x]` do the same thing." The first changes the list in place; the second builds a new list.
+
+</Callout>
+
+<Callout type="note" title="Two traps with in-place changes">
+
+Most list methods that change the list in place, such as `append`, `sort` and `reverse`, return `None`. `sorted(x)` and `x + [item]` build a new list. And `+=` on a list extends the list in place:
+
+```python
+a = ["x"]
+b = a
+a += ["y"]       # extends the SAME list in place
+print(b)         # ['x', 'y']: b sees it
+a = a + ["z"]    # builds a NEW list and rebinds `a`
+print(b)         # ['x', 'y']: b still holds the old list
+```
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Defaults and the None check">
+
+A default value is created once, when `def` runs, not on each call. A mutable default such as `items=[]` is therefore one list, shared by every call that does not pass its own. Use `None` as the default and create the list inside the function.
+
+To test for "not given", use `is None`. Do not use `if not items`. An empty list is **falsy**, like `0`, `""`, `None`, `False` and other empty containers. But an empty list the caller passed in is still the list they want you to use.
+
+Use `is` for `None` and for a sentinel, which is a unique marker object that means "not given". Use `==` to compare values. Do not use `is` to compare numbers or strings: whether two equal values share one object can differ between Python versions.
+
+```python
+print(bool([]), bool(0), bool(""), bool(None))   # False False False False: all falsy
+print(bool([0]), bool("0"))                      # True True: not empty, so truthy
+```
+
+**Worked example.** The safe pattern, then the bug.
+
+```python
+def add_note(note, notes=None):
+    if notes is None:
+        notes = []              # a new list on every call that needs one
+    notes.append(note)
+    return notes
+
+print(add_note("call back"))      # ['call back']
+print(add_note("send invoice"))   # ['send invoice']: a fresh list each time
+```
+
+```python
+def bad_add_note(note, notes=[]):   # ONE list, created when `def` runs
+    notes.append(note)
+    return notes
+
+print(bad_add_note("call back"))      # ['call back']
+print(bad_add_note("send invoice"))   # ['call back', 'send invoice']: shared
+```
+
+```python
+def add_note_wrong(note, notes=None):
+    if not notes:           # an empty list is falsy, so it is replaced
+        notes = []
+    notes.append(note)
+    return notes
+
+mine = []
+add_note_wrong("call back", mine)
+print(mine)   # []: the caller's list was replaced, not filled
+```
+
+<Predict lesson="py-01" item="py-01-q-predict-default" />
+
+<Exercise id="py-01-faded-default" />
+
+<Quiz lesson="py-01" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "`items=[]` makes a new list each time." It makes one list, once.
+- "`if not items` and `if items is None` mean the same thing." An empty list is falsy but is not `None`.
+
+</Callout>
+
+</Chunk>
+
+## Build a function that returns a filtered copy
+
+Put the lines in order. Add only the lines you need: one of them is a distractor that would change the caller's list.
+
+<Parsons lesson="py-01" item="py-01-q-parsons-filter" />
+
+<SessionBreak />
+
+## Find the bug
+
+Two days in this scheduler share one booking list. Find the line that causes it and fix it. The failing test names the symptom, not the cause.
+
+<Exercise id="py-01-debug-shared-default" />
+
+## Write it yourself
+
+<Exercise id="py-01-make-reschedule" />
+
+<ExplainBack lesson="py-01" exercise="py-01-make-reschedule" />
+
+## Mastery check
+
+<MasteryCheck lesson="py-01" count={8} />
+
+<InterviewCorner lesson="py-01" />
+
+## Further reading
+
+- [Python reference: objects, values and types](https://docs.python.org/3/reference/datamodel.html#objects-values-and-types)
+- [Python FAQ: why are default values shared between objects?](https://docs.python.org/3/faq/programming.html#why-are-default-values-shared-between-objects)
+- [copy: shallow and deep copy operations](https://docs.python.org/3/library/copy.html)

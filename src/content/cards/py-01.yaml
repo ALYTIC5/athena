@@ -1,0 +1,111 @@
+lesson: py-01
+cards:
+  - id: py-01-c-assignment
+    type: explain
+    competencies:
+      - py.values-names
+    front: What does `b = a` do when `a` refers to a list? Is anything copied?
+    back: Nothing is copied. `b = a` binds a second name to the same object. A change made through either name shows through both, because there is only one list.
+  - id: py-01-c-is-vs-eq
+    type: predict
+    competencies:
+      - py.values-names
+    front: |
+      a = [1]
+      b = [1]
+      print(a == b, a is b)
+    back: '`==` compares values and `is` compares identity. Two separate lists with the same items are equal but are two objects.'
+  - id: py-01-c-is-none
+    type: basic
+    competencies:
+      - py.values-names
+      - py.control-flow
+    front: How do you check for `None`, and why?
+    back: '`value is None`. `None` is a single object, so identity is the exact test. `not value` would also match 0, empty strings and empty lists.'
+  - id: py-01-c-mutable
+    type: explain
+    competencies:
+      - py.mutability
+    front: Why can `title = title + '!'` leave another name that referred to the old string unchanged?
+    back: Strings are immutable. The `+` builds a new string and the name `title` is pointed at it, so the other name still refers to the old, unchanged string.
+  - id: py-01-c-predict-alias
+    type: predict
+    competencies:
+      - py.values-names
+      - py.mutability
+    front: |
+      a = [1, 2]
+      b = a
+      b.append(3)
+      print(a)
+    back: Both names refer to one list, so appending through `b` changes what `a` shows.
+  - id: py-01-c-shallow
+    type: explain
+    competencies:
+      - py.mutability
+    front: '`list(x)`, `x.copy()` and `x[:]` are shallow copies. What does that mean for a list of lists?'
+    back: They make a new outer list but reuse the same inner lists. Changing an inner list shows through both. `copy.deepcopy(x)` copies the inner lists too.
+  - id: py-01-c-function-mutation
+    type: explain
+    competencies:
+      - py.functions
+      - py.mutability
+    front: A function receives a list and calls `items.append(1)`. Who sees the change, and what should you do if that is not wanted?
+    back: The caller sees it, because the parameter is another name for the caller's list. If you do not want that, build and return a new list (for example `items + [1]`) instead of changing the input.
+  - id: py-01-c-append-returns
+    type: basic
+    competencies:
+      - py.functions
+    front: What do `list.append` and `list.sort` return, and what should you use to get a new sorted list?
+    back: Both return `None` because they change the list in place (most list methods that change the list do). Use `sorted(items)` to get a new sorted list.
+  - id: py-01-c-default
+    type: explain
+    competencies:
+      - py.functions
+      - py.mutability
+    front: Why is `def f(x, items=[])` a bug?
+    back: The default list is created once, when `def` runs, so every call that uses the default shares and changes the same list. Use `items=None` and create a new list inside the function.
+  - id: py-01-c-default-fix
+    type: cloze
+    competencies:
+      - py.functions
+    front: 'The safe pattern for a mutable default is `def f(x, items=____):` followed by `if items is ____: items = []`.'
+    back: None, None
+  - id: py-01-c-predict-default
+    type: predict
+    competencies:
+      - py.functions
+      - py.mutability
+    front: |
+      def add(x, items=[]):
+          items.append(x)
+          return items
+
+      add(1)
+      print(add(2))
+    back: The default list is shared between calls, so the second call sees the item the first one added.
+  - id: py-01-c-truthy
+    type: basic
+    competencies:
+      - py.control-flow
+    front: Name five falsy values in Python.
+    back: None, False, 0 (and 0.0), the empty string, and empty containers such as [], {} and set(). Most other objects are truthy, including the string "0" and the list [0].
+  - id: py-01-c-plus-equals
+    type: predict
+    competencies:
+      - py.mutability
+      - py.values-names
+    front: |
+      a = [1]
+      b = a
+      a += [2]
+      a = a + [3]
+      print(b, a)
+    back: '`a += [2]` extends the one list in place, so `b` sees it. `a = a + [3]` builds a new list and rebinds `a`, so `b` keeps the old one.'
+  - id: py-01-c-tuple-rebind
+    type: explain
+    competencies:
+      - py.values-names
+      - py.mutability
+    front: Tuples are immutable. What does `point = (1, 2)` followed by `point = (1, 3)` do, and what can still change inside a tuple?
+    back: It creates a new tuple and rebinds the name; the first tuple is untouched. A tuple cannot have its items replaced, but a mutable object stored inside it, such as a list, can still change.

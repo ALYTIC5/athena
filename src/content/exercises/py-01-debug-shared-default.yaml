@@ -1,0 +1,111 @@
+id: py-01-debug-shared-default
+lesson: py-01
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: Two days share one booking list
+difficulty: 2
+competencies:
+  - py.functions
+  - py.mutability
+timeoutMs: 5000
+packages: []
+prompt: |
+  A small scheduler creates a day with `new_day(date)` and adds names with `book(day, name)`.
+  Booking Amara on Monday suddenly shows her on Tuesday too, and the tests fail. Find the line that causes it and fix it without changing how `new_day` and `book` are called. A list passed to `new_day` must still be the one that is stored.
+starter: |
+  def new_day(date, bookings=[]):
+      return {"date": date, "bookings": bookings}
+
+
+  def book(day, name):
+      day["bookings"].append(name)
+      return day
+visibleTests: |
+  def test_days_do_not_share_bookings():
+      monday = new_day("2026-11-02")
+      tuesday = new_day("2026-11-03")
+      book(monday, "Amara")
+      assert tuesday["bookings"] == []
+
+  def test_booking_is_recorded():
+      day = new_day("2026-11-02")
+      book(day, "Amara")
+      assert day["bookings"] == ["Amara"]
+hiddenTests: |
+  def test_passed_in_list_is_used():
+      existing = ["Jonas"]
+      day = new_day("2026-11-02", existing)
+      book(day, "Mei")
+      assert existing == ["Jonas", "Mei"]
+
+  def test_many_days_stay_separate():
+      days = [new_day(f"2026-11-{n:02d}") for n in range(2, 6)]
+      book(days[0], "Sofia")
+      assert [d["bookings"] for d in days] == [["Sofia"], [], [], []]
+
+  def test_empty_list_passed_in_is_stored():
+      mine = []
+      day = new_day("2026-11-02", mine)
+      book(day, "Amara")
+      assert mine == ["Amara"]
+feedback:
+  - test: test_days_do_not_share_bookings
+    message: Both days point at the same list. The default `bookings=[]` is created once, when the function is defined, and every call that uses it shares it.
+  - test: test_passed_in_list_is_used
+    message: The list passed to new_day must be the list the day stores, and book must add to that same list. Either the argument is ignored, or book builds a new list instead of fixing the shared default.
+  - test: test_empty_list_passed_in_is_stored
+    message: An empty list is falsy, so `bookings or []` or `if not bookings` replaces the empty list the caller passed in. Compare with None using `is`.
+hints:
+  - Which two days end up pointing at the same list, and where does that list come from?
+  - Look at the default value of `bookings`. When does Python create it?
+  - |-
+    def new_day(date, bookings=____):
+        if bookings is ____:
+            bookings = ____
+        return {"date": date, "bookings": bookings}
+referenceSolution: |
+  def new_day(date, bookings=None):
+      if bookings is None:
+          bookings = []
+      return {"date": date, "bookings": bookings}
+
+
+  def book(day, name):
+      day["bookings"].append(name)
+      return day
+wrongSolutions:
+  - label: Rebuilds the list inside book instead of fixing the default
+    code: |
+      def new_day(date, bookings=[]):
+          return {"date": date, "bookings": bookings}
+
+
+      def book(day, name):
+          day["bookings"] = day["bookings"] + [name]
+          return day
+  - label: Ignores a list the caller passes in
+    code: |
+      def new_day(date, bookings=None):
+          return {"date": date, "bookings": []}
+
+
+      def book(day, name):
+          day["bookings"].append(name)
+          return day
+  - label: Uses truthiness, so an empty list passed in is replaced
+    code: |
+      def new_day(date, bookings=None):
+          bookings = bookings or []
+          return {"date": date, "bookings": bookings}
+
+
+      def book(day, name):
+          day["bookings"].append(name)
+          return day
+explanation: |
+  The default `[]` is created once, when `def` runs. Every call to `new_day` without a list received that one object, so
+  booking on Monday changed the list Tuesday also held. The fix is a `None` default and a fresh list built inside the
+  function. The first wrong solution hides the symptom by rebuilding the list inside `book`, but the two days still start
+  from the same default list, and a caller who passes their own list no longer sees it updated.

@@ -32,6 +32,23 @@ export default defineConfig({
     starlight({
       title: 'Athena',
       customCss: ['./src/styles/athena.css'],
+      head: [
+        {
+          // Scrollable code blocks are region landmarks; give each a unique name for screen readers.
+          tag: 'script',
+          content: `(function () {
+  function label() {
+    document.querySelectorAll("pre[role='region']:not([aria-label])").forEach(function (el, i) {
+      el.setAttribute('aria-label', (el.getAttribute('data-language') || 'code') + ' example ' + (i + 1));
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    label();
+    new MutationObserver(label).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['role'] });
+  });
+})();`,
+        },
+      ],
       components: { SiteTitle: './src/components/SiteTitle.astro' },
       plugins: [starlightLinksValidator()],
       sidebar: [

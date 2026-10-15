@@ -1,0 +1,82 @@
+id: py-01-mastery-snapshot
+lesson: py-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Take a snapshot of a weekly schedule
+difficulty: 2
+competencies:
+  - py.mutability
+  - py.functions
+timeoutMs: 5000
+packages: []
+prompt: |
+  A weekly schedule is a dict that maps a day to a list of slots, for example `{"mon": ["09:00", "10:00"], "tue": []}`.
+
+  Write `snapshot(schedule)`. It returns a copy of the schedule that is fully independent: adding a slot to a day in the
+  copy must not change the original, and adding a day to the copy must not change the original either. The copy must
+  be equal to the original when it is made.
+starter: |
+  def snapshot(schedule: dict) -> dict:
+      ...
+visibleTests: |
+  def test_snapshot_is_equal_to_the_original():
+      schedule = {"mon": ["09:00", "10:00"], "tue": []}
+      assert snapshot(schedule) == {"mon": ["09:00", "10:00"], "tue": []}
+
+  def test_changing_a_day_in_the_copy_leaves_the_original_alone():
+      schedule = {"mon": ["09:00"]}
+      copy_of = snapshot(schedule)
+      copy_of["mon"].append("10:00")
+      assert schedule == {"mon": ["09:00"]}
+hiddenTests: |
+  def test_adding_a_day_to_the_copy_leaves_the_original_alone():
+      schedule = {"mon": ["09:00"]}
+      copy_of = snapshot(schedule)
+      copy_of["tue"] = ["11:00"]
+      assert schedule == {"mon": ["09:00"]}
+
+  def test_returns_a_new_dict():
+      schedule = {"mon": []}
+      assert snapshot(schedule) is not schedule
+
+  def test_changing_the_original_does_not_change_the_snapshot():
+      schedule = {"mon": ["09:00"]}
+      copy_of = snapshot(schedule)
+      schedule["mon"].append("10:00")
+      assert copy_of == {"mon": ["09:00"]}
+
+  def test_empty_schedule():
+      assert snapshot({}) == {}
+feedback:
+  - test: test_changing_a_day_in_the_copy_leaves_the_original_alone
+    message: The copy and the original still share the lists inside them. A shallow copy of the dict is not enough here; copy the lists too.
+  - test: test_returns_a_new_dict
+    message: Return a new dict, not the one you were given.
+  - test: test_adding_a_day_to_the_copy_leaves_the_original_alone
+    message: 'The copy must be a new dict: adding a day to it must not add a day to the original.'
+hints:
+  - A copy of the dict still holds the same list objects. Which kind of copy duplicates the inner objects as well?
+  - Either copy each day's list yourself while you build the new dict, or use the standard library function for a full copy.
+  - return copy.deepcopy(____)   (add `import copy` at the top)
+referenceSolution: |
+  import copy
+
+
+  def snapshot(schedule: dict) -> dict:
+      return copy.deepcopy(schedule)
+wrongSolutions:
+  - label: 'Shallow copy: the lists are still shared'
+    code: |
+      def snapshot(schedule: dict) -> dict:
+          return dict(schedule)
+  - label: Returns the original
+    code: |
+      def snapshot(schedule: dict) -> dict:
+          return schedule
+explanation: |
+  `dict(schedule)` is a shallow copy: a new outer dict that holds the same lists, so appending to a list in the copy
+  changes the original. `copy.deepcopy` copies the lists too. Alternative: `{day: list(slots) for day, slots in
+  schedule.items()}`, which copies exactly the two levels this schedule has and is a little faster; `deepcopy` is safer
+  when you do not know how deeply the data is nested.
