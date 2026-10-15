@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { del, get, set } from 'idb-keyval';
+import { athenaHighlighting } from '../lib/editor/highlight';
 import {
   creditFor,
   gradePython,
@@ -17,6 +18,8 @@ import {
   type SqlExerciseSpec,
   type SqlGradeReport,
 } from '../lib/grader/sql-grade';
+import { browserEnv, deliverPrompt } from '../lib/prompts/deliver';
+import { tutorPrompt } from '../lib/prompts/templates';
 import { getPythonRunner } from '../lib/runtime/python-client';
 import { getSqlRunner } from '../lib/runtime/sql-client';
 import { update } from '../lib/store/store';
@@ -56,8 +59,6 @@ export interface ExerciseIslandProps {
 
 type EditorHandle = { getCode(): string; setCode(code: string): void; focus(): void };
 
-const TUTOR_PLACEHOLDER = 'Tutor prompt (placeholder): phase 7 adds the real template.';
-
 export function ExerciseIsland(props: ExerciseIslandProps) {
   const { id, kind, starter, visibleTests, timeoutMs, packages, dataUrl, runtime } = props;
   const isSql = runtime === 'sql';
@@ -92,15 +93,21 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
   const mountEditor = useCallback(async () => {
     if (editor.current || !host.current) return;
     setEditing(true);
-    const [{ EditorView, basicSetup }, languageExtension, { keymap }, { indentWithTab }] =
-      await Promise.all([
-        import('codemirror'),
-        isSql
-          ? import('@codemirror/lang-sql').then((m) => m.sql())
-          : import('@codemirror/lang-python').then((m) => m.python()),
-        import('@codemirror/view'),
-        import('@codemirror/commands'),
-      ]);
+    const [
+      { EditorView, basicSetup },
+      languageExtension,
+      { keymap },
+      { indentWithTab },
+      highlight,
+    ] = await Promise.all([
+      import('codemirror'),
+      isSql
+        ? import('@codemirror/lang-sql').then((m) => m.sql())
+        : import('@codemirror/lang-python').then((m) => m.python()),
+      import('@codemirror/view'),
+      import('@codemirror/commands'),
+      athenaHighlighting(),
+    ]);
     const saved = await get<string>(`draft:${id}`).catch(() => undefined);
     let timer: ReturnType<typeof setTimeout> | undefined;
     const view = new EditorView({
@@ -108,6 +115,8 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       parent: host.current,
       extensions: [
         basicSetup,
+        highlight,
+        EditorView.lineWrapping,
         languageExtension,
         keymap.of([indentWithTab]),
         EditorView.contentAttributes.of({ 'aria-label': `${languageName} code editor` }),
@@ -304,15 +313,38 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
       setStatus('');
     });
 
-  const onStuck = async () => {
-    const code = editor.current?.getCode() ?? starter;
-    const text = `${TUTOR_PLACEHOLDER}\n\nExercise: ${props.promptText}\n\nMy code:\n${code}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setStatus('Prompt copied: paste it into Claude.');
-    } catch {
-      setStatus('Could not copy the prompt.');
+  /** What the learner last saw: the error, the first failing test or the result mismatch. */
+  const lastOutput = (): string => {
+    if (sqlReport) {
+      return (
+        sqlReport.error ??
+        sqlReport.mismatch ??
+        sqlReport.failures[0] ??
+        (sqlReport.result ? 'The query ran and returned rows.' : 'Nothing has been run yet.')
+      );
     }
+    if (report) {
+      const failing = report.tests.find((t) => t.status !== 'passed' && !t.hidden);
+      return (
+        report.error ??
+        (failing ? `${failing.name}: ${failing.message || failing.status}` : undefined) ??
+        (report.stdout || 'Nothing has been printed.')
+      );
+    }
+    if (findings && findings.length > 0) return findings.join(' ');
+    return 'Nothing has been run yet.';
+  };
+
+  const onStuck = () => {
+    const code = editor.current?.getCode() ?? starter;
+    const text = tutorPrompt({
+      lessonTitle: props.lessonTitle,
+      exercisePrompt: props.promptText,
+      code,
+      lastOutputOrFailingTest: lastOutput(),
+    });
+    // The Claude tab opens first (inside this click), then the prompt is copied.
+    void deliverPrompt(text, browserEnv()).then((r) => setStatus(r.message));
     setTutorUsed(true);
   };
 
@@ -327,7 +359,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
   const canSolution = solutionUnlocked({ passed, failedChecks, hintsUsed: hintsShown });
 
   return (
-    <section aria-label={`Exercise: ${props.lessonTitle}`} data-pagefind-ignore data-exercise={id}>
+    <section aria-label={`Exercise ${id}`} data-pagefind-ignore data-exercise={id}>
       <div>{props.promptText}</div>
       <p>
         <small>
@@ -373,7 +405,7 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
         <button type="button" onClick={onReset} disabled={busy !== ''}>
           Reset
         </button>{' '}
-        <button type="button" onClick={() => void onStuck()} disabled={busy !== ''}>
+        <button type="button" onClick={onStuck} disabled={busy !== ''}>
           I&apos;m stuck
         </button>{' '}
         <button

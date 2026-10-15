@@ -61,6 +61,42 @@ def _athena_run_tests(payload_json):
             results.append({"name": name, "status": "errored", "message": _athena_exc_text()})
     return json.dumps({"tests": results})
 
+def _athena_run_files(payload_json):
+    p = json.loads(payload_json)
+    _athena_reset()
+    for name, text in p["files"].items():
+        target = os.path.join(_ATHENA_WORK, name)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w") as f:
+            f.write(text)
+    sys.path.insert(0, _ATHENA_WORK)
+    importlib.invalidate_caches()
+    try:
+        tns = {"__name__": "tests"}
+        try:
+            exec(compile(p["tests"], "<tests>", "exec"), tns)
+        except BaseException:
+            return json.dumps({"error": _athena_exc_text(), "tests": []})
+        results = []
+        for name, fn in list(tns.items()):
+            if not name.startswith("test_") or not callable(fn):
+                continue
+            code = getattr(fn, "__code__", None)
+            if code is None or code.co_filename != "<tests>":
+                continue
+            try:
+                fn()
+                results.append({"name": name, "status": "passed", "message": ""})
+            except AssertionError as e:
+                msg = str(e) or "assertion failed"
+                results.append({"name": name, "status": "failed", "message": msg + "\n" + _athena_exc_text()})
+            except BaseException:
+                results.append({"name": name, "status": "errored", "message": _athena_exc_text()})
+        return json.dumps({"tests": results})
+    finally:
+        if _ATHENA_WORK in sys.path:
+            sys.path.remove(_ATHENA_WORK)
+
 def _athena_run_pytest(payload_json):
     p = json.loads(payload_json)
     _athena_reset()
@@ -96,6 +132,8 @@ def _athena_run_pytest(payload_json):
  * Keep only traceback frames from the learner's code (file "<learner>" or "<tests>" for test
  * failures), plus the header and the final exception line. Line numbers already match the editor.
  */
+const WORK_PREFIX = '/tmp/athena_work/';
+
 export function trimTraceback(text: string): string {
   const lines = text.split('\n');
   const out: string[] = [];
@@ -103,8 +141,11 @@ export function trimTraceback(text: string): string {
   for (const line of lines) {
     const frame = /^\s+File "([^"]*)", line \d+/.exec(line);
     if (frame) {
-      keep = frame[1] === '<learner>' || frame[1] === '<tests>' || frame[1] === '<exec>';
-      if (keep) out.push(line);
+      const file = frame[1] ?? '';
+      const inWork = file.startsWith(WORK_PREFIX);
+      keep = file === '<learner>' || file === '<tests>' || file === '<exec>' || inWork;
+      // Show drill files by their own names, not the temporary directory.
+      if (keep) out.push(inWork ? line.replace(WORK_PREFIX, '') : line);
       continue;
     }
     if (/^\s{4,}\S/.test(line) && !keep) continue;

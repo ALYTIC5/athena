@@ -1,0 +1,92 @@
+id: sample-gym-pair-sum
+title: Two calls that fill a slot
+pattern: two-pointers
+competencies: [int.two-pointers]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Call lengths are listed in minutes, sorted from shortest to longest. Write `pair_for_slot(lengths, slot)`
+  that returns the indexes `(i, j)` with `i < j` of two calls whose lengths add up to exactly `slot`, or `None`.
+  If several pairs work, return the one with the smallest `i`.
+examples:
+  - 'pair_for_slot([2, 4, 6, 9], 10) returns (1, 2)'
+  - 'pair_for_slot([1, 2, 3], 10) returns None'
+constraints:
+  - '0 to 100000 lengths, sorted ascending'
+starter: |
+  def pair_for_slot(lengths, slot):
+      ...
+visibleTests: |
+  def test_example():
+      assert pair_for_slot([2, 4, 6, 9], 10) == (1, 2)
+
+  def test_none():
+      assert pair_for_slot([1, 2, 3], 10) is None
+hiddenTests: |
+  def test_empty_and_single():
+      assert pair_for_slot([], 5) is None
+      assert pair_for_slot([5], 5) is None
+
+  def test_duplicates():
+      assert pair_for_slot([3, 3, 7], 6) == (0, 1)
+
+  def test_uses_two_different_items():
+      assert pair_for_slot([5, 9], 10) is None
+
+  def test_smallest_first_index():
+      assert pair_for_slot([1, 2, 3, 4, 5], 6) == (0, 4)
+
+  def test_large_sorted_input():
+      lengths = list(range(1, 60001))
+      assert pair_for_slot(lengths, 119999) == (59998, 59999)
+referenceSolutions:
+  - code: |
+      def pair_for_slot(lengths, slot):
+          best = None
+          left, right = 0, len(lengths) - 1
+          while left < right:
+              total = lengths[left] + lengths[right]
+              if total == slot:
+                  return (left, right)
+              if total < slot:
+                  left += 1
+              else:
+                  right -= 1
+          return best
+    time: O(n)
+    space: O(1)
+wrongSolutions:
+  - label: 'Allows the same item twice'
+    code: |
+      def pair_for_slot(lengths, slot):
+          left, right = 0, len(lengths) - 1
+          while left <= right:
+              total = lengths[left] + lengths[right]
+              if total == slot:
+                  return (left, right)
+              if total < slot:
+                  left += 1
+              else:
+                  right -= 1
+          return None
+  - label: 'Moves the wrong pointer, so it misses valid pairs'
+    code: |
+      def pair_for_slot(lengths, slot):
+          left, right = 0, len(lengths) - 1
+          while left < right:
+              total = lengths[left] + lengths[right]
+              if total == slot:
+                  return (left, right)
+              if total < slot:
+                  right -= 1
+              else:
+                  left += 1
+          return None
+patternExplanation: |
+  In a sorted list, a pointer at each end lets you decide in one comparison which side to move: too small means move the left pointer right, too big means move the right pointer left.
+commonMistakes:
+  - 'Checking every pair, which is quadratic'
+  - 'Letting the pointers cross or meet, which reuses one item'
+followUps:
+  - 'What changes if the list is not sorted?'
+  - 'How would you return every valid pair?'

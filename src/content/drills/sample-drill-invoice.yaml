@@ -1,0 +1,99 @@
+id: sample-drill-invoice
+kind: code-reading
+title: The invoice total that is too low
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  rates.py: |
+    """Hourly rates by plan, in whole currency units."""
+
+    RATES = {"standard": 100, "premium": 180}
+    DEFAULT_PLAN = "standard"
+
+
+    def rate_for(plan):
+        """Return the hourly rate for a plan name, falling back to the default plan."""
+        return RATES.get(plan, RATES[DEFAULT_PLAN])
+  invoice.py: |
+    """Totals for an invoice made of billed work items."""
+
+    from rates import rate_for
+
+
+    def line_total(item):
+        """Cost of one work item: its hourly rate times the hours worked."""
+        return rate_for(item["plan"]) * item["hours"]
+
+
+    def total_due(items, discount_percent=0):
+        """Sum every line, then take off a percentage discount."""
+        subtotal = sum(line_total(item) for item in items[:-1])
+        discount = subtotal * discount_percent / 100
+        return round(subtotal - discount)
+  report.py: |
+    """Plain-text summary of an invoice."""
+
+    from invoice import line_total, total_due
+
+
+    def summary(items, discount_percent=0):
+        lines = []
+        for item in items:
+            lines.append(f"{item['plan']:<10} {item['hours']:>3} h  {line_total(item):>6}")
+        lines.append(f"{'total':<10} {'':>5}  {total_due(items, discount_percent):>6}")
+        return "\n".join(lines)
+failingTest: |
+  from invoice import total_due
+
+
+  def test_sums_every_line():
+      items = [{"plan": "standard", "hours": 2}, {"plan": "premium", "hours": 1}]
+      assert total_due(items) == 380
+
+
+  def test_discount_applies_to_the_whole_subtotal():
+      items = [{"plan": "standard", "hours": 5}, {"plan": "standard", "hours": 5}]
+      assert total_due(items, discount_percent=10) == 900
+bugExplanation: |
+  `total_due` sums `items[:-1]`, which drops the last line of every invoice. The slice looks like a harmless
+  copy but it removes the final item, so totals are too low whenever there is more than one line (and zero for a
+  single line). Iterate over `items`.
+fixedFiles:
+  rates.py: |
+    """Hourly rates by plan, in whole currency units."""
+
+    RATES = {"standard": 100, "premium": 180}
+    DEFAULT_PLAN = "standard"
+
+
+    def rate_for(plan):
+        """Return the hourly rate for a plan name, falling back to the default plan."""
+        return RATES.get(plan, RATES[DEFAULT_PLAN])
+  invoice.py: |
+    """Totals for an invoice made of billed work items."""
+
+    from rates import rate_for
+
+
+    def line_total(item):
+        """Cost of one work item: its hourly rate times the hours worked."""
+        return rate_for(item["plan"]) * item["hours"]
+
+
+    def total_due(items, discount_percent=0):
+        """Sum every line, then take off a percentage discount."""
+        subtotal = sum(line_total(item) for item in items)
+        discount = subtotal * discount_percent / 100
+        return round(subtotal - discount)
+  report.py: |
+    """Plain-text summary of an invoice."""
+
+    from invoice import line_total, total_due
+
+
+    def summary(items, discount_percent=0):
+        lines = []
+        for item in items:
+            lines.append(f"{item['plan']:<10} {item['hours']:>3} h  {line_total(item):>6}")
+        lines.append(f"{'total':<10} {'':>5}  {total_due(items, discount_percent):>6}")
+        return "\n".join(lines)

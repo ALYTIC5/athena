@@ -87,3 +87,22 @@
   font-size: var(--sl-text-sm);
   white-space: nowrap;
 }
+
+/* Code editor syntax colours: AA contrast on both themes. */
+:root {
+  --athena-tok-keyword: #6f2da8;
+  --athena-tok-string: #0b5a2b;
+  --athena-tok-number: #8a3b00;
+  --athena-tok-comment: #565656;
+  --athena-tok-function: #0a4aa0;
+  --athena-tok-type: #7a2a5a;
+}
+
+:root[data-theme='dark'] {
+  --athena-tok-keyword: #d2a8ff;
+  --athena-tok-string: #7ee787;
+  --athena-tok-number: #ffa657;
+  --athena-tok-comment: #a3adb8;
+  --athena-tok-function: #79c0ff;
+  --athena-tok-type: #ffb3d9;
+}

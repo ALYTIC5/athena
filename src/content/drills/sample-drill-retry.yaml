@@ -1,0 +1,85 @@
+id: sample-drill-retry
+kind: ai-assisted
+title: Retry a flaky booking lookup
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `lookup_with_retry` should call a flaky function up to 3 times in total, waiting between tries, and raise the
+  last error if every try fails. The tests below fail. You may use an AI assistant. Before each prompt, write
+  down what you think is wrong and why. Verify any answer with the tests before you trust it.
+files:
+  retry.py: |
+    """Retry helper for calls that sometimes raise ConnectionError."""
+
+
+    def lookup_with_retry(fn, tries=3, delay=0.5, sleep=None):
+        """Call fn() until it works. Wait `delay` seconds between tries using `sleep`."""
+        last_error = None
+        for attempt in range(1, tries):
+            try:
+                return fn()
+            except ConnectionError as error:
+                last_error = error
+                if sleep is not None:
+                    sleep(delay)
+        raise last_error
+failingTest: |
+  from retry import lookup_with_retry
+
+
+  def make_flaky(fail_times):
+      state = {"calls": 0}
+
+      def fn():
+          state["calls"] += 1
+          if state["calls"] <= fail_times:
+              raise ConnectionError("down")
+          return "ok"
+
+      return fn, state
+
+
+  def test_succeeds_on_the_third_try():
+      fn, state = make_flaky(2)
+      assert lookup_with_retry(fn, tries=3) == "ok"
+      assert state["calls"] == 3
+
+
+  def test_raises_the_last_error_after_all_tries():
+      fn, state = make_flaky(5)
+      try:
+          lookup_with_retry(fn, tries=3)
+      except ConnectionError:
+          pass
+      else:
+          raise AssertionError("expected ConnectionError")
+      assert state["calls"] == 3
+
+
+  def test_waits_between_tries_but_not_after_the_last():
+      fn, _ = make_flaky(5)
+      waits = []
+      try:
+          lookup_with_retry(fn, tries=3, delay=0.5, sleep=waits.append)
+      except ConnectionError:
+          pass
+      assert waits == [0.5, 0.5]
+bugExplanation: |
+  `range(1, tries)` runs `tries - 1` attempts, so "3 tries" makes only two calls. The loop also sleeps after the
+  final failure, which wastes time before raising. Loop over `range(tries)` and sleep only while another try remains.
+fixedFiles:
+  retry.py: |
+    """Retry helper for calls that sometimes raise ConnectionError."""
+
+
+    def lookup_with_retry(fn, tries=3, delay=0.5, sleep=None):
+        """Call fn() until it works. Wait `delay` seconds between tries using `sleep`."""
+        last_error = None
+        for attempt in range(tries):
+            try:
+                return fn()
+            except ConnectionError as error:
+                last_error = error
+                if attempt < tries - 1 and sleep is not None:
+                    sleep(delay)
+        raise last_error
