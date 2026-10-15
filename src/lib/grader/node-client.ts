@@ -8,6 +8,8 @@ import type { SqlRequest, SqlResponse } from './sql-protocol';
 export interface NodeRunnerOptions {
   /** Directory for downloaded Pyodide packages (pytest, numpy, ...). Keep it between runs in CI. */
   packageCacheDir?: string;
+  /** Extra interpreter environment, for example `{ TZ: 'Pacific/Kiritimati', PYTHONHASHSEED: '1' }`. */
+  env?: Record<string, string>;
   onProgress?: (stage: string) => void;
 }
 
@@ -37,7 +39,7 @@ export function createNodeRunner(
     () =>
       handleFor(
         new Worker(new URL('./node-worker-entry.mjs', import.meta.url), {
-          workerData: { packageCacheDir: cacheDir },
+          workerData: { packageCacheDir: cacheDir, env: options.env },
         }),
       ),
     options.onProgress,

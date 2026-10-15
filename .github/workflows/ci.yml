@@ -14,6 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - name: Cache Pyodide packages
+        uses: actions/cache@v4
+        with:
+          path: .pyodide-cache
+          key: pyodide-packages-${{ hashFiles('package-lock.json') }}
+          restore-keys: pyodide-packages-
       - run: npx playwright install --with-deps
       - run: npm run check:full
       - name: Private files must not be tracked

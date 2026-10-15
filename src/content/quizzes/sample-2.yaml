@@ -5,7 +5,7 @@ items:
     chunk: 1
     objective: 1
     type: single
-    competencies: [py.sets]
+    competencies: [py.collections]
     stem: Which is fastest for a membership test on a large collection?
     options:
       - text: list
@@ -18,7 +18,7 @@ items:
     pools: [check]
     chunk: 1
     type: predict
-    competencies: [py.sets]
+    competencies: [py.collections]
     code: |
       print("a")
       int("x")
@@ -28,7 +28,7 @@ items:
     pools: [mastery]
     objective: 1
     type: single
-    competencies: [py.sets]
+    competencies: [py.collections]
     stem: Mastery question 1. Which structure removes duplicates?
     options:
       - text: set
@@ -41,7 +41,7 @@ items:
     pools: [mastery]
     objective: 1
     type: single
-    competencies: [py.sets]
+    competencies: [py.collections]
     stem: Mastery question 2. What does len({1, 1, 2}) return?
     options:
       - text: '2'
@@ -54,7 +54,7 @@ items:
     pools: [mastery]
     objective: 2
     type: single
-    competencies: [py.dicts]
+    competencies: [py.collections]
     stem: Mastery question 3. How do you read a key without raising when it is missing?
     options:
       - text: d.get(key)
@@ -67,7 +67,7 @@ items:
     pools: [mastery]
     objective: 2
     type: single
-    competencies: [py.dicts]
+    competencies: [py.collections]
     stem: Mastery question 4. What does iterating over a dict give by default?
     options:
       - text: keys
@@ -106,7 +106,7 @@ items:
     pools: [mastery]
     objective: 1
     type: single
-    competencies: [py.sets]
+    competencies: [py.collections]
     stem: Mastery question 7. Can a list be an element of a set?
     options:
       - text: No, lists are unhashable
@@ -119,7 +119,7 @@ items:
     pools: [mastery]
     objective: 2
     type: single
-    competencies: [py.dicts]
+    competencies: [py.collections]
     stem: Mastery question 8. Do dicts keep insertion order?
     options:
       - text: Yes
