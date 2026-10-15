@@ -1,0 +1,152 @@
+id: py-01-make-reschedule
+lesson: py-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Reschedule a booking without changing the original list
+difficulty: 2
+competencies:
+  - py.mutability
+  - py.functions
+  - py.values-names
+timeoutMs: 5000
+packages: []
+prompt: |
+  A booking is a dict such as `{"id": "b1", "name": "Amara", "slot": "09:00"}`. Ids are unique.
+
+  Write `reschedule(bookings, booking_id, new_slot)`. It returns a **new list** in which the booking with `booking_id` has `new_slot` as its slot. Every other booking stays as it was. The list you were given, and the dicts in it, must not change.
+
+  If no booking has that id, signal it by raising `KeyError` with the id: `raise KeyError(booking_id)`. Errors get their own lesson later; that one line is all you need here.
+
+  Example: moving `"b1"` to `"11:00"` in `[{"id": "b1", "name": "Amara", "slot": "09:00"}]` returns `[{"id": "b1", "name": "Amara", "slot": "11:00"}]`, and the original still says `"09:00"`.
+starter: |
+  def reschedule(bookings: list[dict], booking_id: str, new_slot: str) -> list[dict]:
+      ...
+visibleTests: |
+  def test_moves_the_booking():
+      bookings = [
+          {"id": "b1", "name": "Amara", "slot": "09:00"},
+          {"id": "b2", "name": "Jonas", "slot": "10:00"},
+      ]
+      result = reschedule(bookings, "b1", "11:00")
+      assert result == [
+          {"id": "b1", "name": "Amara", "slot": "11:00"},
+          {"id": "b2", "name": "Jonas", "slot": "10:00"},
+      ]
+
+  def test_input_list_is_unchanged():
+      bookings = [{"id": "b1", "name": "Amara", "slot": "09:00"}]
+      reschedule(bookings, "b1", "11:00")
+      assert bookings == [{"id": "b1", "name": "Amara", "slot": "09:00"}]
+hiddenTests: |
+  def test_returns_a_new_list():
+      bookings = [{"id": "b1", "name": "Amara", "slot": "09:00"}]
+      assert reschedule(bookings, "b1", "11:00") is not bookings
+
+  def test_original_dict_is_not_changed():
+      original = {"id": "b1", "name": "Amara", "slot": "09:00"}
+      bookings = [original]
+      reschedule(bookings, "b1", "11:00")
+      assert original["slot"] == "09:00"
+
+  def test_unknown_id_raises_key_error():
+      bookings = [{"id": "b1", "name": "Amara", "slot": "09:00"}]
+      try:
+          reschedule(bookings, "nope", "11:00")
+      except KeyError as error:
+          assert error.args == ("nope",)
+      else:
+          raise AssertionError("expected KeyError")
+
+  def test_empty_list_raises_key_error():
+      try:
+          reschedule([], "b1", "11:00")
+      except KeyError:
+          pass
+      else:
+          raise AssertionError("expected KeyError")
+
+  def test_order_is_kept():
+      bookings = [
+          {"id": "b1", "name": "A", "slot": "09:00"},
+          {"id": "b2", "name": "B", "slot": "10:00"},
+          {"id": "b3", "name": "C", "slot": "11:00"},
+      ]
+      result = reschedule(bookings, "b2", "12:00")
+      assert [b["id"] for b in result] == ["b1", "b2", "b3"]
+      assert result[1]["slot"] == "12:00"
+feedback:
+  - test: test_input_list_is_unchanged
+    message: 'The list you were given, or a dict inside it, changed. Build a new list, and build a new dict for the booking you move, for example `{**booking, "slot": new_slot}`.'
+  - test: test_original_dict_is_not_changed
+    message: 'You changed a dict that the caller still holds. Build a new dict for the booking you move, for example `{**booking, "slot": new_slot}`.'
+  - test: test_unknown_id_raises_key_error
+    message: When no booking has the id, raise KeyError(booking_id) instead of returning quietly.
+  - test: test_moves_the_booking
+    message: The booking with that id should get the new slot, and every other booking should stay exactly as it was.
+  - test: test_returns_a_new_list
+    message: Return a new list, not the list you were given.
+  - test: test_empty_list_raises_key_error
+    message: 'An empty list has no booking with that id, so this is also a missing id: raise KeyError.'
+  - test: test_order_is_kept
+    message: Keep the bookings in their original order; only the slot of one booking changes.
+hints:
+  - 'Which two things must stay untouched: the list, and what else?'
+  - Loop over the bookings and build a new list. For the booking to move, put a new dict in the new list; for the others, put the existing dict in.
+  - |-
+    result = []
+    found = False
+    for booking in bookings:
+        if booking["id"] == booking_id:
+            result.append({**booking, "slot": ____})
+            found = ____
+        else:
+            result.append(____)
+    if not found:
+        raise KeyError(____)
+    return result
+referenceSolution: |
+  def reschedule(bookings: list[dict], booking_id: str, new_slot: str) -> list[dict]:
+      result = []
+      found = False
+      for booking in bookings:
+          if booking["id"] == booking_id:
+              result.append({**booking, "slot": new_slot})
+              found = True
+          else:
+              result.append(booking)
+      if not found:
+          raise KeyError(booking_id)
+      return result
+wrongSolutions:
+  - label: Mutates the original booking dict
+    code: |
+      def reschedule(bookings: list[dict], booking_id: str, new_slot: str) -> list[dict]:
+          result = list(bookings)
+          for booking in result:
+              if booking["id"] == booking_id:
+                  booking["slot"] = new_slot
+                  return result
+          raise KeyError(booking_id)
+  - label: Returns the input list itself, edited in place
+    code: |
+      def reschedule(bookings: list[dict], booking_id: str, new_slot: str) -> list[dict]:
+          for index, booking in enumerate(bookings):
+              if booking["id"] == booking_id:
+                  bookings[index] = {**booking, "slot": new_slot}
+                  return bookings
+          raise KeyError(booking_id)
+  - label: Returns quietly when the id is unknown
+    code: |
+      def reschedule(bookings: list[dict], booking_id: str, new_slot: str) -> list[dict]:
+          return [
+              {**booking, "slot": new_slot} if booking["id"] == booking_id else booking
+              for booking in bookings
+          ]
+explanation: |
+  The function builds a new list. For the booking it moves it builds a new dict with `{**booking, "slot": new_slot}`, so
+  the dict the caller holds is never touched. The other bookings are shared with the original list, which is fine because
+  nothing changes them. Cost: one pass, O(n) time and O(n) extra space. Alternative: copy every dict
+  (`[dict(b) for b in bookings]`) and then edit the copy, which is safer if later code might mutate the shared dicts but
+  does more work. A `KeyError` is the usual signal for a missing key or id.

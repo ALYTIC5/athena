@@ -1,0 +1,37 @@
+lesson: py-01
+questions:
+  - id: py-01-iq-pass-list
+    competencies:
+      - py.values-names
+      - py.mutability
+      - py.functions
+    question: What happens when you pass a list to a function and the function appends to it?
+    modelAnswer: Python does not copy arguments. The parameter is another name for the caller's list, so the append changes the one list both names refer to, and the caller sees the change. If the function should not change its input, it should build and return a new list, for example `items + [x]`, or copy first with `list(items)`. I would also say in the docstring whether a function changes its input, because callers cannot tell from the call.
+    listenFor:
+      - names refer to objects; no copy is made
+      - the caller sees the change
+      - 'how to avoid it: return a new list or copy first'
+      - mentions that this is a design choice and worth documenting
+  - id: py-01-iq-mutable-default
+    competencies:
+      - py.functions
+      - py.mutability
+      - py.control-flow
+    question: What is wrong with `def add(item, items=[])`, and how do you fix it?
+    modelAnswer: 'The default value is evaluated once, when the function is defined, not on each call. So every call that uses the default shares one list, and items added by one call show up in the next. The fix is `items=None` with `if items is None: items = []` inside the function. I use `is None` rather than `if not items` because an empty list the caller passed in is falsy, and I want to keep using it.'
+    listenFor:
+      - default evaluated once at definition time
+      - all calls share the same object
+      - the None-default pattern
+      - uses `is None` and explains why not truthiness
+  - id: py-01-iq-eq-vs-is
+    competencies:
+      - py.values-names
+      - py.control-flow
+    question: What is the difference between `==` and `is`, and when do you use each?
+    modelAnswer: '`==` compares values: are the two objects equal? `is` compares identity: are the two names the same object? Two separate lists with the same items are `==` but not `is`. I use `is` for `None` and other single objects such as sentinels, because there is only one of them, and `==` for everything else. I do not use `is` for numbers or strings: whether two equal values happen to be the same object is an implementation detail and can change.'
+    listenFor:
+      - value versus identity
+      - uses `is None`
+      - does not use `is` for numbers or strings
+      - can give an example of equal but not identical objects

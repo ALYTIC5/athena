@@ -1,0 +1,86 @@
+id: py-01-mastery-merge
+lesson: py-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Fill in missing settings from defaults
+difficulty: 2
+competencies:
+  - py.mutability
+  - py.functions
+  - py.control-flow
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write `with_defaults(settings, defaults)`. It returns a **new dict** that has every key from `defaults`, with the value
+  from `settings` where `settings` has that key, and also any extra keys that only `settings` has.
+  Neither dict you were given may change.
+
+  Example: `with_defaults({"timeout": 5}, {"timeout": 30, "retries": 3})` returns `{"timeout": 5, "retries": 3}`.
+  A value of `0`, `False` or `""` in `settings` is a real value and must be kept.
+starter: |
+  def with_defaults(settings: dict, defaults: dict) -> dict:
+      ...
+visibleTests: |
+  def test_fills_in_missing_keys():
+      assert with_defaults({"timeout": 5}, {"timeout": 30, "retries": 3}) == {"timeout": 5, "retries": 3}
+
+  def test_inputs_are_unchanged():
+      settings = {"timeout": 5}
+      defaults = {"timeout": 30, "retries": 3}
+      with_defaults(settings, defaults)
+      assert settings == {"timeout": 5}
+      assert defaults == {"timeout": 30, "retries": 3}
+hiddenTests: |
+  def test_extra_keys_from_settings_are_kept():
+      assert with_defaults({"debug": True}, {"retries": 3}) == {"retries": 3, "debug": True}
+
+  def test_falsy_values_in_settings_are_kept():
+      result = with_defaults({"retries": 0, "name": "", "debug": False}, {"retries": 3, "name": "x", "debug": True})
+      assert result == {"retries": 0, "name": "", "debug": False}
+
+  def test_empty_inputs():
+      assert with_defaults({}, {}) == {}
+      assert with_defaults({}, {"a": 1}) == {"a": 1}
+
+  def test_returns_a_new_dict():
+      settings = {"a": 1}
+      assert with_defaults(settings, {}) is not settings
+feedback:
+  - test: test_falsy_values_in_settings_are_kept
+    message: A value like 0, False or an empty string is falsy but is still a real setting. Do not use `or` to pick between the two values.
+  - test: test_inputs_are_unchanged
+    message: One of the dicts you were given changed. Start from a copy, for example `result = dict(defaults)`.
+  - test: test_fills_in_missing_keys
+    message: Keys that only the defaults have must appear in the result, and keys in settings must win.
+  - test: test_returns_a_new_dict
+    message: Return a new dict, not one of the dicts you were given.
+  - test: test_extra_keys_from_settings_are_kept
+    message: Keys that only settings has must stay in the result.
+referenceSolution: |
+  def with_defaults(settings: dict, defaults: dict) -> dict:
+      return {**defaults, **settings}
+wrongSolutions:
+  - label: Updates the defaults dict in place
+    code: |
+      def with_defaults(settings: dict, defaults: dict) -> dict:
+          defaults.update(settings)
+          return defaults
+  - label: Uses truthiness to choose, so 0, False and empty strings are lost
+    code: |
+      def with_defaults(settings: dict, defaults: dict) -> dict:
+          result = {}
+          for key in {**defaults, **settings}:
+              result[key] = settings.get(key) or defaults.get(key)
+          return result
+  - label: Returns the settings dict itself
+    code: |
+      def with_defaults(settings: dict, defaults: dict) -> dict:
+          return settings
+explanation: |
+  Unpacking both dicts into a new dict builds a copy, so nothing the caller holds is changed, and the later dict wins when both have a key. Alternative: `result = dict(defaults)` then `result.update(settings)`, which does the same in two steps. Choosing values with `or` is a trap: it treats 0, False and the empty string as missing.
+hints:
+  - Which of the two dicts must stay unchanged, and which one wins when both have a key?
+  - 'Build a new dict that starts from the defaults and then lets the settings overwrite them: the later dict wins when both have a key.'
+  - return {**____, **____}

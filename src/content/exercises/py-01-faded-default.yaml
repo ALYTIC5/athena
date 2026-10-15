@@ -1,0 +1,75 @@
+id: py-01-faded-default
+lesson: py-01
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Fix a default argument that is shared between calls
+difficulty: 2
+competencies:
+  - py.functions
+  - py.mutability
+  - py.control-flow
+timeoutMs: 5000
+packages: []
+prompt: |
+  `log_event(event, events)` appends an event name to a list and returns the list. When the caller passes no list, it must start a new empty list for that call. If the caller passes a list (even an empty one), the function must add to that same list. Fill in the blanks.
+starter: |
+  def log_event(event, events=____):
+      if events is ____:
+          events = []
+      events.append(event)
+      return events
+visibleTests: |
+  def test_new_list_each_call():
+      assert log_event("login") == ["login"]
+      assert log_event("export") == ["export"]
+
+  def test_adds_to_the_list_passed_in():
+      events = ["login"]
+      result = log_event("export", events)
+      assert result is events
+      assert events == ["login", "export"]
+hiddenTests: |
+  def test_empty_list_passed_in_is_used():
+      events = []
+      log_event("login", events)
+      assert events == ["login"]
+
+  def test_calls_do_not_leak_into_each_other():
+      log_event("a")
+      log_event("b")
+      assert log_event("c") == ["c"]
+feedback:
+  - test: test_new_list_each_call
+    message: A default value is created once, when the function is defined, so every call that uses it shares one list. Use None as the default and create the list inside.
+  - test: test_empty_list_passed_in_is_used
+    message: An empty list is falsy, so `if not events` would replace the list the caller gave you. Compare with None using `is`.
+hints:
+  - 'When is a default value created: each time you call the function, or once?'
+  - Use None as the default, and create the list inside the function when you get None.
+  - |-
+    def log_event(event, events=____):
+        if events is ____:
+            events = ____
+referenceSolution: |
+  def log_event(event, events=None):
+      if events is None:
+          events = []
+      events.append(event)
+      return events
+wrongSolutions:
+  - label: Keeps the shared default list
+    code: |
+      def log_event(event, events=[]):
+          events.append(event)
+          return events
+  - label: Replaces an empty list the caller passed in
+    code: |
+      def log_event(event, events=None):
+          if not events:
+              events = []
+          events.append(event)
+          return events
+explanation: |
+  The default value is evaluated once, when `def` runs, so `events=[]` gives every call the same list. `None` is a safe default because it is immutable; the function builds a fresh list when it sees it. Test with `is None`, not truthiness, because an empty list the caller passed in is falsy but is still the list they want you to use.

@@ -1,0 +1,64 @@
+id: py-01-faded-alias
+lesson: py-01
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Do two names refer to the same list?
+difficulty: 1
+competencies:
+  - py.values-names
+  - py.mutability
+timeoutMs: 5000
+packages: []
+prompt: |
+  The worked example used `calls is backup` to ask whether two names refer to one object.
+  Fill in the blank so `same_list(first, second)` returns `True` only when both names refer to the very same object,
+  and `False` for two separate lists that merely hold equal items.
+starter: |
+  def same_list(first, second):
+      return first ____ second
+visibleTests: |
+  def test_same_object():
+      calls = ["alice", "bayu"]
+      backup = calls
+      assert same_list(calls, backup) is True
+
+  def test_equal_but_separate():
+      assert same_list(["alice"], ["alice"]) is False
+hiddenTests: |
+  def test_copy_is_a_different_object():
+      calls = ["alice", "bayu"]
+      assert same_list(calls, list(calls)) is False
+
+  def test_empty_lists_are_separate_objects():
+      assert same_list([], []) is False
+
+  def test_same_empty_list():
+      empty = []
+      assert same_list(empty, empty) is True
+feedback:
+  - test: test_equal_but_separate
+    message: Two separate lists with equal items are still two objects. `==` compares contents; you need the operator that compares identity.
+  - test: test_same_object
+    message: Two names for one list must give True. Use the operator that asks whether both names refer to the same object.
+hints:
+  - Which operator asks whether two names refer to the same object, instead of whether the contents are equal?
+  - Decide whether you need to compare what the two lists contain, or which object each name refers to. Python has a keyword operator for the second.
+  - return first ____ second  (the word is two letters long)
+referenceSolution: |
+  def same_list(first, second):
+      return first is second
+wrongSolutions:
+  - label: Compares contents with == instead of identity
+    code: |
+      def same_list(first, second):
+          return first == second
+  - label: Always answers True
+    code: |
+      def same_list(first, second):
+          return True
+explanation: |
+  `is` asks whether both names refer to the same object. `==` asks whether the contents are equal, so two separate
+  lists with the same items are `==` but not `is`. Alternative: `id(first) == id(second)` gives the same answer, but
+  `is` says what you mean and is the usual way to write it.

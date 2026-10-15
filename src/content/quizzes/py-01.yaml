@@ -1,0 +1,559 @@
+lesson: py-01
+items:
+  - id: py-01-q-alias-count
+    pools:
+      - check
+      - mastery
+      - warmup
+    chunk: 1
+    objective: 1
+    type: single
+    competencies:
+      - py.values-names
+    stem: '`a` is a list. After `b = a`, how many list objects exist?'
+    options:
+      - text: 'Two: assignment copies the list'
+        correct: false
+        why: Assignment never copies. It binds another name to the object that already exists.
+      - text: One, with two names
+        correct: true
+        why: Both names refer to the one list, so a change made through either name shows through the other.
+      - text: One, and `b` is a frozen snapshot of it
+        correct: false
+        why: There is no snapshot. Both names refer to the live list, so later changes show through either name.
+  - id: py-01-q-mutable-types
+    pools:
+      - mastery
+      - warmup
+    objective: 1
+    type: multiple
+    competencies:
+      - py.mutability
+    stem: Which of these objects can change in place? Choose all that apply.
+    options:
+      - text: a list
+        correct: true
+        why: Lists can be changed in place with methods such as `append`.
+      - text: a tuple
+        correct: false
+        why: A tuple's own items cannot be replaced after it is created. (A mutable object stored inside a tuple can still change.)
+      - text: a dict
+        correct: true
+        why: Dicts can be changed in place, for example by assigning to a key.
+      - text: a str
+        correct: false
+        why: Strings are immutable. Operations such as `+` build a new string.
+      - text: a set
+        correct: true
+        why: Sets can be changed in place with `add` and `remove`.
+  - id: py-01-q-predict-alias
+    pools:
+      - check
+      - mastery
+      - warmup
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies:
+      - py.values-names
+      - py.mutability
+    code: |
+      settings = {"retries": 3}
+      alias = settings
+      alias["retries"] = 5
+      print(settings)
+    investigate:
+      - Why did `settings` change when only `alias` was used on line 3?
+      - 'What would line 4 print if line 3 were `alias = {"retries": 5}`?'
+  - id: py-01-q-rebinding
+    pools:
+      - mastery
+      - warmup
+    objective: 1
+    type: predict
+    competencies:
+      - py.values-names
+    code: |
+      city = "Lyon"
+      home = city
+      city = city + " 2"
+      print(home)
+    investigate:
+      - Strings cannot change in place. What did `city + " 2"` do instead?
+  - id: py-01-q-tuple-rebind
+    pools:
+      - mastery
+    objective: 1
+    type: single
+    competencies:
+      - py.values-names
+      - py.mutability
+    stem: '`point = (1, 2)` and then `point = (1, 3)`. What happened to the first tuple?'
+    options:
+      - text: It was changed in place to (1, 3)
+        correct: false
+        why: Tuples cannot change in place. A new tuple was created.
+      - text: It was not changed; the name `point` now refers to a new tuple
+        correct: true
+        why: The second line rebinds the name to a different object. The first tuple is untouched.
+      - text: Python raised an error because tuples are immutable
+        correct: false
+        why: Immutable objects cannot be changed, but a name can always be rebound to another object.
+  - id: py-01-q-identity-short
+    pools:
+      - mastery
+      - warmup
+    objective: 4
+    type: short
+    competencies:
+      - py.values-names
+    stem: Which operator asks whether two names refer to the very same object?
+    accepted:
+      - is
+      - the is operator
+      - is operator
+    patterns:
+      - ^`?is`?( operator)?$
+    explanation: '`is` compares identity. `==` compares values, so two separate lists with equal items are `==` but not `is`.'
+  - id: py-01-q-copy-kind
+    pools:
+      - check
+      - mastery
+      - warmup
+    chunk: 2
+    objective: 5
+    type: single
+    competencies:
+      - py.mutability
+      - py.functions
+    stem: '`nested = [[1], [2]]` and `dup = list(nested)`. Then `dup[0].append(9)`. What is `nested`?'
+    options:
+      - text: '[[1], [2]]'
+        correct: false
+        why: '`list(nested)` is a shallow copy. It makes a new outer list but reuses the same inner lists.'
+      - text: '[[1, 9], [2]]'
+        correct: true
+        why: The new outer list holds the same inner list objects, so changing an inner list shows through both.
+      - text: '[[1, 9], [2, 9]]'
+        correct: false
+        why: Only the one inner list that was appended to changes. `dup[0]` is the first inner list; the second is untouched.
+  - id: py-01-q-predict-function-mutates
+    pools:
+      - check
+      - mastery
+      - warmup
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies:
+      - py.functions
+      - py.mutability
+    code: |
+      def add_closing(names):
+          names.append("closing")
+
+      todo = ["open", "reply"]
+      add_closing(todo)
+      print(todo)
+    investigate:
+      - The function has no `return`. Why does `todo` still change?
+      - What would `print(add_closing(todo))` print?
+  - id: py-01-q-parsons-filter
+    pools:
+      - check
+      - mastery
+    chunk: 2
+    objective: 5
+    type: parsons
+    competencies:
+      - py.functions
+      - py.control-flow
+    lines:
+      - 'def upcoming(bookings, today):'
+      - '    result = []'
+      - '    for booking in bookings:'
+      - '        if booking["date"] >= today:'
+      - '            result.append(booking)'
+      - '    return result'
+    distractors:
+      - '    bookings.remove(booking)'
+  - id: py-01-q-reassign-param
+    pools:
+      - mastery
+      - warmup
+    objective: 2
+    type: predict
+    competencies:
+      - py.functions
+      - py.values-names
+    code: |
+      def extend(items):
+          items = items + ["x"]
+          return items
+
+      nums = ["a"]
+      extend(nums)
+      print(nums)
+    investigate:
+      - Line 2 creates a new list. What happened to the name `items` inside the function?
+  - id: py-01-q-arg-alias
+    pools:
+      - mastery
+      - warmup
+    objective: 2
+    type: single
+    competencies:
+      - py.functions
+      - py.mutability
+    stem: A function receives a list and calls `items.append(1)`. What does the caller see?
+    options:
+      - text: 'Nothing: the function works on its own copy'
+        correct: false
+        why: Python does not copy arguments. The parameter is another name for the caller's object.
+      - text: The caller's list now has the extra item
+        correct: true
+        why: The parameter and the caller's name refer to the same list, so an in-place change is visible to both.
+      - text: Only the function's return value changes; the caller's list is unchanged
+        correct: false
+        why: The caller's list changes too, because `append` works on the very list the caller passed in.
+  - id: py-01-q-deepcopy
+    pools:
+      - mastery
+    objective: 5
+    type: single
+    competencies:
+      - py.mutability
+    stem: Which call gives you a copy of a list of lists that shares no inner lists with the original?
+    options:
+      - text: '`list(original)`'
+        correct: false
+        why: That is a shallow copy. The inner lists are shared.
+      - text: '`original[:]`'
+        correct: false
+        why: A slice is also a shallow copy.
+      - text: '`copy.deepcopy(original)`'
+        correct: true
+        why: '`deepcopy` copies the inner objects as well, so the two lists are fully independent.'
+  - id: py-01-q-nested-shallow
+    pools:
+      - mastery
+      - warmup
+    objective: 5
+    type: predict
+    competencies:
+      - py.mutability
+      - py.values-names
+    code: |
+      menu = {"mon": ["soup"]}
+      dup = dict(menu)
+      dup["mon"].append("pie")
+      print(menu)
+    investigate:
+      - '`dict(menu)` made a new dict. Why did `menu` still change?'
+  - id: py-01-q-bug-sort
+    pools:
+      - mastery
+    objective: 5
+    type: bug
+    competencies:
+      - py.functions
+      - py.mutability
+    code: |
+      def sorted_names(names):
+          """Return the names in order. The caller's list must not change."""
+          names.sort()
+          return names
+    buggyLine: 3
+    explanation: "`names.sort()` sorts the caller's list in place. To keep the input unchanged use `sorted(names)`, which returns a new list."
+  - id: py-01-q-sort-returns
+    pools:
+      - mastery
+      - warmup
+    objective: 5
+    type: single
+    competencies:
+      - py.functions
+      - py.mutability
+    stem: '`result = [3, 1, 2].sort()`. What is `result`?'
+    options:
+      - text: '[1, 2, 3]'
+        correct: false
+        why: '`sort()` changes the list in place and returns `None`. `sorted(...)` is the one that returns a new list.'
+      - text: None
+        correct: true
+        why: Most list methods that change the list in place, such as `sort`, `append` and `reverse`, return `None`.
+      - text: '[3, 1, 2]'
+        correct: false
+        why: The call does not return the list at all.
+  - id: py-01-q-new-list
+    pools:
+      - mastery
+    objective: 5
+    type: single
+    competencies:
+      - py.functions
+    stem: Which function returns a new list and leaves the list it was given unchanged?
+    options:
+      - text: It appends to `xs`, then returns `xs`
+        correct: false
+        why: "`append` changes the caller's list."
+      - text: It returns `xs + [0]`
+        correct: true
+        why: "`+` builds a new list, so the caller's list is untouched."
+      - text: It runs `xs += [0]`, then returns `xs`
+        correct: false
+        why: For a list, `+=` extends the list in place, so the caller's list changes.
+  - id: py-01-q-shallow-copy-ways
+    pools:
+      - mastery
+    objective: 5
+    type: multiple
+    competencies:
+      - py.mutability
+    stem: Which of these make a new list (a shallow copy) of `a`? Choose all that apply.
+    options:
+      - text: '`b = a`'
+        correct: false
+        why: That only gives the same list a second name.
+      - text: '`b = list(a)`'
+        correct: true
+        why: '`list(...)` builds a new list from the items.'
+      - text: '`b = a.copy()`'
+        correct: true
+        why: '`copy()` is a list method that returns a shallow copy.'
+      - text: '`b = a[:]`'
+        correct: true
+        why: A full slice returns a new list with the same items.
+  - id: py-01-q-copy-module
+    pools:
+      - mastery
+    objective: 5
+    type: short
+    competencies:
+      - py.mutability
+    stem: Which standard library module provides `deepcopy`?
+    accepted:
+      - copy
+      - the copy module
+    patterns:
+      - ^(import )?copy(\.deepcopy)?( module)?$
+    explanation: '`import copy` then `copy.deepcopy(x)`. The same module also has `copy.copy(x)` for a shallow copy.'
+  - id: py-01-q-default-shared
+    pools:
+      - mastery
+      - warmup
+    objective: 3
+    type: single
+    competencies:
+      - py.functions
+      - py.mutability
+    stem: '`def log(msg, lines=[])` appends `msg` to `lines` and returns it. You call `log("a")` then `log("b")`. What does the second call return?'
+    options:
+      - text: "['b']"
+        correct: false
+        why: That would need a new list on every call. A default value is created once, when `def` runs.
+      - text: "['a', 'b']"
+        correct: true
+        why: Both calls used the same default list, which the first call already changed.
+      - text: "['a', 'a']"
+        correct: false
+        why: The second call appends 'b', not another 'a'. The point is that it appends to the list the first call already changed.
+  - id: py-01-q-predict-default
+    pools:
+      - check
+      - mastery
+      - warmup
+    chunk: 3
+    objective: 3
+    type: predict
+    competencies:
+      - py.functions
+      - py.mutability
+    code: |
+      def visit(page, history=[]):
+          history.append(page)
+          return len(history)
+
+      print(visit("home"), visit("pricing"), visit("contact"))
+    investigate:
+      - 'When was the list `[]` created: when `def` ran, or on each call?'
+      - How would you change the signature so each call starts with an empty history?
+  - id: py-01-q-default-fix
+    pools:
+      - mastery
+      - warmup
+    objective: 3
+    type: single
+    competencies:
+      - py.functions
+    stem: Which signature avoids the shared mutable default?
+    options:
+      - text: '`def add(item, items=[])`'
+        correct: false
+        why: 'That is the bug: one list is shared by every call.'
+      - text: '`def add(item, items=None)`, then `if items is None: items = []`'
+        correct: true
+        why: '`None` is immutable and safe as a default. The function builds a new list when it sees it.'
+      - text: '`def add(item, items=list)`'
+        correct: false
+        why: That makes the default the `list` type itself, not a new list.
+  - id: py-01-q-order-default
+    pools:
+      - mastery
+    objective: 3
+    type: order
+    competencies:
+      - py.functions
+    stem: Put the steps of fixing a mutable default argument in order.
+    steps:
+      - Spot that two calls share one list
+      - Choose None as the default value
+      - Test for `items is None` in the body
+      - Create the new list only inside that test
+  - id: py-01-q-bug-default
+    pools:
+      - mastery
+    objective: 3
+    type: bug
+    competencies:
+      - py.functions
+      - py.mutability
+    code: |
+      def new_cart(owner, items=[]):
+          return {"owner": owner, "items": items}
+    buggyLine: 1
+    explanation: The default `[]` is created once. Every cart made without `items` shares the same list. Use `items=None` and create the list inside.
+  - id: py-01-q-parsons-default
+    pools:
+      - mastery
+    objective: 3
+    type: parsons
+    competencies:
+      - py.functions
+      - py.control-flow
+    lines:
+      - 'def add_tag(tag, tags=None):'
+      - '    if tags is None:'
+      - '        tags = []'
+      - '    tags.append(tag)'
+      - '    return tags'
+    distractors:
+      - '    tags = []'
+  - id: py-01-q-predict-default-dict
+    pools:
+      - mastery
+    objective: 3
+    type: predict
+    competencies:
+      - py.functions
+      - py.mutability
+    code: |
+      def count(word, seen={}):
+          if word in seen:
+              seen[word] += 1
+          else:
+              seen[word] = 1
+          return seen
+
+      count("a")
+      count("b")
+      print(count("a"))
+    investigate:
+      - A dict default behaves like a list default. How would you fix it?
+  - id: py-01-q-is-none
+    pools:
+      - mastery
+      - warmup
+    objective: 4
+    type: single
+    competencies:
+      - py.values-names
+      - py.control-flow
+    stem: What is the usual way to check whether `value` is `None`?
+    options:
+      - text: '`value == None`'
+        correct: false
+        why: It usually works, but `==` can be changed by a class. `None` is a single object, so `is` is exact.
+      - text: '`value is None`'
+        correct: true
+        why: '`None` is one object, and `is` checks identity, so it cannot be fooled.'
+      - text: '`not value`'
+        correct: false
+        why: That is also true for 0, empty strings and empty lists, not only `None`.
+  - id: py-01-q-eq-is
+    pools:
+      - mastery
+      - warmup
+    objective: 4
+    type: predict
+    competencies:
+      - py.values-names
+    code: |
+      a = [1, 2]
+      b = [1, 2]
+      print(a == b, a is b)
+    investigate:
+      - What would `print(a == b, a is b)` print if line 2 were `b = a`?
+  - id: py-01-q-truthy
+    pools:
+      - mastery
+      - warmup
+    objective: 4
+    type: multiple
+    competencies:
+      - py.control-flow
+    stem: Which values are falsy (`if value:` does not run)? Choose all that apply.
+    options:
+      - text: '`[]`'
+        correct: true
+        why: An empty list is falsy.
+      - text: '`"0"`'
+        correct: false
+        why: A non-empty string is truthy, even if it contains the character 0.
+      - text: '`0`'
+        correct: true
+        why: Zero is falsy.
+      - text: '`None`'
+        correct: true
+        why: '`None` is falsy.'
+      - text: '`[0]`'
+        correct: false
+        why: A list with one item is truthy, whatever the item is.
+  - id: py-01-q-predict-truthy
+    pools:
+      - mastery
+      - warmup
+    objective: 4
+    type: predict
+    competencies:
+      - py.control-flow
+    code: |
+      queue = []
+      if queue:
+          print("has work")
+      else:
+          print("empty")
+    investigate:
+      - What does `if queue:` check for a list?
+  - id: py-01-q-truthy-trap
+    pools:
+      - check
+      - mastery
+      - warmup
+    objective: 4
+    type: single
+    competencies:
+      - py.control-flow
+      - py.functions
+    stem: 'A function has `def f(items=None): if not items: items = []`. A caller passes their own empty list. What happens?'
+    options:
+      - text: The function uses the caller's empty list
+        correct: false
+        why: An empty list is falsy, so `not items` is true and the code replaces it.
+      - text: The function replaces it with a new empty list, so the caller's list is never filled
+        correct: true
+        why: "`not items` is True for `[]`, so the caller's empty list is discarded and `items` is rebound to a new one. That is why you compare with `is None` when None is the 'not given' marker."
+      - text: The function raises an error
+        correct: false
+        why: There is no error; the behaviour is quietly wrong.
+    chunk: 3

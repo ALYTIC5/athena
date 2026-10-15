@@ -20,7 +20,8 @@ interface Item {
 }
 
 const items = new Map<string, Item>();
-for (const f of ['sample', 'sample-2']) {
+// Published lessons count as earlier lessons, so their questions can appear in a sample check.
+for (const f of ['py-01', 'sample', 'sample-2']) {
   const doc = parse(readFileSync(`src/content/quizzes/${f}.yaml`, 'utf8')) as { items: Item[] };
   for (const i of doc.items) items.set(i.id, i);
 }

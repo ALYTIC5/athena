@@ -361,12 +361,14 @@ export function ExerciseIsland(props: ExerciseIslandProps) {
   return (
     <section aria-label={`Exercise ${id}`} data-pagefind-ignore data-exercise={id}>
       <div>{props.promptText}</div>
-      <p>
-        <small>
-          Write this yourself. Claude can be your tutor (use the I&apos;m stuck button) but not your
-          author.
-        </small>
-      </p>
+      {(kind === 'make' || kind === 'write-tests') && (
+        <p>
+          <small>
+            Write this yourself. Claude can be your tutor (use the I&apos;m stuck button) but not
+            your author.
+          </small>
+        </p>
+      )}
 
       <div ref={host} data-testid="editor-host" onFocus={() => void mountEditor()} />
       {!editing && (
