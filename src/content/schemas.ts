@@ -13,6 +13,8 @@ export const lessonFields = z.object({
   anatomy: z.enum(['full', 'short', 'orientation']).optional(),
   competencies: z.array(z.string()).optional(),
   prerequisites: z.array(z.string()).optional(),
+  /** Lab milestones this lesson links to; used for local-evidence competency levels. */
+  labMilestones: z.array(z.string()).optional(),
   whyItMatters: z.string().optional(),
   objectives: z.array(z.string()).optional(),
   sources: z.array(z.object({ title: z.string(), url: z.url() })).optional(),
