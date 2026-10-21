@@ -4,7 +4,7 @@ runtime: python
 kind: debug
 pools:
   - lesson
-title: Find the last free slot
+title: Find the last slot
 difficulty: 1
 competencies:
   - int.approach
@@ -14,7 +14,7 @@ estMin: 2.5
 prompt: |
   A debug exercise gives you code with one planted bug and a test that fails. Read the error, find the line, fix it.
   `last_slot(slots)` should return the last item of a list of time slots, or `None` when the list is empty.
-  Right now it crashes.
+  Right now it crashes. In Python, `slots[0]` is the first item and `slots[-1]` counts from the end.
 starter: |
   def last_slot(slots):
       if not slots:

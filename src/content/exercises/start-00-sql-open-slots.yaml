@@ -24,7 +24,7 @@ prompt: |
 
   `WHERE` keeps only the rows that match a condition, and `ORDER BY` sorts the result.
 
-  The table `slots` has one row per appointment slot. List the `starts` value of every slot that is not booked, earliest first.
+  The table `slots` has one row per appointment slot. Keep the column name `starts`. List the `starts` value of every slot that is not booked, earliest first.
 starter: |
   SELECT ...
 referenceSolution: |

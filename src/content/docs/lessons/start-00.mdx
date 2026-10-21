@@ -72,9 +72,11 @@ Most lessons check you with short questions. You answer first and read the expla
 
 Before you submit a graded question or a prediction, you pick how sure you are: guessing, unsure, fairly sure or certain. The level is recorded with your answer. Being sure and wrong tells you more than being unsure and wrong.
 
-A **predict** item shows a few lines of Python. You type the output you expect, pick your confidence and press Submit answer. Then **Run it** shows what really happens. Then you answer one or two "investigate" questions. The code runs in your browser, and nothing you type is sent anywhere.
+A **predict** item shows a few lines of Python. You type the output you expect, pick your confidence and press Submit answer.
 
-**Worked example.** `//` is whole-number division and `%` is the remainder. `print` with several values shows them separated by a space.
+Then **Run it** shows what really happens, and one or two "investigate" questions give you something to think about. The code runs in your browser, and nothing you type is sent anywhere.
+
+**Worked example.** `//` is whole-number division and `%` is the remainder. `print` with several values separates them with a space. `len(x)` counts the items in a list. A variable name cannot start with a digit or be a Python keyword such as `class`.
 
 ```python
 print(7 // 2, 7 % 2)   # 3 1: two fits into seven 3 times, with 1 left over
@@ -99,13 +101,13 @@ Try three kinds of question: predict, multiple choice (choose all that apply) an
 
 Python runs in your browser in Pyodide, and SQL runs in PGlite, a version of PostgreSQL that runs there too. The first run in a session takes a few seconds while the runtime loads.
 
-Python exercises have **Run** (shows the output), **Run tests** (the visible tests), **Check** (all tests, including hidden ones), **Show hint** and **Reset**. Write-tests exercises have only Check, because your tests must be tried on several versions of the code. Hidden tests show only their name and a message about the likely mistake, never their code. SQL exercises have no hidden tests: Check compares your query's result with the expected one.
+Python exercises have **Run** (shows the output), **Run tests** (the visible tests), **Check** (all tests, including hidden ones), **Show hint** and **Reset**. In write-tests exercises, Run and Run tests are switched off, because your tests must be tried on several versions of the code. Hidden tests show only their name and a message about the likely mistake, never their code. SQL exercises have no hidden tests: Check compares your query's result with the expected one.
 
-The five kinds are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). Early lessons give more support. Later ones start with the problem.
+The five exercises are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). Early lessons give more support. Later ones start with the problem.
 
 **Hints and credit.** There are three hints: a question, then a strategy, then a near-solution with blanks. A pass with no help earns full credit, and each hint lowers it. The solution unlocks after a pass, or after three failed checks and all three hints. Only a full-credit pass counts as **unaided**, which is how Athena records that you did it yourself.
 
-First, a Parsons problem and a spot-the-bug question. A Parsons problem gives you scrambled lines, and one of them is a distractor that does not belong. Put the needed lines in order and set the indentation. With the keyboard, Space picks a line up, the arrow keys move it, Tab and Shift+Tab change the indentation and Enter drops it.
+First, a Parsons problem and a spot-the-bug question. A Parsons problem gives you scrambled lines, and one of them is a distractor that does not belong. Press a line in Available lines to add it to your solution, put the needed lines in order and set the indentation. With the keyboard, Space picks a line up, the arrow keys move it, Tab and Shift+Tab change the indentation and Enter drops it.
 
 <Parsons lesson="start-00" item="start-00-q-parsons-label" />
 
@@ -143,7 +145,7 @@ Second, **export your progress** regularly. A browser keeps site data on a best-
 **Safari** is stricter. If you have not clicked or tapped on a site for seven days of Safari use, and cross-site tracking prevention is on, Safari deletes the data the site created with script. That is where Athena stores your progress. So:
 
 - Use Chrome or Firefox for Athena if you can.
-- Or add Athena to your Home Screen or Dock. Safari may be more likely to grant persistent storage to it, but that is not a promise.
+- Or add Athena to your Home Screen. Safari may be more likely to grant persistent storage to it, but that is not a promise.
 - Either way, export regularly.
 
 <Quiz lesson="start-00" chunk={3} />
@@ -153,7 +155,7 @@ Second, **export your progress** regularly. A browser keeps site data on a best-
 <Callout type="misconception" title="Common misconceptions in chunk 3">
 
 - "My progress is safe because it is on my own computer." The browser, not you, decides when site data is deleted. An export file is yours.
-- "Persistent storage means I do not need to export." It makes automatic deletion much less likely. It does not protect you from clearing site data, a new browser or a new device.
+- "Persistent storage means I do not need to export." It helps against deletion when the device is low on space, but it is not a guarantee, and Safari's seven-day rule is not documented as exempt. It also does not protect you from clearing site data, a new browser or a new device.
 
 </Callout>
 

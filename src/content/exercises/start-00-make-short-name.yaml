@@ -19,6 +19,7 @@ prompt: |
   - `short_name("Amara Okafor")` returns `"A. Okafor"`
   - `short_name("Jonas Weber Lindqvist")` returns `"J. Lindqvist"`
   - A name with one word is returned unchanged: `short_name("Mei")` returns `"Mei"`
+  - Syntax you need: `text.split()` returns a list of words, `words[0]` is the first word, `words[-1]` is the last word, and `word[0]` is the first letter of a word.
   - Extra spaces at the start, at the end or between words are ignored.
   - The input always has at least one word.
   - The first letter is kept exactly as typed, with no change to upper or lower case.
