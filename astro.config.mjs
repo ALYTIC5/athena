@@ -42,9 +42,25 @@ export default defineConfig({
       el.setAttribute('aria-label', (el.getAttribute('data-language') || 'code') + ' example ' + (i + 1));
     });
   }
+  // A code block that scrolls must be reachable by keyboard. Expressive Code does this once on load,
+  // but the layout can still change afterwards (fonts, window size), so check again.
+  function focusable() {
+    document.querySelectorAll('pre').forEach(function (el) {
+      var scrolls = el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
+      if (scrolls && !el.hasAttribute('tabindex')) {
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('role', 'region');
+      }
+    });
+    label();
+  }
   document.addEventListener('DOMContentLoaded', function () {
     label();
     new MutationObserver(label).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['role'] });
+    focusable();
+    window.addEventListener('load', focusable);
+    window.addEventListener('resize', focusable);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(focusable);
   });
 })();`,
         },

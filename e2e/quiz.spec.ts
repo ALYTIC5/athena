@@ -238,7 +238,7 @@ test('warm-up draws five earlier items and records them as warm-up answers', asy
   expect(saved.cards).toEqual({});
 });
 
-test('checklist and rubric are stored; lab step shows coming soon; interview model answer unlocks', async ({
+test('checklist and rubric are stored; lab step links to its milestone page; interview model answer unlocks', async ({
   page,
 }) => {
   await page.goto('samples/lesson/');
@@ -256,7 +256,10 @@ test('checklist and rubric are stored; lab step shows coming soon; interview mod
   expect(saved.checklists['sample-2-checklist'].done).toEqual(['0']);
   expect(saved.rubrics['sample-2-rubric'].scores['Says what the project is']).toBe(2);
 
-  await expect(page.getByText('The milestone page is coming soon.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'milestone wa-m1' })).toHaveAttribute(
+    'href',
+    /\/labs\/wa-m1\/$/,
+  );
 
   const reveal = page.getByRole('button', { name: 'Show model answer' });
   await expect(reveal).toBeDisabled();

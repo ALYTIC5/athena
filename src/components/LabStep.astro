@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { labMilestones } from '../lib/content/labs';
 import { url } from '../lib/url';
 
 interface Props {
@@ -10,8 +11,7 @@ const { milestone } = Astro.props;
 const weeks = await getCollection('curriculum');
 const listed = weeks.some((w) => w.data.lab.some((l) => l.milestone === milestone));
 if (!listed) throw new Error(`LabStep: milestone ${milestone} is not listed in curriculum.yaml`);
-const docs = await getCollection('docs');
-const page = docs.find((d) => d.id === `labs/${milestone}`);
+const page = (await labMilestones()).find((m) => m.id === milestone);
 ---
 
 <aside class="athena-callout" aria-label="Use it in your project">
