@@ -16,7 +16,7 @@ prompt: |
   tracked, in the same order they were given.
 
   A path is flagged when its file name (the part after the last `/`) is:
-  - exactly `.env`, or starts with `.env.` (for example `.env.production`), except `.env.example`, which is safe; or
+  - exactly `.env`, or starts with `.env.` (for example `.env.production`), except `.env.example`, which is safe (treat any other `.env.` name as secret); or
   - ends with `.pem`.
 
   Example: `["src/app.py", "config/.env.local", ".env.example"]` returns `["config/.env.local"]`.

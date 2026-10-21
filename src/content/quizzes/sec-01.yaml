@@ -27,6 +27,7 @@ items:
     stem: A key was pushed to a shared repository an hour ago. Put the response in order.
     steps:
       - Revoke or rotate the key at the provider
+      - Check the provider's logs for use of the old key
       - Purge the key from history and force-push, if it is still worth it
       - Add prevention (gitignore, pre-commit hook, push protection)
   - id: sec-01-q-first-action
@@ -57,7 +58,7 @@ items:
     options:
       - text: Copies of the secret in forks that were made earlier
         correct: true
-        why: A fork is a separate repository. GitHub's guidance says the commit stays reachable there until its owner removes it.
+        why: A fork is a separate repository, which your rewrite does not touch. GitHub's guidance says to ask fork owners to remove the data or delete their forks.
       - text: Copies of the secret in other people's existing clones
         correct: true
         why: You cannot remove data from other people's clones. They must clean their own copies.
@@ -80,9 +81,9 @@ items:
       - text: "No: once the credential is rotated, a rewrite may not be worth the extra effort"
         correct: true
         why: GitHub's page says this. A rewrite needs careful coordination with collaborators and changes every commit hash after the change.
-      - text: "No: you can ignore the history forever, because nobody reads old commits"
+      - text: "No: history is only visible to the repository's maintainers, so it is safe"
         correct: false
-        why: People do read history. The point is that a dead key is harmless, not that the history is unread.
+        why: Anyone with read access, and every clone or fork, can read the history. The point is that a dead key is harmless, not that the history is hidden.
 
   # ---- Chunk 2: keeping secrets out of the repository (objectives 2 and 3) ----
   - id: sec-01-q-gitignore-tracked
@@ -95,7 +96,7 @@ items:
       - text: Git stops tracking .env and removes it from the history
         correct: false
         why: .gitignore never rewrites history, and it does not affect files that are already tracked.
-      - text: Git keeps tracking .env, so its changes still show up. You must untrack it with git rm --cached, and the old commit still holds the content
+      - text: Git still tracks it. Untrack it with git rm --cached; old commits keep the content
         correct: true
         why: Git's documentation says files already tracked are not affected, and gives git rm --cached for untracking. The old commit is untouched, so a leaked value must still be revoked.
       - text: Git refuses the change because .env is tracked
@@ -112,8 +113,8 @@ items:
       !.env.example
       .env
       .env.*
-    buggyLine: 2
-    explanation: When several patterns match a file, the last one decides. Here `.env.*` comes after `!.env.example`, so .env.example is ignored again and can never be committed. Put the `!` line last.
+    buggyLine: 4
+    explanation: When several patterns match a file, the last one decides. Here `.env.*` comes after `!.env.example`, so it ignores .env.example again and the example file can never be committed. Move the `!.env.example` line below `.env.*`.
   - id: sec-01-q-hook-scope
     pools: [mastery, warmup]
     objective: 2
@@ -131,13 +132,14 @@ items:
         correct: false
         why: Ignored files are never staged, so they are not what the hook is for.
   - id: sec-01-q-hook-bypass
-    pools: [mastery]
+    pools: [check, mastery]
+    chunk: 2
     objective: 2
     type: single
     competencies: [sec.secrets]
     stem: A teammate runs `git commit --no-verify`. What happens to the pre-commit hook, and what should the team add?
     options:
-      - text: The hook is skipped. The team also needs a server-side check, such as push protection or a scan in CI
+      - text: It is skipped, so the team also needs a server-side check
         correct: true
         why: Git's documentation says --no-verify bypasses the pre-commit hook. A hook is a local convenience, so a second layer is needed.
       - text: The hook still runs, because hooks cannot be disabled
@@ -175,9 +177,9 @@ items:
       - text: A pre-commit hook runs on your machine and can be skipped
         correct: true
         why: It is invoked by git commit and can be bypassed with --no-verify.
-      - text: Push protection only recognises the secret patterns it knows
+      - text: Push protection can be bypassed by someone with write access who gives a reason
         correct: true
-        why: It detects supported secret types, so a custom or oddly formatted secret can pass. That is why you layer protections.
+        why: GitHub's documentation says so. Each bypass creates an alert and an audit log entry.
       - text: Adding a line to .gitignore removes a secret from old commits
         correct: false
         why: .gitignore only decides which untracked files are added in future. History is unchanged.
@@ -314,9 +316,9 @@ items:
       - text: One admin key is shared by every service, for simplicity
         correct: false
         why: A leak of that one key gives an attacker full access everywhere, and rotating it breaks every service.
-      - text: Keys expire or are rotated regularly
+      - text: A CI token is limited to the one repository it builds
         correct: true
-        why: OWASP recommends regular rotation so that stolen credentials only work for a short time.
+        why: The job can reach only what it needs, so a leak exposes only that repository.
   - id: sec-01-q-short-least-priv
     pools: [mastery]
     objective: 3
@@ -349,15 +351,16 @@ items:
       )
 
       def invoices_for(owner):
-          sql = "SELECT id FROM invoices WHERE owner = '" + owner + "'"
-          return db.execute(sql).fetchall()
+          sql = "SELECT id FROM invoices WHERE owner = ?"
+          return db.execute(sql, (owner,)).fetchall()
 
-      print(len(invoices_for("amara")), len(invoices_for("x' OR '1'='1")))
+      print(len(invoices_for("amara")), len(invoices_for("x' OR '1'='1")), len(invoices_for("o'neil")))
     investigate:
-      - Why does the second call return every invoice, when no owner is called "x' OR '1'='1"?
-      - What one change to the function stops the second call returning other people's invoices?
+      - Why does the second call return nothing, even though its input contains SQL?
+      - What would the function return for the second call if line 11 built the SQL by joining the strings instead?
   - id: sec-01-q-a01-scenario
-    pools: [mastery, warmup]
+    pools: [check, mastery, warmup]
+    chunk: 3
     objective: 4
     type: single
     competencies: [sec.owasp-basics]
@@ -382,7 +385,7 @@ items:
       - text: Hide the button more carefully, for example by renaming it
         correct: false
         why: Anyone can send a request to the endpoint without the page. Hiding a button is not access control.
-      - text: Check on the server, for every request, that the user is allowed to export, and deny by default
+      - text: Check on the server, on every request, and deny by default
         correct: true
         why: OWASP says access control is only effective in trusted server-side code, and recommends denying by default except for public resources.
       - text: Obfuscate the JavaScript
@@ -397,10 +400,10 @@ items:
     options:
       - text: Parameterised queries, which keep the data separate from the SQL
         correct: true
-        why: OWASP's preferred approach is to keep data separate from commands. The database treats the parameter as a value, never as SQL.
+        why: OWASP prefers a safe interface that keeps data separate from commands. The database treats the parameter as a value, never as SQL.
       - text: Replace quote characters in the input by hand
         correct: false
-        why: OWASP calls escaping error-prone and fragile. One missed case is enough.
+        why: OWASP treats escaping as an error-prone fallback for when parameters are not possible. One missed case is enough.
       - text: Check that the input is not too long
         correct: false
         why: A short hostile input is still hostile. Validation helps as an extra layer but is not a complete defence.

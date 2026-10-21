@@ -10,7 +10,7 @@ competencies:
   - sec.secrets
 timeoutMs: 5000
 packages: []
-estMin: 12
+estMin: 14
 prompt: |
   Write `make_env_example(env_text)`. It takes the text of a `.env` file and returns the text of a `.env.example` file:
   every setting keeps its name but loses its value.
@@ -110,6 +110,16 @@ wrongSolutions:
                   lines.append(line.partition("=")[0] + "=")
               else:
                   lines.append(line)
+          return "\n".join(lines)
+  - label: Uses splitlines, so the final newline is lost
+    code: |
+      def make_env_example(env_text: str) -> str:
+          lines = []
+          for line in env_text.splitlines():
+              if line.strip().startswith("#") or "=" not in line:
+                  lines.append(line)
+              else:
+                  lines.append(line.partition("=")[0] + "=")
           return "\n".join(lines)
   - label: Drops comments and blank lines
     code: |
