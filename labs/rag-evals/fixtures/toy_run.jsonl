@@ -1,0 +1,7 @@
+{"query_id": "t1", "ranked_ids": ["a", "x1", "x2", "x3", "x4", "x5"]}
+{"query_id": "t2", "ranked_ids": ["x1", "b", "x2", "x3", "x4", "c", "x5"]}
+{"query_id": "t3", "ranked_ids": ["x1", "x2", "x3", "x4", "x5", "x6", "d", "x7", "x8", "x9"]}
+{"query_id": "t4", "ranked_ids": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "e"]}
+{"query_id": "t5", "ranked_ids": ["f", "g", "x1"]}
+{"query_id": "t6", "ranked_ids": ["x1", "x2", "x3"]}
+{"query_id": "t0_extra", "ranked_ids": ["a"]}
