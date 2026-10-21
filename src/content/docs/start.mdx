@@ -1,5 +1,81 @@
 ---
 title: Start here
+description: How Athena works, the think-aloud approach, the AI rule, and how to keep your progress safe.
 ---
 
-Placeholder. Built in a later phase.
+import { url as href } from '../../lib/url';
+
+Athena is a 28-week course for junior roles in AI automation, backend Python and AI application engineering. It teaches, tests and tracks your progress in your browser, with no account and no server.
+
+## Your first steps
+
+1. In <a href={href('settings/')}>Settings</a>, set a start date (a Monday) and press Save settings.
+2. Do the first lesson, <a href={href('lessons/start-00/')}>How Athena works</a>. It takes about 45 minutes and shows you every kind of question and exercise.
+3. In Settings, press Export progress once, so you know how backing up works. The lesson walks you through it.
+
+## The weekly rhythm
+
+Each week has about 5 hours:
+
+| What | Time |
+| --- | --- |
+| Lessons and lab work, in two sessions | about 2.75 hours |
+| Spaced review of cards from lessons you have mastered | about 15 minutes a week |
+| Interview Gym: timed problems, drills and mock interviews | 1 hour |
+| Job search: tailored applications and freelance pitches, from week 2 | 1 hour |
+
+Home shows this week's plan and what is due. The topics come from an analysis of 136 real job postings, and each lesson says how often its topic appears.
+
+## How a lesson works
+
+A full lesson follows the same order each time: a warm-up of questions from earlier lessons, why the topic matters, objectives, two or three short concept chunks, then exercises, a mastery check and interview questions.
+
+- Each chunk has a worked example, a predict-then-run item, a faded example, a quick check and a list of common misconceptions.
+- You answer first, then read the explanation. Before you submit a graded answer you pick how sure you are.
+- Exercises run Python or SQL in your browser. Hidden tests show their name and a hint, not their code.
+- There are three hints per exercise. Each hint lowers your credit, and only a full-credit pass counts as unaided.
+- A lesson is mastered when you score 80% or more on its mastery check and pass its mastery exercise unaided. Its cards then join your daily review.
+
+## The think-aloud approach
+
+Say each step out loud, in an interview and when you practise:
+
+1. **Clarify** the problem: input, limits, odd cases.
+2. **Examples:** work two or three by hand.
+3. **Brute force:** the simplest solution that works, and what it costs.
+4. **Optimise:** something faster or simpler, and the trade-off.
+5. **Code** it.
+6. **Test** it with your examples.
+7. **Complexity:** how time and memory grow with the input.
+
+The first lesson teaches this with a worked example. The Interview Gym practises it every week.
+
+## The AI rule
+
+**Write it yourself. Claude is your tutor, not your author.**
+
+- Every code exercise has an "I'm stuck" button. It copies a prompt and opens Claude in a new tab. The prompt asks Claude to ask you questions and not to write the solution. Using it caps that exercise's credit at 0.75.
+- Explain-back asks Claude to interview you about code you wrote. It makes you explain your choices.
+- AI-assisted drills in the Interview Gym are the exception: there the skill is directing AI and checking its output.
+- Athena itself never calls an AI service. The prompts are text that you paste into Claude yourself.
+
+## Where your progress lives
+
+Everything is stored in your browser on this device, in localStorage and IndexedDB. Nothing is sent to a server. This keeps it private, but it also means:
+
+- **Export regularly.** Settings has Export progress, which downloads `athena-progress-YYYY-MM-DD.json`, and Import, which merges that file into the current data or replaces it. Keep exports in a backed-up or synced folder.
+- **The Safari rule.** Per [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria), when cross-site tracking prevention is on, Safari deletes the script-created data of a site that has had no click or tap in the last seven days of browser use. That includes Athena's progress. Use Chrome or Firefox if you can, or add Athena to your Home Screen. Safari is more likely to grant persistent storage to a web app opened from the Home Screen ([WebKit](https://webkit.org/blog/14403/updates-to-storage-policy/)), but you should still export.
+- **Other browsers** can also delete site data when the device is low on space or when you clear site data. Athena asks the browser for persistent storage when you open Settings, and Settings shows the result. Persistent storage protects against deletion when the device is low on space ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)). It is not a guarantee in Safari, and it does not protect you if you clear the data yourself.
+- A private window starts empty and forgets everything when you close it.
+- If you go more than seven days without exporting, Settings shows a reminder.
+- Moving to another browser or device means exporting in the old one and importing in the new one.
+
+## Where to find things
+
+- <a href={href('/')}>Home</a>: this week, reviews due, the current lesson.
+- <a href={href('lessons/')}>Lessons</a>: every lesson, with its status.
+- <a href={href('review/')}>Review</a>: today's spaced-repetition cards.
+- <a href={href('gym/')}>Interview Gym</a>: timed problems, drills, stories and mocks.
+- <a href={href('labs/')}>Labs</a>: the two projects.
+- <a href={href('competencies/')}>Competencies</a>: what you can do, with evidence.
+- <a href={href('settings/')}>Settings</a>: start date, hours, backup and reset.

@@ -1,0 +1,52 @@
+id: start-00-sql-open-slots
+lesson: start-00
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: List the open slots
+difficulty: 1
+competencies:
+  - int.approach
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE slots (id integer PRIMARY KEY, starts text NOT NULL, booked boolean NOT NULL);
+  INSERT INTO slots VALUES
+    (1, '11:00', false),
+    (2, '09:00', true),
+    (3, '10:00', false),
+    (4, '08:30', false),
+    (5, '12:00', true);
+prompt: |
+  A SQL exercise runs your query against a small database in your browser and compares the result with the expected one.
+
+  `WHERE` keeps only the rows that match a condition, and `ORDER BY` sorts the result.
+
+  The table `slots` has one row per appointment slot. Keep the column name `starts`. List the `starts` value of every slot that is not booked, earliest first.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT starts FROM slots WHERE NOT booked ORDER BY starts;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: Lists the booked slots instead
+    code: |
+      SELECT starts FROM slots WHERE booked ORDER BY starts;
+  - label: Orders by id instead of by time
+    code: |
+      SELECT starts FROM slots WHERE NOT booked ORDER BY id;
+  - label: Returns the id instead of the start time
+    code: |
+      SELECT id FROM slots WHERE NOT booked ORDER BY starts;
+hints:
+  - Which column tells you whether a slot is taken, and which rows do you want?
+  - Filter with WHERE on the boolean column, select only the start time, and sort with ORDER BY.
+  - 'SELECT starts FROM slots WHERE ____ booked ORDER BY ____;'
+explanation: |
+  `WHERE NOT booked` keeps the rows where the boolean column is false, and `ORDER BY starts` sorts the times. Without
+  ORDER BY, SQL does not promise any row order. Alternative: `WHERE booked = false` gives the same rows and some people
+  find it easier to read.

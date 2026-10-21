@@ -1,0 +1,98 @@
+id: start-00-make-short-name
+lesson: start-00
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Shorten a full name for a calendar entry
+difficulty: 2
+competencies:
+  - int.approach
+timeoutMs: 5000
+packages: []
+estMin: 3
+prompt: |
+  A make exercise gives you a short specification and an empty function. You write it from scratch.
+
+  Write `short_name(full_name)` for a calendar view that has little space. It keeps the first initial and the last word:
+
+  - `short_name("Amara Okafor")` returns `"A. Okafor"`
+  - `short_name("Jonas Weber Lindqvist")` returns `"J. Lindqvist"`
+  - A name with one word is returned unchanged: `short_name("Mei")` returns `"Mei"`
+  - Syntax you need: `text.split()` returns a list of words, `words[0]` is the first word, `words[-1]` is the last word, and `word[0]` is the first letter of a word.
+  - Extra spaces at the start, at the end or between words are ignored.
+  - The input always has at least one word.
+  - The first letter is kept exactly as typed, with no change to upper or lower case.
+starter: |
+  def short_name(full_name: str) -> str:
+      ...
+visibleTests: |
+  def test_two_words():
+      assert short_name("Amara Okafor") == "A. Okafor"
+
+  def test_one_word():
+      assert short_name("Mei") == "Mei"
+hiddenTests: |
+  def test_three_words():
+      assert short_name("Jonas Weber Lindqvist") == "J. Lindqvist"
+
+  def test_extra_spaces():
+      assert short_name("  Sofia   Reyes ") == "S. Reyes"
+
+  def test_one_word_with_spaces():
+      assert short_name("  Mei ") == "Mei"
+
+  def test_lowercase_first_letter_is_kept_as_typed():
+      assert short_name("bayu Santoso") == "b. Santoso"
+feedback:
+  - test: test_two_words
+    message: Check the format. The result is the first letter, a full stop, a space, then the last name.
+  - test: test_one_word
+    message: With one word there is no last name to add. Return the word itself.
+  - test: test_three_words
+    message: Use the last word, not the second word.
+  - test: test_extra_spaces
+    message: Split the name into words first. `str.split()` with no argument ignores extra spaces.
+  - test: test_lowercase_first_letter_is_kept_as_typed
+    message: Keep the first letter as it was typed. Do not change its case.
+  - test: test_one_word_with_spaces
+    message: Remove the spaces before you decide how many words there are.
+hints:
+  - How many words does the name have, and which two of them do you need?
+  - Split the text into a list of words, handle the one-word case, then use the first letter of the first word and the last word.
+  - |-
+    words = full_name.____()
+    if len(words) == ____:
+        return words[0]
+    return f"{words[0][0]}. {words[____]}"
+referenceSolution: |
+  def short_name(full_name: str) -> str:
+      words = full_name.split()
+      if len(words) == 1:
+          return words[0]
+      return f"{words[0][0]}. {words[-1]}"
+wrongSolutions:
+  - label: Uses the second word instead of the last word
+    code: |
+      def short_name(full_name: str) -> str:
+          words = full_name.split()
+          if len(words) == 1:
+              return words[0]
+          return f"{words[0][0]}. {words[1]}"
+  - label: Splits on a single space, so extra spaces break it
+    code: |
+      def short_name(full_name: str) -> str:
+          words = full_name.split(" ")
+          if len(words) == 1:
+              return words[0]
+          return f"{words[0][0]}. {words[-1]}"
+  - label: Crashes on a one-word name
+    code: |
+      def short_name(full_name: str) -> str:
+          words = full_name.split()
+          return f"{words[0][0]}. {words[-1]}"
+explanation: |
+  `split()` with no argument splits on any run of whitespace and drops empty pieces, so spaces at the ends or in the
+  middle do not matter. After that, `words[0][0]` is the first letter of the first word and `words[-1]` is the last
+  word. The one-word case needs its own branch, because otherwise the first and last word are the same word.
+  Alternative: `first, *_, last = words` unpacks the first and last words in one line, but it fails for one word.

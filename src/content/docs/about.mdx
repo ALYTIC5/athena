@@ -1,5 +1,33 @@
 ---
 title: About
+description: What Athena is, how its content is checked, and what hidden tests really are.
 ---
 
-Placeholder. Built in a later phase.
+## What Athena is
+
+Athena is a static learning site. It follows a 28-week plan that prepares one learner for junior roles in AI automation, backend Python and AI application engineering. It has lessons, Python and SQL exercises that check your answers in the browser, spaced review, an interview gym and two project labs.
+
+The topics come from an analysis of 136 job postings. The syllabus and the competencies it builds are in the project's repository.
+
+## How the content is checked
+
+- **Every auto-graded exercise is verified.** A build step runs each reference solution against its tests, using the same grader the browser uses, and the build fails if it does not pass. It also runs every listed wrong solution, which must fail at least one test. A test that every wrong answer passes is too weak, so it is fixed.
+- **Predicted outputs are produced by running the code.** The expected output of a predict item is not typed by an author. The build runs the code twice with different hash seeds and time zones, and rejects it if the results differ.
+- **Code in lessons is run.** Python and SQL examples on lesson pages are executed at build time.
+- **Technical claims are checked against official documentation**, and each lesson links to the pages used. When something depends on a version or a provider, the lesson says so.
+- **No secrets, and only invented data.** A secret scanner runs on every commit and in the automated checks. Example names, numbers and email addresses are made up and use reserved ranges.
+- **Accessibility is tested.** Interactive parts work with the keyboard alone, and automated accessibility checks run on the pages.
+
+Checklists and rubrics are self-assessed. They are practice, and they never count as unaided evidence.
+
+## Hidden tests are hidden, not secret
+
+Hidden tests exist so that a solution has to work for cases you did not see, such as an empty list. They are hidden from the interface: it shows only a test's name and a message about the likely mistake. They are not secret. Athena is a static site, so all of its data is sent to your browser, and the site's source is public. Reading the tests would only mean you practise less, so the site is built for people who want the practice.
+
+## Privacy
+
+There is no account, no server of Athena's own, no analytics and no cookies. Your progress stays in your browser and you can export and import it. The runtimes for Python (Pyodide) and SQL (PGlite) load when you first run code. The only other network requests are links you click.
+
+## Built with
+
+[Astro](https://astro.build/) and [Starlight](https://starlight.astro.build/) for the site, [Pyodide](https://pyodide.org/) to run Python in the browser, [PGlite](https://pglite.dev/) to run PostgreSQL in the browser, and [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) for spaced repetition scheduling. Hosting is GitHub Pages. The source is at [github.com/ALYTIC5/athena](https://github.com/ALYTIC5/athena).

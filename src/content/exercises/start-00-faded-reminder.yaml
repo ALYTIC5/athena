@@ -1,0 +1,56 @@
+id: start-00-faded-reminder
+lesson: start-00
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Fill in a reminder message
+difficulty: 1
+competencies:
+  - int.approach
+timeoutMs: 5000
+packages: []
+estMin: 2
+prompt: |
+  A faded exercise gives you working code with the key parts blanked out. Replace each `____` so that
+  `reminder("Amara", "09:30")` returns `"Reminder: Amara at 09:30"`.
+  Inside an f-string, a name in curly braces is replaced by its value.
+starter: |
+  def reminder(name, slot):
+      return f"Reminder: {____} at {____}"
+visibleTests: |
+  def test_basic_reminder():
+      assert reminder("Amara", "09:30") == "Reminder: Amara at 09:30"
+hiddenTests: |
+  def test_other_values():
+      assert reminder("Jonas", "14:05") == "Reminder: Jonas at 14:05"
+
+  def test_order_of_values():
+      assert reminder("Mei", "08:00") == "Reminder: Mei at 08:00"
+feedback:
+  - test: test_basic_reminder
+    message: 'Check the text and the values. The name comes first, then the time, and the f-string must end up as `Reminder: Amara at 09:30`.'
+  - test: test_other_values
+    message: Your function works for one example only. Use the parameters `name` and `slot` inside the curly braces instead of typing a fixed value.
+  - test: test_order_of_values
+    message: The name and the time are the wrong way round. Read the sentence out loud, who first and then at what time.
+hints:
+  - Which two values does the function receive, and where should each one appear in the sentence?
+  - Put the parameter name inside each pair of curly braces, in the same order as the words in the message.
+  - 'return f"Reminder: {____} at {____}"  (the first blank is `name`, the second is `slot`)'
+referenceSolution: |
+  def reminder(name, slot):
+      return f"Reminder: {name} at {slot}"
+wrongSolutions:
+  - label: Types the example values instead of using the parameters
+    code: |
+      def reminder(name, slot):
+          return f"Reminder: {'Amara'} at {'09:30'}"
+  - label: Swaps the two values
+    code: |
+      def reminder(name, slot):
+          return f"Reminder: {slot} at {name}"
+explanation: |
+  An f-string replaces each `{name}` with the value of that variable when the line runs. The blanks are the parameter
+  names, so the function works for any input. Alternative: `"Reminder: " + name + " at " + slot` gives the same
+  result, but needs more punctuation and only works if both values are already strings.

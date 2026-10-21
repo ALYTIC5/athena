@@ -1,0 +1,134 @@
+id: start-00-write-tests-delivery-fee
+lesson: start-00
+runtime: python
+kind: write-tests
+pools:
+  - lesson
+title: Test a delivery fee rule
+difficulty: 2
+competencies:
+  - int.approach
+timeoutMs: 20000
+packages:
+  - pytest
+estMin: 3.5
+prompt: |
+  A write-tests exercise gives you a function and asks for the tests. Your tests must pass on the correct version
+  and fail on every buggy version, so they have to check each rule.
+
+  `delivery_fee(total)` returns the fee for an order total in whole euros:
+
+  - totals of 50 or more have no fee (`0`)
+  - totals below 50 cost `4`
+  - a negative total raises `ValueError`
+
+  Write tests in `test_*` functions. The starter already imports the function and `pytest`.
+  In this kind of exercise only Check is available: it runs your tests against the correct version and every buggy one.
+  A test calls the function and uses `assert` to state what it must return. To check that a call raises an error, use
+  `pytest.raises`:
+
+  ```python
+  with pytest.raises(ValueError):
+      delivery_fee(-1)
+  ```
+starter: |
+  import pytest
+  from impl import delivery_fee
+
+
+  def test_small_order_pays_a_fee():
+      assert delivery_fee(20) == 4
+implementations:
+  correct: |
+    def delivery_fee(total):
+        if total < 0:
+            raise ValueError("total must not be negative")
+        if total >= 50:
+            return 0
+        return 4
+  buggy:
+    - label: Charges a fee at exactly 50
+      code: |
+        def delivery_fee(total):
+            if total < 0:
+                raise ValueError("total must not be negative")
+            if total > 50:
+                return 0
+            return 4
+    - label: Accepts a negative total
+      code: |
+        def delivery_fee(total):
+            if total >= 50:
+                return 0
+            return 4
+    - label: Charges the wrong fee below 50
+      code: |
+        def delivery_fee(total):
+            if total < 0:
+                raise ValueError("total must not be negative")
+            if total >= 50:
+                return 0
+            return 5
+    - label: Never waives the fee
+      code: |
+        def delivery_fee(total):
+            if total < 0:
+                raise ValueError("total must not be negative")
+            return 4
+hints:
+  - Which rules does the function have, and which input values sit on each side of the boundary?
+  - Write one test for each rule. For the boundary, test the value just below it and the value exactly on it.
+  - |-
+    def test_exactly_fifty_is_free():
+        assert delivery_fee(____) == ____
+
+    def test_negative_total_raises():
+        with pytest.raises(____):
+            delivery_fee(-1)
+referenceSolution: |
+  import pytest
+  from impl import delivery_fee
+
+
+  def test_small_order_pays_a_fee():
+      assert delivery_fee(20) == 4
+
+
+  def test_large_order_is_free():
+      assert delivery_fee(80) == 0
+
+
+  def test_exactly_fifty_is_free():
+      assert delivery_fee(50) == 0
+
+
+  def test_just_below_fifty_pays():
+      assert delivery_fee(49) == 4
+
+
+  def test_negative_total_raises():
+      with pytest.raises(ValueError):
+          delivery_fee(-1)
+wrongSolutions:
+  - label: Only tests a small order
+    code: |
+      from impl import delivery_fee
+
+
+      def test_small_order_pays_a_fee():
+          assert delivery_fee(20) == 4
+  - label: Forgets the boundary and the error case
+    code: |
+      from impl import delivery_fee
+
+
+      def test_small_order_pays_a_fee():
+          assert delivery_fee(20) == 4
+
+
+      def test_large_order_is_free():
+          assert delivery_fee(80) == 0
+explanation: |
+  Each buggy version breaks exactly one rule: the boundary at 50, the error for a negative total, the fee amount, or
+  the free delivery. A good suite has one test per rule and tests values on both sides of the boundary (49, 50). The
+  error rule needs `pytest.raises`, which passes only when the code inside raises that exception.
