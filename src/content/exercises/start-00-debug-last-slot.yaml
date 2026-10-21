@@ -10,7 +10,7 @@ competencies:
   - int.approach
 timeoutMs: 5000
 packages: []
-estMin: 2
+estMin: 2.5
 prompt: |
   A debug exercise gives you code with one planted bug and a test that fails. Read the error, find the line, fix it.
   `last_slot(slots)` should return the last item of a list of time slots, or `None` when the list is empty.
@@ -39,7 +39,7 @@ hiddenTests: |
       assert last_slot(["13:00", "08:00"]) == "08:00"
 feedback:
   - test: test_returns_last_slot
-    message: The error is an IndexError. A list with 3 items has positions 0, 1 and 2, so position 3 does not exist.
+    message: If you see an IndexError, remember that a list with 3 items has positions 0, 1 and 2, so position 3 does not exist. If the value is wrong, you returned a different item than the last one.
   - test: test_one_slot
     message: A list with one item has only position 0. Count positions from 0 and your fix should work for any length.
   - test: test_input_unchanged

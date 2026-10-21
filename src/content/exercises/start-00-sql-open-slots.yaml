@@ -9,7 +9,7 @@ difficulty: 1
 competencies:
   - int.approach
 timeoutMs: 5000
-estMin: 1.5
+estMin: 2
 extensions: []
 schema: |
   CREATE TABLE slots (id integer PRIMARY KEY, starts text NOT NULL, booked boolean NOT NULL);

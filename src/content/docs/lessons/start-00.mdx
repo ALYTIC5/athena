@@ -6,7 +6,7 @@ sidebar:
 lessonId: start-00
 week: 1
 track: start
-durationMin: 40
+durationMin: 45
 anatomy: orientation
 competencies: [int.approach]
 prerequisites: []
@@ -19,7 +19,7 @@ objectives:
   - Use every kind of question and exercise in Athena
   - Set a start date and find your weekly plan on Home
   - Export your progress and explain why Safari can delete it
-  - Explain the AI rule - Claude is your tutor, not your author
+  - "Explain the AI rule: Claude is your tutor, not your author"
   - Describe the think-aloud approach in seven steps
 sources:
   - title: "Python tutorial: lists and indexing"
@@ -62,6 +62,8 @@ By the end of this lesson you can:
 4. Explain the AI rule: Claude is your tutor, not your author.
 5. Describe the think-aloud approach in seven steps.
 
+You can read simple Python at the level of this lesson's examples. Each exercise prompt explains what you need.
+
 This lesson has no warm-up, no mastery check and no cards. Nothing here is graded for mastery, so use it to try things and make mistakes.
 
 <Chunk n={1} title="Questions that make you commit first">
@@ -70,7 +72,7 @@ Most lessons check you with short questions. You answer first and read the expla
 
 Before you submit a graded question or a prediction, you pick how sure you are: guessing, unsure, fairly sure or certain. The level is recorded with your answer. Being sure and wrong tells you more than being unsure and wrong.
 
-A **predict** item shows a few lines of Python. You type the output you expect, then press Run to see what really happens. Then you answer one or two "investigate" questions. The code runs in your browser, and nothing you type is sent anywhere.
+A **predict** item shows a few lines of Python. You type the output you expect, pick your confidence and press Submit answer. Then **Run it** shows what really happens. Then you answer one or two "investigate" questions. The code runs in your browser, and nothing you type is sent anywhere.
 
 **Worked example.** `//` is whole-number division and `%` is the remainder. `print` with several values shows them separated by a space.
 
@@ -97,13 +99,13 @@ Try three kinds of question: predict, multiple choice (choose all that apply) an
 
 Python runs in your browser in Pyodide, and SQL runs in PGlite, a version of PostgreSQL that runs there too. The first run in a session takes a few seconds while the runtime loads.
 
-Python exercises have **Run** (shows the output), **Run tests** (the visible tests), **Check** (all tests, including hidden ones) and **Reset**. Hidden tests show only their name and a message about the likely mistake, never their code. SQL exercises have no hidden tests: Check compares your query's result with the expected one.
+Python exercises have **Run** (shows the output), **Run tests** (the visible tests), **Check** (all tests, including hidden ones), **Show hint** and **Reset**. Write-tests exercises have only Check, because your tests must be tried on several versions of the code. Hidden tests show only their name and a message about the likely mistake, never their code. SQL exercises have no hidden tests: Check compares your query's result with the expected one.
 
 The five kinds are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). Early lessons give more support. Later ones start with the problem.
 
 **Hints and credit.** There are three hints: a question, then a strategy, then a near-solution with blanks. A pass with no help earns full credit, and each hint lowers it. The solution unlocks after a pass, or after three failed checks and all three hints. Only a full-credit pass counts as **unaided**, which is how Athena records that you did it yourself.
 
-First, a Parsons problem and a spot-the-bug question. In a Parsons problem you drag lines into order. With the keyboard, Space picks a line up, the arrow keys move it and Enter drops it.
+First, a Parsons problem and a spot-the-bug question. A Parsons problem gives you scrambled lines, and one of them is a distractor that does not belong. Put the needed lines in order and set the indentation. With the keyboard, Space picks a line up, the arrow keys move it, Tab and Shift+Tab change the indentation and Enter drops it.
 
 <Parsons lesson="start-00" item="start-00-q-parsons-label" />
 
@@ -134,7 +136,7 @@ Now the five exercise kinds, smallest first. A `____` in the starter code is a b
 
 Athena has no accounts and no server. Your progress, answers and drafts are saved in your browser's storage on this device (localStorage and IndexedDB). That keeps your data private, but you must do two things.
 
-First, set a **start date** in <a href={href('settings/')}>Settings</a>. It must be a Monday. Home counts weeks from it and shows that week's plan: lessons and lab work (about 2.75 hours), a short review, one hour of Interview Gym and one hour of job search. If you fall behind, move the date later.
+First, set a **start date** in <a href={href('settings/')}>Settings</a>. It must be a Monday. Home counts weeks from it and shows that week's plan: lessons and lab work (up to 2.75 hours), a short review, one hour of Interview Gym and, from week 2, one hour of job search. If you fall behind, move the date later.
 
 Second, **export your progress** regularly. A browser keeps site data on a best-effort basis. It can delete it when the device runs low on space, and you can delete it by clearing site data. Export creates `athena-progress-YYYY-MM-DD.json`, and Import brings it back. Keep exports in a synced or backed-up folder.
 
@@ -161,7 +163,7 @@ Second, **export your progress** regularly. A browser keeps site data on a best-
 
 Live coding interviews often ask you to write code without AI help, and you need to understand every line you ship. So Athena has one rule for exercises: **write it yourself.** Claude can be your tutor, but not your author.
 
-Every code exercise has an "I'm stuck" button. It builds a prompt from the exercise and your code, opens Claude in a new tab and copies the prompt for you to paste. The prompt tells Claude not to write the solution and to ask you one question at a time. You write the fix. Using it caps that exercise's credit at 0.75.
+Every code exercise has an "I'm stuck" button. It builds a prompt and opens Claude in a new tab, and you paste the prompt in. The prompt tells Claude not to write the solution and to ask you one question at a time. You write the fix. Using it caps that exercise's credit at 0.75.
 
 After your main make exercise in most lessons, **explain-back** gives you a prompt that makes Claude act as an interviewer. It asks why your code works and what could go wrong. Explaining your own code shows you what you only half understand.
 

@@ -10,7 +10,7 @@ competencies:
   - int.approach
 timeoutMs: 5000
 packages: []
-estMin: 1.5
+estMin: 2
 prompt: |
   A faded exercise gives you working code with the key parts blanked out. Replace each `____` so that
   `reminder("Amara", "09:30")` returns `"Reminder: Amara at 09:30"`.

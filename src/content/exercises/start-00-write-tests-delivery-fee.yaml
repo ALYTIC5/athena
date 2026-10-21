@@ -11,7 +11,7 @@ competencies:
 timeoutMs: 20000
 packages:
   - pytest
-estMin: 2.5
+estMin: 3.5
 prompt: |
   A write-tests exercise gives you a function and asks for the tests. Your tests must pass on the correct version
   and fail on every buggy version, so they have to check each rule.
@@ -22,7 +22,8 @@ prompt: |
   - totals below 50 cost `4`
   - a negative total raises `ValueError`
 
-  Write tests in `test_*` functions. Import the function with `from impl import delivery_fee`.
+  Write tests in `test_*` functions. The starter already imports the function and `pytest`.
+  In this kind of exercise only Check is available: it runs your tests against the correct version and every buggy one.
   A test calls the function and uses `assert` to state what it must return. To check that a call raises an error, use
   `pytest.raises`:
 
@@ -31,6 +32,7 @@ prompt: |
       delivery_fee(-1)
   ```
 starter: |
+  import pytest
   from impl import delivery_fee
 
 

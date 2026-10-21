@@ -14,7 +14,7 @@ items:
       left = minutes % 60
       print(hours, left)
     investigate:
-      - What would the output be if `minutes` were 45? Change the number and run it to check your answer.
+      - What would the output be if `minutes` were 45? Work it out by hand.
       - Why does the output show two numbers on one line?
   - id: start-00-q-names-multiple
     pools:
@@ -77,7 +77,7 @@ items:
     competencies:
       - int.approach
     code: |
-      def average_minutes(durations):
+      def average_minutes(durations):  # only called with non-empty lists
           total = 0
           for d in durations:
               total = d
@@ -116,13 +116,13 @@ items:
       - int.approach
     stem: You are stuck on a make exercise. Which use of Claude follows the rule "tutor, not author"?
     options:
-      - text: Paste the exercise and ask Claude to write the function, then retype it
+      - text: Ask Claude to write the function, then retype it yourself
         correct: false
-        why: Claude wrote the solution here. Retyping it does not build the skill, and the credit is capped.
-      - text: Press "I'm stuck", answer Claude's question about your own code, and write the fix yourself
+        why: Claude wrote the solution here. Retyping it does not build the skill.
+      - text: Use "I'm stuck", answer Claude's questions, and write the fix yourself
         correct: true
-        why: The tutor prompt asks Claude to ask questions and not to write the solution. You still write the code, and the credit for that exercise is capped at 0.75.
-      - text: Ask Claude to fix your code and paste back the result
+        why: The tutor prompt asks Claude to ask questions and not to write the solution. You still write the code.
+      - text: Paste your code to Claude and copy back whatever fixed version it gives you
         correct: false
         why: This also makes Claude the author. You would learn how Claude fixed it, not how to find the problem yourself.
   - id: start-00-q-order-approach

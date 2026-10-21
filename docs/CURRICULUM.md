@@ -12,7 +12,7 @@ In `curriculum.yaml`, every lesson has `status: planned` or `status: published`.
 
 | Week | Lessons | Lab work | Interview Gym (1 hour) |
 | --- | --- | --- | --- |
-| 1 | start-00 How Athena works (40 min); git-01 Git and GitHub as a team member (2 h) | | (start-00 teaches the think-aloud approach) |
+| 1 | start-00 How Athena works (45 min); git-01 Git and GitHub as a team member (2 h) | | (start-00 teaches the think-aloud approach) |
 | 2 | sec-01 Secrets and security hygiene (1.5 h); wri-01 READMEs, pull requests and design notes (1.25 h) | | Approach practice, untimed: 2 |
 | 3 | py-01 Names, values and mutability (2.75 h) | | Approach practice, untimed: 2 |
 | 4 | py-02 Collections and complexity (2.75 h) | | Hashing: 2 easy |
@@ -53,7 +53,7 @@ Format for each lesson: competencies (from `docs/COMPETENCIES.md`), objectives, 
 
 ### Week 1
 
-**start-00: How Athena works (40 minutes).** Orientation: no warm-up, mastery check or cards. Competencies: int.approach (introduced).
+**start-00: How Athena works (45 minutes).** Orientation: no warm-up, mastery check or cards. Competencies: int.approach (introduced).
 - Objectives: use every exercise type; set a start date; export progress and understand the Safari storage rule; explain the AI rule (tutor, not author); describe the think-aloud approach (clarify, examples, brute force, optimise, code, test, complexity).
 - Exercises: one of each question type on a trivial topic, so the learner meets the interface before the content.
 
