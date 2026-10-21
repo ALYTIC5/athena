@@ -6,7 +6,7 @@ sidebar:
 lessonId: start-00
 week: 1
 track: start
-durationMin: 30
+durationMin: 40
 anatomy: orientation
 competencies: [int.approach]
 prerequisites: []
@@ -17,7 +17,7 @@ whyItMatters: >
   the interface, and sets up the habits that protect your progress.
 objectives:
   - Use every kind of question and exercise in Athena
-  - Set a start date and describe what your weekly plan contains
+  - Set a start date and find your weekly plan on Home
   - Export your progress and explain why Safari can delete it
   - Explain the AI rule - Claude is your tutor, not your author
   - Describe the think-aloud approach in seven steps
@@ -57,7 +57,7 @@ Interviews for the roles you are targeting test code you write without help, and
 By the end of this lesson you can:
 
 1. Use every kind of question and exercise in Athena.
-2. Set a start date and describe what your weekly plan contains.
+2. Set a start date and find your weekly plan on Home.
 3. Export your progress and explain why Safari can delete it.
 4. Explain the AI rule: Claude is your tutor, not your author.
 5. Describe the think-aloud approach in seven steps.
@@ -66,13 +66,13 @@ This lesson has no warm-up, no mastery check and no cards. Nothing here is grade
 
 <Chunk n={1} title="Questions that make you commit first">
 
-Most lessons check you with short questions. You answer first and read the explanation second, because trying to remember or work something out helps it stick better than re-reading.
+Most lessons check you with short questions. You answer first and read the explanation second, because working something out helps it stick better than re-reading.
 
-Before you submit a graded question or a prediction, you pick how sure you are: guessing, unsure, fairly sure or certain. This is on purpose. Over time it shows you where you are confident and wrong, which is the most useful thing to find out.
+Before you submit a graded question or a prediction, you pick how sure you are: guessing, unsure, fairly sure or certain. The level is recorded with your answer. Being sure and wrong tells you more than being unsure and wrong.
 
-A **predict** item shows a few lines of Python. You type the output you expect, then press Run to see what really happens. Then you answer one or two "investigate" questions, such as "what if the number were 45?". The code runs in your browser. Nothing you type is sent anywhere.
+A **predict** item shows a few lines of Python. You type the output you expect, then press Run to see what really happens. Then you answer one or two "investigate" questions. The code runs in your browser, and nothing you type is sent anywhere.
 
-**Worked example.** The operators in the next item are `//` (whole-number division) and `%` (the remainder).
+**Worked example.** `//` is whole-number division and `%` is the remainder. `print` with several values shows them separated by a space.
 
 ```python
 print(7 // 2, 7 % 2)   # 3 1: two fits into seven 3 times, with 1 left over
@@ -86,7 +86,7 @@ Try three kinds of question: predict, multiple choice (choose all that apply) an
 
 <Callout type="misconception" title="Common misconceptions in chunk 1">
 
-- "Picking a confidence level is a formality." It is recorded with each answer. Being sure and wrong tells you more than being unsure and wrong.
+- "Picking a confidence level is a formality." It is recorded, and it shows you where you are sure and wrong.
 - "I should run the code first and then predict." Predict first. The surprise when you are wrong is what teaches you.
 
 </Callout>
@@ -95,21 +95,21 @@ Try three kinds of question: predict, multiple choice (choose all that apply) an
 
 <Chunk n={2} title="Exercises: five ways to practise">
 
-Exercises run in your browser. Python runs in Pyodide, a version of Python that runs inside your browser, and SQL runs in PGlite, a version of PostgreSQL that runs there too. The first run in a session takes a few seconds while the runtime loads.
+Python runs in your browser in Pyodide, and SQL runs in PGlite, a version of PostgreSQL that runs there too. The first run in a session takes a few seconds while the runtime loads.
 
-Every exercise has an editor and buttons. **Run** shows the output. **Run tests** runs the visible tests. **Check** runs all tests, including hidden ones. Hidden tests show only their name and a message that names the likely mistake, never their code. **Reset** restores the starter code.
+Python exercises have **Run** (shows the output), **Run tests** (the visible tests), **Check** (all tests, including hidden ones) and **Reset**. Hidden tests show only their name and a message about the likely mistake, never their code. SQL exercises have no hidden tests: Check compares your query's result with the expected one.
 
-The five exercise kinds are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). In the first lessons, expect more support. Later, you meet the problem first.
+The five kinds are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). Early lessons give more support. Later ones start with the problem.
 
-**Hints and credit.** There are three hints: a question, then a strategy, then a near-solution with blanks. A pass with no help earns full credit. Each hint lowers the credit, and the solution unlocks after a pass or after three failed checks and all three hints. Only a full-credit pass counts as **unaided**, which is how Athena records that you did it yourself.
+**Hints and credit.** There are three hints: a question, then a strategy, then a near-solution with blanks. A pass with no help earns full credit, and each hint lowers it. The solution unlocks after a pass, or after three failed checks and all three hints. Only a full-credit pass counts as **unaided**, which is how Athena records that you did it yourself.
 
-First, a Parsons problem and a spot-the-bug question, which are quick. Drag lines, or use the keyboard: Space picks a line up, arrow keys move it, Enter drops it.
+First, a Parsons problem and a spot-the-bug question. In a Parsons problem you drag lines into order. With the keyboard, Space picks a line up, the arrow keys move it and Enter drops it.
 
 <Parsons lesson="start-00" item="start-00-q-parsons-label" />
 
 <Quiz lesson="start-00" chunk={2} />
 
-Now the five exercise kinds, smallest first.
+Now the five exercise kinds, smallest first. A `____` in the starter code is a blank for you to fill in.
 
 <Exercise id="start-00-faded-reminder" />
 
@@ -132,13 +132,17 @@ Now the five exercise kinds, smallest first.
 
 <Chunk n={3} title="Your progress lives in this browser">
 
-Athena has no accounts and no server. Your progress, answers and drafts are saved in your browser's own storage on this device (localStorage and IndexedDB). That keeps your data private, but it means two things you must do.
+Athena has no accounts and no server. Your progress, answers and drafts are saved in your browser's storage on this device (localStorage and IndexedDB). That keeps your data private, but you must do two things.
 
-First, set a **start date** in <a href={href('settings/')}>Settings</a>. It must be a Monday. Home counts weeks from it and shows what is planned for this week. If you fall behind, move the date later in Settings.
+First, set a **start date** in <a href={href('settings/')}>Settings</a>. It must be a Monday. Home counts weeks from it and shows that week's plan: lessons and lab work (about 2.75 hours), a short review, one hour of Interview Gym and one hour of job search. If you fall behind, move the date later.
 
-Second, **export your progress** regularly. A browser keeps site data on a best-effort basis: it can delete it when the device runs low on space, and when you clear site data. **Safari** goes further. If you have not clicked or tapped on a site for seven days of Safari use, and cross-site tracking prevention is on, Safari deletes the data the site created with script, which is exactly where Athena stores your progress. Use Chrome or Firefox for Athena if you can, or add the site to your Home Screen or Dock. Safari is more likely to grant persistent storage to a site opened as a Home Screen web app, but a backup is still the only thing you can rely on.
+Second, **export your progress** regularly. A browser keeps site data on a best-effort basis. It can delete it when the device runs low on space, and you can delete it by clearing site data. Export creates `athena-progress-YYYY-MM-DD.json`, and Import brings it back. Keep exports in a synced or backed-up folder.
 
-Settings shows whether the browser granted persistent storage. Export creates a file called `athena-progress-YYYY-MM-DD.json`. Import brings it back, merging with what is there or replacing it. Keep exports in a synced or backed-up folder.
+**Safari** is stricter. If you have not clicked or tapped on a site for seven days of Safari use, and cross-site tracking prevention is on, Safari deletes the data the site created with script. That is where Athena stores your progress. So:
+
+- Use Chrome or Firefox for Athena if you can.
+- Or add Athena to your Home Screen or Dock. Safari may be more likely to grant persistent storage to it, but that is not a promise.
+- Either way, export regularly.
 
 <Quiz lesson="start-00" chunk={3} />
 
@@ -147,7 +151,7 @@ Settings shows whether the browser granted persistent storage. Export creates a 
 <Callout type="misconception" title="Common misconceptions in chunk 3">
 
 - "My progress is safe because it is on my own computer." The browser, not you, decides when site data is deleted. An export file is yours.
-- "Persistent storage means I do not need to export." It makes automatic deletion much less likely. It does not protect you from clearing site data, a new browser, or a new device.
+- "Persistent storage means I do not need to export." It makes automatic deletion much less likely. It does not protect you from clearing site data, a new browser or a new device.
 
 </Callout>
 
@@ -157,11 +161,11 @@ Settings shows whether the browser granted persistent storage. Export creates a 
 
 Live coding interviews often ask you to write code without AI help, and you need to understand every line you ship. So Athena has one rule for exercises: **write it yourself.** Claude can be your tutor, but not your author.
 
-Every code exercise has an "I'm stuck" button. It builds a prompt from the exercise and your current code, opens Claude in a new tab and copies the prompt, so you paste it in. The prompt tells Claude not to write the solution and to ask you one question at a time. You write the fix. Using it caps the credit at 0.75, so the record stays honest. It does not cost anything else, and it is better than staying stuck.
+Every code exercise has an "I'm stuck" button. It builds a prompt from the exercise and your code, opens Claude in a new tab and copies the prompt for you to paste. The prompt tells Claude not to write the solution and to ask you one question at a time. You write the fix. Using it caps that exercise's credit at 0.75.
 
-After your main make exercise in most lessons, **explain-back** builds a different prompt: Claude acts as an interviewer and asks you why your code works, what could go wrong, and what else you could have done. Explaining your own code out loud is a skill the interview tests, and it shows you what you only half understand.
+After your main make exercise in most lessons, **explain-back** gives you a prompt that makes Claude act as an interviewer. It asks why your code works and what could go wrong. Explaining your own code shows you what you only half understand.
 
-Later in the course, the Interview Gym has **AI-assisted drills** where using AI is the point: you direct it, then check and fix what it produces. That is a different skill, practised on purpose, and kept separate from the unaided exercises.
+Later, the Interview Gym has **AI-assisted drills**. There, using AI is the point: you direct it, then check and fix what it produces. That is a separate skill, practised on purpose.
 
 <Quiz lesson="start-00" chunk={4} />
 
@@ -184,14 +188,14 @@ In a coding interview, how you work counts as much as the answer. The approach h
 4. **Optimise:** find something faster or simpler, and say the trade-off.
 5. **Code** it.
 6. **Test** it with your examples.
-7. **Complexity:** say how the time and memory grow with the input size, written with Big-O, such as O(n).
+7. **Complexity:** say how time and memory grow with the input size, in Big-O terms such as O(n).
 
 **Worked example.** *Return the longest call duration in a list of minutes.*
 
-1. Clarify: can the list be empty? Yes, then return `None`. Ties do not matter, since we return only the number.
-2. Examples: `[12, 45, 30]` gives `45`. `[7]` gives `7`. `[]` gives `None`.
-3. Brute force: sort the list from largest to smallest and take the first item. It works, but sorting does more work than the question needs, which grows faster than the list.
-4. Optimise: walk the list once and remember the largest so far. One pass is enough.
+1. Clarify: the list can be empty, so return `None` then.
+2. Examples: `[12, 45, 30]` gives `45`, `[7]` gives `7`, `[]` gives `None`.
+3. Brute force: sort from largest to smallest and take the first item. It works, but sorting does more work than the question needs.
+4. Optimise: walk the list once and remember the largest so far.
 5. Code:
 
 ```python
@@ -205,10 +209,10 @@ def longest(durations):
 print(longest([12, 45, 30]), longest([7]), longest([]))   # 45 7 None
 ```
 
-6. Test: the three examples above give `45`, `7` and `None`.
+6. Test: the three examples give `45`, `7` and `None`.
 7. Complexity: one pass over n items is O(n) time, and two variables is O(1) extra memory.
 
-You do not need to know Big-O yet. A later lesson teaches it. For now, practise saying the seven steps. Then put them in order, and try them on a new problem.
+You do not need to know Big-O yet. A later lesson teaches it. For now, practise saying the seven steps.
 
 <Quiz lesson="start-00" chunk={5} />
 

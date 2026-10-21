@@ -23,6 +23,13 @@ prompt: |
   - a negative total raises `ValueError`
 
   Write tests in `test_*` functions. Import the function with `from impl import delivery_fee`.
+  A test calls the function and uses `assert` to state what it must return. To check that a call raises an error, use
+  `pytest.raises`:
+
+  ```python
+  with pytest.raises(ValueError):
+      delivery_fee(-1)
+  ```
 starter: |
   from impl import delivery_fee
 
@@ -66,6 +73,16 @@ implementations:
             if total < 0:
                 raise ValueError("total must not be negative")
             return 4
+hints:
+  - Which rules does the function have, and which input values sit on each side of the boundary?
+  - Write one test for each rule. For the boundary, test the value just below it and the value exactly on it.
+  - |-
+    def test_exactly_fifty_is_free():
+        assert delivery_fee(____) == ____
+
+    def test_negative_total_raises():
+        with pytest.raises(____):
+            delivery_fee(-1)
 referenceSolution: |
   import pytest
   from impl import delivery_fee

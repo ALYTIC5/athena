@@ -22,6 +22,8 @@ schema: |
 prompt: |
   A SQL exercise runs your query against a small database in your browser and compares the result with the expected one.
 
+  `WHERE` keeps only the rows that match a condition, and `ORDER BY` sorts the result.
+
   The table `slots` has one row per appointment slot. List the `starts` value of every slot that is not booked, earliest first.
 starter: |
   SELECT ...

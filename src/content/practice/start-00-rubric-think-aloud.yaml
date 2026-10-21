@@ -22,11 +22,11 @@ criteria:
         description: I described a solution that works, but did not say what it costs.
       - score: 2
         description: I described a simple solution, said what it costs, and then said how I would make it faster.
-  - name: Test and complexity
+  - name: Test and cost
     levels:
       - score: 0
-        description: I stopped when the code looked right.
+        description: I stopped when the solution looked right.
       - score: 1
-        description: I ran one example through my code, but did not state the complexity.
+        description: I worked one example through my solution, but did not check an edge case.
       - score: 2
-        description: I traced my examples through the code, including an edge case, and stated time and space complexity.
+        description: I worked my examples through my solution, including an edge case, and said how the work grows with the input if I could.

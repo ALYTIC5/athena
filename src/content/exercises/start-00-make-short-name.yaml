@@ -20,6 +20,7 @@ prompt: |
   - `short_name("Jonas Weber Lindqvist")` returns `"J. Lindqvist"`
   - A name with one word is returned unchanged: `short_name("Mei")` returns `"Mei"`
   - Extra spaces at the start, at the end or between words are ignored.
+  - The first letter is kept exactly as typed, with no change to upper or lower case.
 starter: |
   def short_name(full_name: str) -> str:
       ...
@@ -50,6 +51,8 @@ feedback:
     message: Use the last word, not the second word.
   - test: test_extra_spaces
     message: Split the name into words first. `str.split()` with no argument ignores extra spaces.
+  - test: test_lowercase_first_letter_is_kept_as_typed
+    message: Keep the first letter as it was typed. Do not change its case.
   - test: test_one_word_with_spaces
     message: Remove the spaces before you decide how many words there are.
 hints:

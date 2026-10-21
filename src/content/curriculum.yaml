@@ -3,7 +3,7 @@
   lessons:
     - id: start-00
       title: 'How Athena works'
-      durationMin: 30
+      durationMin: 40
       status: published
     - id: git-01
       title: 'Git and GitHub as a team member'

@@ -97,9 +97,12 @@ items:
       - text: Never, because progress is stored on the device
         correct: false
         why: Stored on the device does not mean protected. Browsers can delete site data, and Safari does it proactively for sites you have not interacted with.
-      - text: When the site has had no click or tap from you in the last seven days of Safari use, if cross-site tracking prevention is on
+      - text: After seven days of Safari use without a click or tap on the site
         correct: true
-        why: This is the rule MDN documents for Safari. It deletes data a site created with script, which includes the localStorage and IndexedDB data Athena uses. An export file on your disk is not affected.
+        why: This is the rule MDN documents for Safari. With cross-site tracking prevention on, it deletes data a site created with script, which includes the localStorage and IndexedDB data Athena uses. An export file on your disk is not affected.
+      - text: Only after 30 days without opening Safari at all
+        correct: false
+        why: The Safari rule counts days of Safari use, not calendar days, and it is seven, not 30. Time when you do not use Safari at all does not count.
       - text: Only when you press Reset in Settings
         correct: false
         why: Reset is one way to lose progress, but the browser can also remove it without asking, which is why you export regularly.
@@ -118,7 +121,7 @@ items:
         why: Claude wrote the solution here. Retyping it does not build the skill, and the credit is capped.
       - text: Press "I'm stuck", answer Claude's question about your own code, and write the fix yourself
         correct: true
-        why: The tutor prompt asks Claude to ask questions and not to write the solution. You still write the code, and the pass is recorded as tutor-assisted.
+        why: The tutor prompt asks Claude to ask questions and not to write the solution. You still write the code, and the credit for that exercise is capped at 0.75.
       - text: Ask Claude to fix your code and paste back the result
         correct: false
         why: This also makes Claude the author. You would learn how Claude fixed it, not how to find the problem yourself.
