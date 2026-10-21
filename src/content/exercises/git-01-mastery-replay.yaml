@@ -81,7 +81,7 @@ feedback:
   - test: test_one_commit_on_the_branch
     message: Stop walking back as soon as you reach a commit that upstream already has. That commit is not replayed.
 hints:
-  - "Which commits does upstream already have? There is a helper that answers that."
+  - 'Which commits does upstream already have? There is a helper that answers that.'
   - "Compute upstream's commits with `reachable`. Walk back from the tip of your branch, collecting commits until you reach one that upstream has. Then put the list in oldest-first order."
   - |-
     known = reachable(parents, ____)

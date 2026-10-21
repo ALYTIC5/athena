@@ -96,8 +96,8 @@ feedback:
   - test: test_diverged_with_a_merge_in_the_history
     message: Decide from the two sets of reachable commits, in this order. If `other` is in your history it is up to date; otherwise, if your tip is in the history of `other` it is a fast-forward.
 hints:
-  - "Which question tells you that merging adds nothing? Ask it about the history of `current`, using `reachable`."
-  - "Compute the two histories with `reachable`. If `other` is in the history of `current`, nothing to merge. Else if `current` is in the history of `other`, Git can move forward. Otherwise the histories diverged."
+  - 'Which question tells you that merging adds nothing? Ask it about the history of `current`, using `reachable`.'
+  - 'Compute the two histories with `reachable`. If `other` is in the history of `current`, nothing to merge. Else if `current` is in the history of `other`, Git can move forward. Otherwise the histories diverged.'
   - |-
     if ____ in reachable(parents, current):
         return "up to date"

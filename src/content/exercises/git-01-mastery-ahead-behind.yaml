@@ -70,14 +70,14 @@ hiddenTests: |
       assert all(isinstance(n, int) for n in result)
 feedback:
   - test: test_diverged_branch
-    message: "Count only the commits the other side does not have. Subtract one set of reachable commits from the other, in both directions."
+    message: 'Count only the commits the other side does not have. Subtract one set of reachable commits from the other, in both directions.'
   - test: test_branch_ahead_only
     message: "`ahead` counts the branch's own commits and `behind` counts upstream's. Check that they are not swapped."
   - test: test_merge_commits_count_every_parent
-    message: "Follow every parent of a merge commit when you collect the history, not just the first one. `reachable` already does."
+    message: 'Follow every parent of a merge commit when you collect the history, not just the first one. `reachable` already does.'
 hints:
-  - "What does each side have that the other does not? Two set differences answer both questions."
-  - "Get the history of `branch` and of `upstream` with `reachable`. `ahead` is the size of branch minus upstream. `behind` is the size of upstream minus branch."
+  - 'What does each side have that the other does not? Two set differences answer both questions.'
+  - 'Get the history of `branch` and of `upstream` with `reachable`. `ahead` is the size of branch minus upstream. `behind` is the size of upstream minus branch.'
   - |-
     mine = reachable(parents, ____)
     theirs = reachable(parents, ____)

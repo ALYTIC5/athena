@@ -73,8 +73,8 @@ feedback:
   - test: test_bang_in_both_places
     message: Only the `!` before the colon counts. An exclamation mark in the description must not change the answer in either direction.
 hints:
-  - "The subject `fix: stop crashing on empty names!` has no `!` before the colon. Which `!` does the code look at?"
-  - "The pattern already captures the `!` that sits before the colon in a group named `bang`. Use that group to decide `breaking`."
+  - 'The subject `fix: stop crashing on empty names!` has no `!` before the colon. Which `!` does the code look at?'
+  - 'The pattern already captures the `!` that sits before the colon in a group named `bang`. Use that group to decide `breaking`.'
   - |-
     "breaking": match[____] is not ____,
 referenceSolution: |

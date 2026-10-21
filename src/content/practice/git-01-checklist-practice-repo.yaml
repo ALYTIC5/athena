@@ -22,7 +22,7 @@ steps:
   - do: 'git merge add-name; cat greeting.txt'
     expect: 'Git stops with "CONFLICT (content): Merge conflict in greeting.txt". The file shows the lines starting with <<<<<<<, ======= and >>>>>>>.'
   - do: 'git add greeting.txt && git commit -m "chore: merge add-name" && git log --oneline --graph --all'
-    expect: 'First open greeting.txt in an editor, keep both greetings and delete the three marker lines (grep -c ''<<<<<<<'' greeting.txt should print 0). Then this commits the merge, and the graph shows two lines joining at the merge commit.'
+    expect: "First open greeting.txt in an editor, keep both greetings and delete the three marker lines (grep -c '<<<<<<<' greeting.txt should print 0). Then this commits the merge, and the graph shows two lines joining at the merge commit."
   - do: 'echo "TODO" >> greeting.txt && git commit -am "chore: add todo line" && git revert --no-edit HEAD'
     expect: 'Two new commits: the todo line, then a "Revert" commit that removes it. Nothing was deleted from the history.'
   - do: 'git reset --hard HEAD~1 && git reflog'
