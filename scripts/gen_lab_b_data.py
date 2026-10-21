@@ -248,15 +248,16 @@ def main() -> None:
         )
 
     ROOT.mkdir(parents=True, exist_ok=True)
-    (ROOT / "memories.jsonl").write_text(
-        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8"
+    # write_bytes keeps LF line endings on Windows too
+    (ROOT / "memories.jsonl").write_bytes(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows).encode("utf-8")
     )
     queries = [
         {"query_id": qid, "query": text, "relevant_ids": sorted(key_to_id[k] for k in keys)}
         for qid, text, keys in QUERIES
     ]
-    (ROOT / "queries_seed.jsonl").write_text(
-        "".join(json.dumps(q, ensure_ascii=False) + "\n" for q in queries), encoding="utf-8"
+    (ROOT / "queries_seed.jsonl").write_bytes(
+        "".join(json.dumps(q, ensure_ascii=False) + "\n" for q in queries).encode("utf-8")
     )
     print(f"wrote {len(rows)} memories and {len(queries)} seed queries to {ROOT}")
 
