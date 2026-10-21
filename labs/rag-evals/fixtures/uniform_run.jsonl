@@ -1,0 +1,4 @@
+{"query_id": "u1", "ranked_ids": ["a", "x1", "x2"]}
+{"query_id": "u2", "ranked_ids": ["b", "x1", "x2"]}
+{"query_id": "u3", "ranked_ids": ["c", "x1", "x2"]}
+{"query_id": "u4", "ranked_ids": ["d", "x1", "x2"]}

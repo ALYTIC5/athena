@@ -1,0 +1,6 @@
+{"query_id": "t1", "relevant_ids": ["a"]}
+{"query_id": "t2", "relevant_ids": ["b", "c"]}
+{"query_id": "t3", "relevant_ids": ["d"]}
+{"query_id": "t4", "relevant_ids": ["e"]}
+{"query_id": "t5", "relevant_ids": ["f", "g"]}
+{"query_id": "t6", "relevant_ids": ["h"]}
