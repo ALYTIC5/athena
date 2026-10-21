@@ -13,7 +13,7 @@ questions:
   - id: sec-01-iq-injection
     competencies: [sec.owasp-basics]
     question: What is injection, and how do you prevent it?
-    modelAnswer: Injection is when untrusted input reaches an interpreter, such as a database or a shell, and part of it is run as a command. For SQL, an input like `x' OR '1'='1` can change the meaning of a query built by string concatenation. The preferred defence is to keep data separate from the command, with parameterised queries (the SQL and the values are sent separately) or an ORM (a library that builds queries for you), so the database always treats the input as a value. Server-side validation is a useful extra layer, but escaping by hand is fragile. It is number five in the OWASP Top 10:2025.
+    modelAnswer: Injection is when untrusted input reaches an interpreter, such as a database or a shell, and part of it is run as a command. For SQL, an input like `x' OR '1'='1` can change the meaning of a query built by string concatenation. The preferred defence is to keep data separate from the command, with parameterised queries (the SQL and the values are sent separately) or an ORM (a library that builds queries for you) used through its normal query interface, so the database always treats the input as a value. Server-side validation is a useful extra layer, but escaping by hand is fragile. It is number five in the OWASP Top 10:2025.
     listenFor:
       - untrusted input is run as a command by an interpreter
       - a concrete example such as SQL

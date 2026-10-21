@@ -12,9 +12,10 @@ competencies: [sec.secrets, sec.history, sec.least-privilege, sec.owasp-basics]
 prerequisites: [git-01]
 whyItMatters: >
   Cloud skills appear in 35% of the postings you are targeting, and every cloud, payment or telephony integration comes
-  with keys. Pushing one to a public repository is one of the most common beginner mistakes, and an interviewer will ask
-  what you do next. The OWASP Top 10 is the shared vocabulary for web security, so being able to name and prevent its
-  main risks makes you a safer person to give production access to.
+  with keys. Pushing one to a public repository is a mistake that happens often, and an interviewer will ask what you
+  do next. The OWASP Top 10 (a ranked list of web security risks from the Open Worldwide Application Security Project)
+  is the shared vocabulary for web security, so being able to name and prevent its main risks makes you a safer person
+  to give production access to.
 objectives:
   - Explain why a pushed secret stays compromised after you delete it, and put the incident steps in order
   - Explain what .gitignore, a pre-commit hook and push protection each do and do not catch
@@ -68,7 +69,7 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know what a commit, a branch and a push are (git-01). Every key in this lesson is invented and contains the marker `ATHENA_FAKE`, except the token you build in the checklist, which has to look real enough for a scanner to flag it. Never paste a real key into Athena or into a chat. The Python in this lesson uses only loops, strings, dicts and lists; the SQL is explained where it appears and you only need to read it.
+You know what a commit, a branch and a push are (git-01). Every key in this lesson is invented and contains the marker `ATHENA_FAKE`, except the token you build in the checklist, which has to look real enough for a scanner to flag it. Never paste a real key into Athena or into a chat. You can read simple Python: `def`, `return`, `for`, `if`, imports and tuples. The `sqlite3` calls and the SQL are explained where they appear.
 
 </Callout>
 
@@ -83,25 +84,16 @@ That sets the order: revoke or rotate, check the provider's logs for use of the 
 **Worked example.** A synthetic file `config/.env.production` was committed in `3f9a1c2` and deleted in the next commit.
 
 ```bash
-# Step 1, at the provider (not in git): revoke the key and create a new one.
-git log --oneline --all -- config/.env.production   # step 2: both commits still show up
+# Step 1, at the provider (not in git): revoke the key and create a new one. Then check its logs for use.
+git log --oneline --all -- config/.env.production   # inspect: both commits still show up
 git show 3f9a1c2:config/.env.production             # the old content is readable by anyone with the repo
-# Step 3, in a fresh clone: rewrite every commit without that file (needs git-filter-repo)
+# Step 3, in a fresh clone: purge. Rewrite every commit without that file (needs git-filter-repo)
 git filter-repo --sensitive-data-removal --invert-paths --path config/.env.production
 ```
 
 Then you **force-push** (a push that overwrites the branches on the server). Anyone who already cloned must clean their own copy. Pull request pages and cached views stay until GitHub Support removes them. GitHub's page lists the full steps and needs git-filter-repo 2.47 or later.
 
-Here is a tiny model of what Git does with history. Each `append` is a commit that saves a snapshot of the files.
-
-```python
-files = {"config.txt": "key=ATHENA_FAKE_1"}
-history = []
-history.append(dict(files))   # commit 1: the file exists
-del files["config.txt"]
-history.append(dict(files))   # commit 2: the file is deleted
-print(len(history), "config.txt" in history[-1], "config.txt" in history[0])
-```
+Below is a tiny Python model of Git history: each `append` saves a snapshot of the files, like a commit. Predict what it prints.
 
 <Predict lesson="sec-01" item="sec-01-q-predict-history" />
 
@@ -119,13 +111,13 @@ print(len(history), "config.txt" in history[-1], "config.txt" in history[0])
 
 <Chunk n={2} title="Keeping secrets out of the repository">
 
-The repository holds the **names** of settings. The **values** live outside it: in a local `.env` file that Git ignores, and in the secret store or environment variables of the platform that runs your code. A committed `.env.example` lists the names with blank or fake values, so a new teammate knows what to set.
+The repository holds the **names** of settings. The **values** live outside it: in a git-ignored `.env` file locally, and in the platform's secret store or environment variables when the code runs. A committed `.env.example` lists the names with blank values.
 
-`.gitignore` only stops **untracked** files from being added. A file Git already tracks is not affected: untrack it with `git rm --cached`. When several patterns match, the last one wins.
+`.gitignore` stops files Git does not yet record from being added. A **tracked** file (one Git already records) is not affected: untrack it with `git rm --cached`. When several patterns match, the last one wins.
 
-No single layer catches everything. A **pre-commit hook** is a script Git runs before it creates a commit. With **gitleaks** (a tool that scans for secrets) it checks your **staged** changes, the ones queued for the next commit. It must be executable, it runs only on your machine, and `git commit --no-verify` skips it.
+No single layer catches everything. A **pre-commit hook** is a script Git runs before each commit. With **gitleaks** (a tool that scans for secrets) it checks your **staged** changes, those queued for the commit. It runs only on your machine, and `git commit --no-verify` skips it.
 
-**Push protection** on GitHub blocks a push that contains a detected secret, but a user with write access can bypass it with a reason. It has to be switched on, and some repository types need a paid plan. **Secret scanning** looks through the whole history for credentials.
+**Push protection** on GitHub blocks a push that contains a detected secret. By default a user with write access can bypass it with a reason, and it has to be switched on. **Secret scanning** checks the whole history.
 
 **Worked example.** The three files that keep a repository clean.
 
@@ -150,30 +142,13 @@ exec gitleaks git --pre-commit --staged --redact -v
 
 <Callout type="note" title="Two more rules: who can read the key, and what it can do">
 
-Any key in code sent to a browser is public: anyone can read it in the developer tools. Keep secret keys on a server you control. Some providers issue a separate **publishable** key that is meant for the browser. Never log a secret; if you must tell keys apart, log a masked form such as the last four characters.
+Any key in code sent to a browser is public. Keep secret keys on a server you control; a provider's **publishable** key is the kind meant for the browser. Never log a secret: log a masked form, such as the last four characters.
 
-**Least privilege** means a key gets only the access its job needs: one key per service, read-only if it only reads, limited to the repositories it uses. A GitHub fine-grained token can be limited to chosen repositories; a classic token cannot.
+**Least privilege** means a key gets only the access its job needs: one key per service, read-only if it only reads, limited to the repositories it uses. GitHub fine-grained tokens and Stripe restricted keys exist for this.
 
 </Callout>
 
-Now a small model of the rule that the last matching pattern wins. Read it before you run it.
-
-```python
-from fnmatch import fnmatch
-
-def ignored(name, patterns):
-    result = False
-    for pattern in patterns:
-        if pattern.startswith("!"):
-            if fnmatch(name, pattern[1:]):
-                result = False
-        elif fnmatch(name, pattern):
-            result = True
-    return result
-
-print(ignored(".env.example", [".env", ".env.*", "!.env.example"]))
-print(ignored(".env.example", ["!.env.example", ".env.*"]))
-```
+Below is a small Python model of the rule that the last matching pattern wins. Predict what it prints.
 
 <Predict lesson="sec-01" item="sec-01-q-predict-ignore" />
 
@@ -191,13 +166,13 @@ print(ignored(".env.example", ["!.env.example", ".env.*"]))
 
 <Chunk n={3} title="Three risks from the OWASP Top 10:2025">
 
-The **OWASP Top 10:2025** is a ranked list of the most serious web application risks. Three of them come up in almost every backend interview.
+The **OWASP Top 10:2025** is a ranked list of the most serious web application risks. Three of them come up often in interviews.
 
 **Broken access control (A01)** means a user can act outside their permissions, for example by changing an id in a URL to read someone else's invoice. Deny by default, check ownership on the server for every request, and never rely on hiding a button in client-side JavaScript.
 
 **Injection (A05)** happens when untrusted input reaches an interpreter, such as a database, and part of it runs as a command. Keep data separate from commands. A **parameterised query** does this: the database receives the SQL and the values separately. String concatenation does not.
 
-**Authentication failures (A07)** mean the system accepts someone who is not who they claim to be. Defences are multi-factor authentication (a second proof besides the password), rate limits on failed logins, checking new passwords against lists of breached ones, and giving the same message for every failed login.
+**Authentication failures (A07)** mean the system accepts someone who is not who they claim to be. Defences are multi-factor authentication (a second proof besides the password), limits on failed logins, checking new passwords against lists of breached ones, and giving the same message for every failed login. OWASP advises against forcing regular password changes. A common attack is **credential stuffing**: trying leaked passwords on many accounts.
 
 Two more matter for your work: **security misconfiguration (A02)**, such as verbose errors or unchanged defaults, and **software supply chain failures (A03)**, such as untrusted dependencies.
 

@@ -92,6 +92,14 @@ wrongSolutions:
     code: |
       def tracked_secret_files(paths: list[str]) -> list[str]:
           return [p for p in paths if (p == ".env" or p.startswith(".env.") or p.endswith(".pem")) and p != ".env.example"]
+  - label: Changes the list it was given
+    code: |
+      def tracked_secret_files(paths: list[str]) -> list[str]:
+          for path in list(paths):
+              name = path.rsplit("/", 1)[-1]
+              if not (name == ".env" or name.startswith(".env.") or name.endswith(".pem")) or name == ".env.example":
+                  paths.remove(path)
+          return paths
   - label: Looks for ".env" anywhere in the name, so names like not.env are flagged
     code: |
       def tracked_secret_files(paths: list[str]) -> list[str]:
@@ -104,7 +112,7 @@ wrongSolutions:
                   flagged.append(path)
           return flagged
 explanation: |
-  `path.rsplit("/", 1)[-1]` takes the file name, so the same rule works at any depth. Checking `.env.example` first stops the safe file from being caught by the `.env.` prefix. Alternative: `pathlib.PurePosixPath(path).name` does the same and reads more clearly, at the cost of an import. A real project would also list other secret file types in its `.gitignore`.
+  `path.rsplit("/", 1)[-1]` takes the file name, so the same rule works at any depth. Checking `.env.example` first stops the safe file from being caught by the `.env.` prefix. Alternative: `pathlib.PurePosixPath(path).name` does the same and reads more clearly, at the cost of an import. Real projects often also commit templates such as `.env.sample`; the rule here is simplified. A real project would also list other secret file types in its `.gitignore`.
 hints:
   - 'Which part of a path matters: the whole path or only the file name?'
   - 'Take the text after the last `/`. Skip `.env.example`. Flag the name if it is `.env`, starts with `.env.` or ends with `.pem`.'

@@ -52,6 +52,10 @@ feedback:
     message: Exactly 8 characters still counts as short. Check the length with `<=`, not `<`.
   - test: test_never_reveals_more_than_four_characters
     message: Only the last 4 characters may be visible, and only for values longer than 8.
+  - test: test_nine_characters_show_four
+    message: A value longer than 8 characters keeps its last 4 characters and masks the rest.
+  - test: test_empty_string
+    message: An empty value should come back empty, not as stars.
   - test: test_length_is_preserved
     message: The masked text should have the same length as the original value.
   - test: test_long_value_shows_last_four
@@ -66,6 +70,12 @@ wrongSolutions:
     code: |
       def mask_secret(value: str) -> str:
           return "*" * max(len(value) - 4, 0) + value[-4:]
+  - label: Treats eight characters as long enough to show four
+    code: |
+      def mask_secret(value: str) -> str:
+          if len(value) < 8:
+              return "*" * len(value)
+          return "*" * (len(value) - 4) + value[-4:]
   - label: Shows the first four characters instead of the last four
     code: |
       def mask_secret(value: str) -> str:
@@ -79,7 +89,7 @@ wrongSolutions:
               return "****"
           return "****" + value[-4:]
 explanation: |
-  Masking trades usefulness for safety: the last characters identify a key, but a short key would be mostly exposed, so it is hidden entirely. `value[-4:]` slices the last four characters and `"*" * n` repeats the star. Alternative: always return a fixed placeholder such as `"[redacted]"`, which is safest but cannot tell two keys apart.
+  Masking trades usefulness for safety: the last characters identify a key, but a short key would be mostly exposed, so it is hidden entirely. `value[-4:]` slices the last four characters and `"*" * n` repeats the star. The limit of 8 is a design choice; real keys are much longer, so for them the last 4 characters are a small part. Alternative: always return a fixed placeholder such as `"[redacted]"`, which is safest but cannot tell two keys apart.
 hints:
   - How many characters can you safely show for a very short secret?
   - Return only stars when the length is 8 or fewer. Otherwise build the stars for all but the last 4 characters, then add those last 4.

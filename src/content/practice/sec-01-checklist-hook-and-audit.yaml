@@ -12,7 +12,7 @@ steps:
   - do: 'Make a throwaway repository with the hook: mkdir hook-practice && cd hook-practice && git init && printf ''#!/bin/sh\nexec gitleaks git --pre-commit --staged --redact -v\n'' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit'
     expect: Git initialises an empty repository, and .git/hooks/pre-commit exists and is executable. Git ignores a hook that is not executable.
   - do: 'Write an invented token that is built at run time, so no real-looking token sits in this lesson: printf ''github_token = "ghp_%s"\n'' "aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bD1fH3jL5" > settings.py && git add settings.py && git commit -m "add settings"'
-    expect: The commit is blocked. gitleaks prints a finding with the rule id github-pat, the file settings.py and line 1, with the secret redacted.
+    expect: The commit is blocked. gitleaks prints a finding with the rule id github-pat (a generic-api-key finding may also appear), the file settings.py and line 1, with the secret redacted.
   - do: 'In one of your own repositories, list tracked files that look like secrets: git ls-files | grep -E ''(^|/)\.env($|\.)|\.pem$'''
     expect: Nothing, or only .env.example. If a real .env or .pem file is listed, revoke what is in it first, then run git rm --cached on it and add it to .gitignore.
   - do: 'In the same repository, scan the whole history: gitleaks git -v --redact'

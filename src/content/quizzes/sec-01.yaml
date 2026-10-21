@@ -69,9 +69,9 @@ items:
     objective: 1
     type: multiple
     competencies: [sec.history]
-    stem: You rewrote the history with git filter-repo and force-pushed. Which of these does that NOT fix? Choose all that apply.
+    stem: You rewrote the history with git filter-repo and force-pushed. Which problems remain? Choose all that apply.
     options:
-      - text: Copies of the secret in forks that were made earlier
+      - text: Copies of the secret in forks made earlier
         correct: true
         why: A fork is a separate repository, which your rewrite does not touch. GitHub's guidance says to ask fork owners to remove the data or delete their forks.
       - text: Copies of the secret in other people's existing clones
@@ -82,7 +82,7 @@ items:
         why: Rewriting history changes the repository, not the provider's records. Only revoking or rotating makes the key useless.
       - text: The secret appearing in the commits of your branch
         correct: false
-        why: This is what the rewrite does fix, on your side of the repository.
+        why: This is what the rewrite does fix, on your side of the repository. (Pull request pages and cached views are different, because only GitHub Support can remove them.)
   - id: sec-01-q-rotate-enough
     pools: [mastery]
     objective: 1
@@ -213,7 +213,7 @@ items:
         why: Push protection acts at push time. Removing a secret already pushed is the job of revoking it and, if needed, rewriting history.
       - text: It cannot be bypassed by anyone
         correct: false
-        why: A user with write access can bypass it by giving a reason, which creates an alert and an audit log entry.
+        why: By default a user with write access can bypass it by giving a reason, which creates an alert and an audit log entry.
   - id: sec-01-q-layers
     pools: [mastery]
     objective: 2
@@ -227,7 +227,7 @@ items:
       - text: A pre-commit hook runs on your machine and can be skipped
         correct: true
         why: It is invoked by git commit and can be bypassed with --no-verify.
-      - text: Push protection can be bypassed by someone with write access who gives a reason
+      - text: By default, push protection can be bypassed by someone with write access who gives a reason
         correct: true
         why: GitHub's documentation says so. Each bypass creates an alert and an audit log entry.
       - text: Adding a line to .gitignore removes a secret from old commits
@@ -401,14 +401,19 @@ items:
           [(1, "amara", 120), (2, "bo", 80), (3, "chen", 95)],
       )
 
-      def invoices_for(owner):
+      def unsafe_for(owner):
+          sql = "SELECT id FROM invoices WHERE owner = '" + owner + "'"
+          return db.execute(sql).fetchall()
+
+      def safe_for(owner):
           sql = "SELECT id FROM invoices WHERE owner = ?"
           return db.execute(sql, (owner,)).fetchall()
 
-      print(len(invoices_for("amara")), len(invoices_for("x' OR '1'='1")), len(invoices_for("o'neil")))
+      attack = "x' OR '1'='1"
+      print(len(unsafe_for(attack)), len(safe_for(attack)), len(safe_for("o'neil")))
     investigate:
-      - Why does the second call return nothing, even though its input contains SQL?
-      - What would the function return for the second call if line 11 built the SQL by joining the strings instead?
+      - Why does the same input return every invoice from one function and none from the other?
+      - Why does safe_for still work for a name that contains a quote, such as o'neil?
   - id: sec-01-q-a01-scenario
     pools: [check, mastery, warmup]
     chunk: 3
