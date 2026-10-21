@@ -15,9 +15,11 @@ prompt: |
   `git ls-files` lists the paths Git tracks. Write `tracked_secret_files(paths)`, which returns the paths that should not be
   tracked, in the same order they were given.
 
-  A path is flagged when its file name (the part after the last `/`) is:
-  - exactly `.env`, or starts with `.env.` (for example `.env.production`), except `.env.example`, which is safe (treat any other `.env.` name as secret); or
+  A path is flagged by its file name, which is the part after the last `/`. Flag a name that:
+  - is exactly `.env`, or starts with `.env.` (for example `.env.production`);
   - ends with `.pem`.
+
+  Never flag `.env.example`, which is meant to be committed. Every other name that starts with `.env.` counts as secret.
 
   Example: `["src/app.py", "config/.env.local", ".env.example"]` returns `["config/.env.local"]`.
 starter: |
@@ -61,7 +63,11 @@ feedback:
   - test: test_flags_env_files_and_keeps_order
     message: Return the flagged paths in the order they were given.
   - test: test_pem_files_are_flagged
-    message: Private key files ending in `.pem` should be flagged too.
+    message: Files ending in `.pem` usually hold private keys or certificates, so flag them too.
+  - test: test_input_list_is_not_changed
+    message: Your function changed the list it was given. Build a new list for the result.
+  - test: test_returns_a_new_list
+    message: Return a new list, not the one you were given.
 referenceSolution: |
   def tracked_secret_files(paths: list[str]) -> list[str]:
       flagged = []

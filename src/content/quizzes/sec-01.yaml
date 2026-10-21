@@ -2,8 +2,7 @@ lesson: sec-01
 items:
   # ---- Chunk 1: a pushed secret stays compromised (objective 1) ----
   - id: sec-01-q-history-persists
-    pools: [check, mastery, warmup]
-    chunk: 1
+    pools: [mastery, warmup]
     objective: 1
     type: single
     competencies: [sec.history, sec.secrets]
@@ -18,13 +17,29 @@ items:
       - text: "Only if the repository is public"
         correct: false
         why: A private repository can still be cloned or forked by everyone with access, and access changes over time. Treat every pushed secret as compromised.
+  - id: sec-01-q-predict-history
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [sec.history]
+    code: |
+      files = {"config.txt": "key=ATHENA_FAKE_1"}
+      history = []
+      history.append(dict(files))
+      del files["config.txt"]
+      history.append(dict(files))
+      print(len(history), "config.txt" in history[-1], "config.txt" in history[0])
+    investigate:
+      - Why is the old snapshot unchanged when line 4 deletes the file?
+      - What does this tell you about deleting a file that held a key?
   - id: sec-01-q-incident-order
     pools: [check, mastery, warmup]
     chunk: 1
     objective: 1
     type: order
     competencies: [sec.history, sec.secrets]
-    stem: A key was pushed to a shared repository an hour ago. Put the response in order.
+    stem: A key was pushed to a shared repository an hour ago. Put the response in the order this lesson teaches.
     steps:
       - Revoke or rotate the key at the provider
       - Check the provider's logs for use of the old key
@@ -102,19 +117,55 @@ items:
       - text: Git refuses the change because .env is tracked
         correct: false
         why: Git accepts the line without any message. It just has no effect on a tracked file.
-  - id: sec-01-q-bug-gitignore-order
+  - id: sec-01-q-predict-ignore
     pools: [check, mastery]
     chunk: 2
     objective: 2
-    type: bug
+    type: predict
     competencies: [sec.secrets]
+    code: |
+      from fnmatch import fnmatch
+
+      def ignored(name, patterns):
+          result = False
+          for pattern in patterns:
+              if pattern.startswith("!"):
+                  if fnmatch(name, pattern[1:]):
+                      result = False
+              elif fnmatch(name, pattern):
+                  result = True
+          return result
+
+      print(ignored(".env.example", [".env", ".env.*", "!.env.example"]))
+      print(ignored(".env.example", ["!.env.example", ".env.*"]))
+    investigate:
+      - Why do the two calls give different answers when they contain the same patterns?
+      - Which order should a .gitignore use to keep .env.example committable?
+  - id: sec-01-q-gitignore-order
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: This .gitignore must ignore real env files but keep .env.example committable, and it does not. Which change fixes it?
     code: |
       # Secrets
       !.env.example
       .env
       .env.*
-    buggyLine: 4
-    explanation: When several patterns match a file, the last one decides. Here `.env.*` comes after `!.env.example`, so it ignores .env.example again and the example file can never be committed. Move the `!.env.example` line below `.env.*`.
+    options:
+      - text: Move the !.env.example line below .env.*
+        correct: true
+        why: When several patterns match, the last one decides. Placing the exception last re-includes .env.example after .env.* has ignored it.
+      - text: Delete the .env line
+        correct: false
+        why: The .env.* pattern would still ignore .env.example, because it comes after the exception.
+      - text: Add .env.example on a new line at the very end
+        correct: false
+        why: A plain pattern ignores a file. That would ignore .env.example even more firmly.
+      - text: Nothing, because Git always commits files that have a ! rule
+        correct: false
+        why: A ! rule only takes effect if it is the last matching pattern for that file.
   - id: sec-01-q-hook-scope
     pools: [mastery, warmup]
     objective: 2
@@ -125,15 +176,14 @@ items:
       - text: The changes staged for the commit about to be made
         correct: true
         why: --staged means the staged changes, and the hook runs before the commit is created, so a finding aborts the commit.
-      - text: Every repository on your GitHub account
+      - text: The whole history of the repository, every time
         correct: false
-        why: The hook runs locally and looks only at the repository you are committing in.
+        why: With --staged it scans only the changes about to be committed. Scanning the whole history is a separate run of gitleaks git without --staged.
       - text: Only the files listed in .gitignore
         correct: false
         why: Ignored files are never staged, so they are not what the hook is for.
   - id: sec-01-q-hook-bypass
-    pools: [check, mastery]
-    chunk: 2
+    pools: [mastery]
     objective: 2
     type: single
     competencies: [sec.secrets]
@@ -251,7 +301,7 @@ items:
         why: The browser must receive the code to run it, so the key is public. Minifying changes the layout of the code, not who can read it.
       - text: Only logged-in users
         correct: false
-        why: Logging in does not hide the bundle from the logged-in user, who can read it just as easily, and a key in the bundle is often reachable without login.
+        why: Logged-in users receive the same bundle and can read it just as easily.
   - id: sec-01-q-client-fix
     pools: [mastery]
     objective: 3
@@ -289,7 +339,7 @@ items:
     objective: 3
     type: single
     competencies: [sec.least-privilege]
-    stem: A CI job only needs to read one repository. Which token should it use?
+    stem: A CI system outside GitHub Actions only needs to read one repository. Which token should it use?
     options:
       - text: A GitHub fine-grained token with read-only access, limited to that repository
         correct: true
@@ -324,13 +374,14 @@ items:
     objective: 3
     type: short
     competencies: [sec.least-privilege]
-    stem: What is the name of the principle of giving a key only the access its job needs?
+    stem: What is the name of the security principle of giving a key only the access its job needs, and no more?
     accepted:
       - least privilege
       - the principle of least privilege
       - principle of least privilege
+      - minimum privilege
     patterns:
-      - ^(the )?(principle of )?least[- ]privilege$
+      - ^(the )?(principle of )?(least|minimum)[- ]privilege( principle)?$
     explanation: This is least privilege. It limits how much an attacker gains from one leaked key.
 
   # ---- Chunk 3: OWASP Top 10:2025 (objective 4) ----
@@ -446,13 +497,13 @@ items:
     options:
       - text: Multi-factor authentication, limits on failed logins, and checking new passwords against known breached ones
         correct: true
-        why: These blunt credential stuffing, slow automated attempts and stop users picking passwords that are already public.
+        why: These blunt credential stuffing (trying leaked passwords on many accounts), slow automated attempts and stop users picking passwords that are already public.
       - text: Forcing users to change their password every week
         correct: false
         why: OWASP follows modern guidance and advises against forced rotation, keeping it for suspected breaches.
-      - text: Telling the attacker exactly whether the username or the password was wrong
+      - text: Showing a different message for an unknown username than for a wrong password
         correct: false
-        why: That helps the attacker. Return the same message for every failed login so account names cannot be probed.
+        why: That lets an attacker find which usernames exist. Return the same message for every failed login.
   - id: sec-01-q-misconfiguration
     pools: [mastery]
     objective: 4

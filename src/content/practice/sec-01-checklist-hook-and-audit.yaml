@@ -4,8 +4,8 @@ kind: checklist
 competencies:
   - sec.secrets
   - sec.history
-title: Set up a gitleaks pre-commit hook, then audit your own repositories
-estMin: 10
+title: Set up a gitleaks pre-commit hook, then audit your own repositories (use a Unix-style shell; on Windows use Git Bash)
+estMin: 12
 steps:
   - do: 'Install gitleaks from its README (github.com/gitleaks/gitleaks), then run: gitleaks version'
     expect: A version number is printed.
@@ -15,5 +15,5 @@ steps:
     expect: The commit is blocked. gitleaks prints a finding with the rule id github-pat, the file settings.py and line 1, with the secret redacted.
   - do: 'In one of your own repositories, list tracked files that look like secrets: git ls-files | grep -E ''(^|/)\.env($|\.)|\.pem$'''
     expect: Nothing, or only .env.example. If a real .env or .pem file is listed, revoke what is in it first, then run git rm --cached on it and add it to .gitignore.
-  - do: 'In the same repository, scan the whole history: gitleaks git -v'
+  - do: 'In the same repository, scan the whole history: gitleaks git -v --redact'
     expect: '"no leaks found". Any finding means the secret is compromised: revoke or rotate it before you do anything else.'

@@ -20,7 +20,7 @@ prompt: |
   - Comment lines (starting with `#`, after any spaces), blank lines and lines without an `=` stay exactly as they are.
   - Keep the line order. Keep a final newline if the input had one.
 
-  Example: the line `API_KEY=ATHENA_FAKE_abc123` becomes `API_KEY=`. The line `# Payments` stays `# Payments`.
+  Example: the line `API_KEY=ATHENA_FAKE_abc123` becomes `API_KEY=`. The line `export MODE=live` becomes `export MODE=`. The line `# Payments` stays `# Payments`.
 starter: |
   def make_env_example(env_text: str) -> str:
       ...
@@ -73,6 +73,14 @@ feedback:
     message: Each setting should keep its name and the `=` but lose its value.
   - test: test_comments_and_blank_lines_stay
     message: Comment lines and blank lines must stay exactly as they are, in the same order.
+  - test: test_export_prefix_is_kept
+    message: Keep everything before the first `=`, including an `export ` prefix. Do not try to clean up the name.
+  - test: test_line_without_equals_is_unchanged
+    message: A line with no `=` is not a setting, so leave it exactly as it is.
+  - test: test_empty_value_stays_empty
+    message: A setting that already has no value should come out as the name followed by `=`.
+  - test: test_empty_input
+    message: An empty string has no lines, so the result should be an empty string too.
   - test: test_final_newline_is_kept_only_if_present
     message: Keep a final newline if the input had one, and do not add one if it did not.
 referenceSolution: |

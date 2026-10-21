@@ -55,7 +55,7 @@ sources:
 
 ## Why this matters
 
-Cloud skills appear in 35% of the postings you are targeting, and every cloud, payment or telephony integration comes with keys. Pushing one to a public repository is one of the most common beginner mistakes, and an interviewer will ask what you do next. The OWASP Top 10 is the shared vocabulary for web security, so being able to name and prevent its main risks makes you a safer person to give production access to.
+Cloud skills appear in 35% of the postings you are targeting, and every cloud, payment or telephony integration comes with keys. Pushing one to a public repository is a mistake that happens often, and an interviewer will ask what you do next. The OWASP Top 10 (a ranked list of web security risks from the Open Worldwide Application Security Project) is the shared vocabulary for web security, so being able to name and prevent its main risks makes you a safer person to give production access to.
 
 ## Objectives
 
@@ -68,7 +68,7 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know what a commit, a branch and a push are (git-01). Every key in this lesson is invented and contains the marker `ATHENA_FAKE`, except the token you build in the checklist, which has to look real enough for a scanner to flag it. Never paste a real key into Athena or into a chat.
+You know what a commit, a branch and a push are (git-01). Every key in this lesson is invented and contains the marker `ATHENA_FAKE`, except the token you build in the checklist, which has to look real enough for a scanner to flag it. Never paste a real key into Athena or into a chat. The Python in this lesson uses only loops, strings, dicts and lists; the SQL is explained where it appears and you only need to read it.
 
 </Callout>
 
@@ -76,7 +76,7 @@ You know what a commit, a branch and a push are (git-01). Every key in this less
 
 A **secret** is a value that grants access: an API key, a token or a database password. Git keeps every commit. A push copies them to the server, and every **clone** (a full copy of a repository) or **fork** (a copy of it under another account) made afterwards has them too. Deleting a file in a later commit only changes the newest snapshot, and the commit that contained the secret stays in the history.
 
-So once a secret has been pushed, treat it as **compromised**: assume someone has a copy. Rewriting history removes it from your repository, but not from forks or other people's clones. Only the provider can make the leaked value useless, by **revoking** it (switching it off) or **rotating** it (issuing a new one and switching the old one off). Check that the old value really is off, because some providers keep it working for a grace period.
+So once a secret has been pushed, treat it as **compromised**: assume someone has a copy. Rewriting history removes it from your repository, but not from forks or other people's clones. Only the provider (the service that issued the key) can make the leaked value useless, by **revoking** it (switching it off) or **rotating** it (issuing a new one and switching the old one off). Check that the old value really is off, because some providers keep it working for a grace period.
 
 That sets the order: revoke or rotate, check the provider's logs for use of the old key, purge the history if it is still worth it, then add prevention. GitHub says that after rotation, rewriting history may not be worth the effort.
 
@@ -90,7 +90,20 @@ git show 3f9a1c2:config/.env.production             # the old content is readabl
 git filter-repo --sensitive-data-removal --invert-paths --path config/.env.production
 ```
 
-Then you **force-push** (a push that overwrites the branches on the server). Anyone who already cloned must clean their own copy, and GitHub's page lists the full steps.
+Then you **force-push** (a push that overwrites the branches on the server). Anyone who already cloned must clean their own copy. Pull request pages and cached views stay until GitHub Support removes them. GitHub's page lists the full steps and needs git-filter-repo 2.47 or later.
+
+Here is a tiny model of what Git does with history. Each `append` is a commit that saves a snapshot of the files.
+
+```python
+files = {"config.txt": "key=ATHENA_FAKE_1"}
+history = []
+history.append(dict(files))   # commit 1: the file exists
+del files["config.txt"]
+history.append(dict(files))   # commit 2: the file is deleted
+print(len(history), "config.txt" in history[-1], "config.txt" in history[0])
+```
+
+<Predict lesson="sec-01" item="sec-01-q-predict-history" />
 
 <Quiz lesson="sec-01" chunk={1} />
 
@@ -110,7 +123,9 @@ The repository holds the **names** of settings. The **values** live outside it: 
 
 `.gitignore` only stops **untracked** files from being added. A file Git already tracks is not affected: untrack it with `git rm --cached`. When several patterns match, the last one wins.
 
-No single layer catches everything. A **pre-commit hook** such as gitleaks scans your **staged** changes (the ones queued for the next commit) before the commit exists. It runs on your machine, is not shared when someone clones, and `git commit --no-verify` skips it. **Push protection** on GitHub blocks pushes that contain a detected secret, but a user with write access can bypass it with a reason. **Secret scanning** looks through the whole history for credentials.
+No single layer catches everything. A **pre-commit hook** is a script Git runs before it creates a commit. With **gitleaks** (a tool that scans for secrets) it checks your **staged** changes, the ones queued for the next commit. It must be executable, it runs only on your machine, and `git commit --no-verify` skips it.
+
+**Push protection** on GitHub blocks a push that contains a detected secret, but a user with write access can bypass it with a reason. It has to be switched on, and some repository types need a paid plan. **Secret scanning** looks through the whole history for credentials.
 
 **Worked example.** The three files that keep a repository clean.
 
@@ -135,19 +150,40 @@ exec gitleaks git --pre-commit --staged --redact -v
 
 <Callout type="note" title="Two more rules: who can read the key, and what it can do">
 
-Any key in code sent to a browser is public: anyone can read it in the developer tools. Keep secret keys on a server you control. Some providers issue a separate **publishable** key that is meant for the browser. Never print a full secret in a log either.
+Any key in code sent to a browser is public: anyone can read it in the developer tools. Keep secret keys on a server you control. Some providers issue a separate **publishable** key that is meant for the browser. Never log a secret; if you must tell keys apart, log a masked form such as the last four characters.
 
 **Least privilege** means a key gets only the access its job needs: one key per service, read-only if it only reads, limited to the repositories it uses. A GitHub fine-grained token can be limited to chosen repositories; a classic token cannot.
 
 </Callout>
+
+Now a small model of the rule that the last matching pattern wins. Read it before you run it.
+
+```python
+from fnmatch import fnmatch
+
+def ignored(name, patterns):
+    result = False
+    for pattern in patterns:
+        if pattern.startswith("!"):
+            if fnmatch(name, pattern[1:]):
+                result = False
+        elif fnmatch(name, pattern):
+            result = True
+    return result
+
+print(ignored(".env.example", [".env", ".env.*", "!.env.example"]))
+print(ignored(".env.example", ["!.env.example", ".env.*"]))
+```
+
+<Predict lesson="sec-01" item="sec-01-q-predict-ignore" />
 
 <Quiz lesson="sec-01" chunk={2} />
 
 <Callout type="misconception" title="Common misconceptions in chunk 2">
 
 - "Adding `.env` to `.gitignore` removes it from the repository." It only affects files that are not tracked yet.
-- "The hook protects the whole team." It runs on one machine and can be skipped, so pair it with push protection and a scan in CI.
-- "A minified or obfuscated key in JavaScript is hidden." The browser has to read it, so anyone can.
+- "The hook protects the whole team." It runs on one machine and can be skipped, so pair it with push protection and a scan in CI (a server that runs your checks on every push).
+- "A minified or obfuscated key in JavaScript is hidden." Minifying shrinks code and obfuscating scrambles it, but the browser still has to read it, so anyone can.
 
 </Callout>
 
@@ -159,13 +195,13 @@ The **OWASP Top 10:2025** is a ranked list of the most serious web application r
 
 **Broken access control (A01)** means a user can act outside their permissions, for example by changing an id in a URL to read someone else's invoice. Deny by default, check ownership on the server for every request, and never rely on hiding a button in client-side JavaScript.
 
-**Injection (A05)** happens when untrusted input reaches an interpreter, such as a database, and part of it runs as a command. Keep data separate from commands with a safe interface such as a **parameterised query**, where the database receives the SQL and the values separately, not string concatenation.
+**Injection (A05)** happens when untrusted input reaches an interpreter, such as a database, and part of it runs as a command. Keep data separate from commands. A **parameterised query** does this: the database receives the SQL and the values separately. String concatenation does not.
 
-**Authentication failures (A07)** mean the system accepts someone who is not who they claim to be. Defences are multi-factor authentication, rate limits on failed logins, checking new passwords against lists of breached ones, and giving the same message for every failed login.
+**Authentication failures (A07)** mean the system accepts someone who is not who they claim to be. Defences are multi-factor authentication (a second proof besides the password), rate limits on failed logins, checking new passwords against lists of breached ones, and giving the same message for every failed login.
 
 Two more matter for your work: **security misconfiguration (A02)**, such as verbose errors or unchanged defaults, and **software supply chain failures (A03)**, such as untrusted dependencies.
 
-**Worked example.** The same hostile input, handled two ways.
+**Worked example.** The same hostile input, handled two ways. SQL is the language of databases: `SELECT guest FROM bookings WHERE ref = ...` returns the guests whose booking reference matches, and a `?` is a placeholder for a value.
 
 ```python
 import sqlite3
