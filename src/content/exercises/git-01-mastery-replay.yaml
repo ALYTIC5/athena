@@ -1,0 +1,180 @@
+id: git-01-mastery-replay
+lesson: git-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: List the commits a rebase would replay
+difficulty: 3
+competencies:
+  - git.rebase-merge
+  - git.branching
+timeoutMs: 5000
+packages: []
+prompt: |
+  The same toy model as in the lesson: `parents` maps each commit id to the list of its parents (an empty list for the
+  first commit, two parents for a merge commit). `reachable(parents, tip)` is given and returns every commit you can
+  reach from `tip` by following all parents, including `tip`.
+
+  `git rebase upstream` takes the commits on your branch that are not in `upstream` and replays them, oldest first, on top
+  of it. Write `commits_to_replay(parents, upstream, branch)` that returns that list of commit ids, oldest first.
+
+  The commits that only your branch has form a straight line (each has exactly one parent). The two histories share at
+  least their first commit. `upstream` may contain merge commits.
+
+  Example: with `parents = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"]}`,
+  `commits_to_replay(parents, "c", "y")` returns `["x", "y"]`.
+starter: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def commits_to_replay(parents: dict[str, list[str]], upstream: str, branch: str) -> list[str]:
+      ...
+visibleTests: |
+  P = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"], "z": ["y"]}
+
+  def test_replays_the_branch_only_commits_oldest_first():
+      assert commits_to_replay(P, "c", "z") == ["x", "y", "z"]
+
+  def test_nothing_to_replay_when_the_branch_is_behind():
+      assert commits_to_replay(P, "z", "b") == []
+hiddenTests: |
+  P = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"], "z": ["y"]}
+  # mu is a merge commit on upstream. The branch started from s1, which upstream
+  # only reached through the second parent of mu.
+  M = {
+      "r": [],
+      "u1": ["r"],
+      "s1": ["r"],
+      "mu": ["u1", "s1"],
+      "b1": ["s1"],
+      "b2": ["b1"],
+  }
+
+  def test_same_tip_replays_nothing():
+      assert commits_to_replay(P, "c", "c") == []
+
+  def test_one_commit_on_the_branch():
+      assert commits_to_replay(P, "c", "x") == ["x"]
+
+  def test_shared_commit_reached_through_a_second_parent_is_not_replayed():
+      assert commits_to_replay(M, "mu", "b2") == ["b1", "b2"]
+
+  def test_inputs_are_unchanged_and_a_list_is_returned():
+      before = {k: list(v) for k, v in M.items()}
+      result = commits_to_replay(M, "mu", "b2")
+      assert isinstance(result, list)
+      assert M == before
+feedback:
+  - test: test_replays_the_branch_only_commits_oldest_first
+    message: Rebase replays the oldest commit first. If you walk back from the tip you meet the newest commit first, so reverse the list.
+  - test: test_shared_commit_reached_through_a_second_parent_is_not_replayed
+    message: Upstream's history includes every parent of its merge commits. Use `reachable` to decide what upstream already has, instead of following only the first parent.
+  - test: test_one_commit_on_the_branch
+    message: Stop walking back as soon as you reach a commit that upstream already has. That commit is not replayed.
+hints:
+  - 'Which commits does upstream already have? There is a helper that answers that.'
+  - "Compute upstream's commits with `reachable`. Walk back from the tip of your branch, collecting commits until you reach one that upstream has. Then put the list in oldest-first order."
+  - |-
+    known = reachable(parents, ____)
+    replay = []
+    commit = ____
+    while commit not in ____:
+        replay.append(commit)
+        commit = parents[commit][0]
+    return replay[::-1]
+referenceSolution: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def commits_to_replay(parents: dict[str, list[str]], upstream: str, branch: str) -> list[str]:
+      known = reachable(parents, upstream)
+      replay = []
+      commit = branch
+      while commit not in known:
+          replay.append(commit)
+          commit = parents[commit][0]
+      return replay[::-1]
+wrongSolutions:
+  - label: Returns the commits newest first
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def commits_to_replay(parents: dict[str, list[str]], upstream: str, branch: str) -> list[str]:
+          known = reachable(parents, upstream)
+          replay = []
+          commit = branch
+          while commit not in known:
+              replay.append(commit)
+              commit = parents[commit][0]
+          return replay
+  - label: Follows only the first parent of upstream's history
+    code: |
+      def commits_to_replay(parents: dict[str, list[str]], upstream: str, branch: str) -> list[str]:
+          known = set()
+          commit = upstream
+          while True:
+              known.add(commit)
+              if not parents[commit]:
+                  break
+              commit = parents[commit][0]
+          replay = []
+          commit = branch
+          while commit not in known:
+              replay.append(commit)
+              commit = parents[commit][0]
+          return replay[::-1]
+  - label: Returns every commit of the branch, including the ones upstream already has
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def commits_to_replay(parents: dict[str, list[str]], upstream: str, branch: str) -> list[str]:
+          replay = []
+          commit = branch
+          while True:
+              replay.append(commit)
+              if not parents[commit]:
+                  break
+              commit = parents[commit][0]
+          return replay[::-1]
+explanation: |
+  Git decides what to replay with a set difference: the commits reachable from your branch minus the commits reachable
+  from `upstream`. Because your own commits are a straight line, you can find them by walking back from the tip until you
+  hit a commit that upstream has, then reverse the list so the oldest is first. `reachable` must follow every parent: in
+  the merge example the branch started from `s1`, which upstream only has through the second parent of its merge commit,
+  and a first-parent walk would wrongly replay `s1` and `r`. Alternative: `sorted(reachable(branch) - reachable(upstream))`
+  finds the same set but loses the order, which is why the walk is better here.

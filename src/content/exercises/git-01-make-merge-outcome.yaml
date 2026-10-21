@@ -1,0 +1,189 @@
+id: git-01-make-merge-outcome
+lesson: git-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Predict what git merge will do
+difficulty: 3
+competencies:
+  - git.rebase-merge
+  - git.branching
+timeoutMs: 5000
+packages: []
+prompt: |
+  A toy model of a Git history. `parents` maps each commit id to the list of its parents: an empty list for the first
+  commit, one parent for an ordinary commit, two for a merge commit. `reachable(parents, tip)` is given: it returns every
+  commit you can reach from `tip` by following parents, including `tip` itself.
+
+  Write `merge_outcome(parents, current, other)`. It says what `git merge` would do if you ran it while `current` is the
+  tip of your branch and you merge the branch whose tip is `other`:
+
+  - `"up to date"` when everything in `other` is already in your history (this includes `other == current`)
+  - `"fast-forward"` when your tip is an ancestor of `other`, so Git can just move your branch to `other`
+  - `"merge commit"` otherwise: the two histories have diverged
+
+  Example: with `parents = {"a": [], "b": ["a"], "c": ["b"]}`, `merge_outcome(parents, "a", "c")` returns `"fast-forward"`.
+starter: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def merge_outcome(parents: dict[str, list[str]], current: str, other: str) -> str:
+      ...
+visibleTests: |
+  PARENTS = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"]}
+
+  def test_fast_forward():
+      assert merge_outcome(PARENTS, "a", "c") == "fast-forward"
+
+  def test_up_to_date_when_other_is_older():
+      assert merge_outcome(PARENTS, "c", "a") == "up to date"
+
+  def test_diverged_histories_need_a_merge_commit():
+      assert merge_outcome(PARENTS, "c", "x") == "merge commit"
+hiddenTests: |
+  LINEAR = {"a": [], "b": ["a"], "c": ["b"], "d": ["c"], "e": ["d"]}
+  # m is a merge commit: its first parent is c1 and its second parent is f2.
+  MERGED = {
+      "r": [],
+      "c1": ["r"],
+      "f1": ["r"],
+      "f2": ["f1"],
+      "m": ["c1", "f2"],
+  }
+
+  def test_same_tip_is_up_to_date():
+      assert merge_outcome(LINEAR, "c", "c") == "up to date"
+
+  def test_fast_forward_over_several_commits():
+      assert merge_outcome(LINEAR, "a", "e") == "fast-forward"
+
+  def test_other_reachable_only_through_a_second_parent():
+      assert merge_outcome(MERGED, "m", "f2") == "up to date"
+      assert merge_outcome(MERGED, "m", "f1") == "up to date"
+
+  def test_fast_forward_across_a_merge_commit():
+      assert merge_outcome(MERGED, "c1", "m") == "fast-forward"
+      assert merge_outcome(MERGED, "f2", "m") == "fast-forward"
+
+  def test_diverged_with_a_merge_in_the_history():
+      parents = dict(MERGED, z=["m"], y=["f2"])
+      assert merge_outcome(parents, "z", "f2") == "up to date"
+      assert merge_outcome(parents, "f2", "z") == "fast-forward"
+      assert merge_outcome(parents, "z", "y") == "merge commit"
+      assert merge_outcome(parents, "c1", "f2") == "merge commit"
+
+  def test_the_model_is_not_changed():
+      parents = {"a": [], "b": ["a"], "c": ["a"]}
+      before = {k: list(v) for k, v in parents.items()}
+      merge_outcome(parents, "b", "c")
+      assert parents == before
+feedback:
+  - test: test_same_tip_is_up_to_date
+    message: When both branches point at the same commit there is nothing to merge. Check "other is already in my history" before you check for a fast-forward.
+  - test: test_fast_forward_over_several_commits
+    message: A fast-forward does not need `other` to be the very next commit. Ask whether your tip is anywhere in the history of `other`.
+  - test: test_other_reachable_only_through_a_second_parent
+    message: A merge commit has two parents, and history follows both. If you only follow the first parent, you miss commits that arrived through the merged branch.
+  - test: test_diverged_with_a_merge_in_the_history
+    message: Decide from the two sets of reachable commits, in this order. If `other` is in your history it is up to date; otherwise, if your tip is in the history of `other` it is a fast-forward.
+hints:
+  - 'Which question tells you that merging adds nothing? Ask it about the history of `current`, using `reachable`.'
+  - 'Compute the two histories with `reachable`. If `other` is in the history of `current`, nothing to merge. Else if `current` is in the history of `other`, Git can move forward. Otherwise the histories diverged.'
+  - |-
+    if ____ in reachable(parents, current):
+        return "up to date"
+    if ____ in reachable(parents, other):
+        return "fast-forward"
+    return "merge commit"
+referenceSolution: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def merge_outcome(parents: dict[str, list[str]], current: str, other: str) -> str:
+      if other in reachable(parents, current):
+          return "up to date"
+      if current in reachable(parents, other):
+          return "fast-forward"
+      return "merge commit"
+wrongSolutions:
+  - label: Checks for a fast-forward first, so the same tip counts as a fast-forward
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def merge_outcome(parents: dict[str, list[str]], current: str, other: str) -> str:
+          if current in reachable(parents, other):
+              return "fast-forward"
+          if other in reachable(parents, current):
+              return "up to date"
+          return "merge commit"
+  - label: Only accepts a fast-forward when other is the direct child of current
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def merge_outcome(parents: dict[str, list[str]], current: str, other: str) -> str:
+          if other in reachable(parents, current):
+              return "up to date"
+          if parents[other] == [current]:
+              return "fast-forward"
+          return "merge commit"
+  - label: Follows only the first parent of every commit
+    code: |
+      def first_parent_line(parents: dict[str, list[str]], tip: str) -> set[str]:
+          line = set()
+          commit = tip
+          while True:
+              line.add(commit)
+              if not parents[commit]:
+                  return line
+              commit = parents[commit][0]
+
+
+      def merge_outcome(parents: dict[str, list[str]], current: str, other: str) -> str:
+          if other in first_parent_line(parents, current):
+              return "up to date"
+          if current in first_parent_line(parents, other):
+              return "fast-forward"
+          return "merge commit"
+explanation: |
+  `git merge` asks two questions about the histories. Is the other branch already part of mine? Then it prints
+  "Already up to date". Is my tip part of the other branch's history? Then my branch can simply move forward to it (a
+  fast-forward), with no merge commit. If neither is true the histories have diverged and Git needs a merge commit with
+  two parents. The order matters: when both tips are the same commit both questions are true, and "up to date" is the
+  right answer. The reachable set follows every parent, because a merge commit brings in a whole second line of history.
+  Alternative: compute `mine = reachable(parents, current)` and `theirs = reachable(parents, other)` once and compare
+  with set operations (`other in mine`, `current in theirs`), which avoids walking the graph twice.

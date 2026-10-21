@@ -1,0 +1,341 @@
+---
+title: Git and GitHub as a team member
+description: Commits, branches and HEAD, merge versus rebase, resolving conflicts, undoing mistakes safely, and writing commits and pull requests a team can review.
+sidebar:
+  order: 20
+lessonId: git-01
+week: 1
+track: git
+durationMin: 120
+anatomy: full
+competencies: [git.branching, git.pull-requests, git.rebase-merge, git.undo, git.commits]
+prerequisites: [start-00]
+whyItMatters: >
+  Git appears in 24% of the postings you are targeting, and every team that uses it expects you to work through branches
+  and pull requests. The mistakes in this lesson are the ones that cost teams time: a force-push that erases a
+  teammate's work, a conflict settled by guessing, a bad commit that cannot be undone safely. Interviewers also ask how
+  you work in a team and how you would undo a commit that is already pushed.
+objectives:
+  - Explain what a commit, a branch and HEAD are, and predict where they point after a switch and a commit
+  - Choose between merge and rebase for a situation, and explain what each does to history
+  - Resolve a merge conflict by reading its markers and editing the file
+  - Choose revert, reset or restore to undo a mistake safely, and explain why force-pushing rewritten history is dangerous on a shared branch
+  - Write a conventional commit message and describe what makes a pull request easy to review
+sources:
+  - title: "Git glossary: HEAD, branch, commit, fast-forward, detached HEAD"
+    url: https://git-scm.com/docs/gitglossary
+  - title: "git switch"
+    url: https://git-scm.com/docs/git-switch
+  - title: "git commit: the commit message"
+    url: https://git-scm.com/docs/git-commit#_discussion
+  - title: "git merge"
+    url: https://git-scm.com/docs/git-merge
+  - title: "git rebase"
+    url: https://git-scm.com/docs/git-rebase
+  - title: "git restore"
+    url: https://git-scm.com/docs/git-restore
+  - title: "git reset"
+    url: https://git-scm.com/docs/git-reset
+  - title: "git revert"
+    url: https://git-scm.com/docs/git-revert
+  - title: "git push"
+    url: https://git-scm.com/docs/git-push
+  - title: "git reflog"
+    url: https://git-scm.com/docs/git-reflog
+  - title: "git filter-branch (warning and recommendation)"
+    url: https://git-scm.com/docs/git-filter-branch
+  - title: "git-filter-repo"
+    url: https://github.com/newren/git-filter-repo
+  - title: "GitHub flow"
+    url: https://docs.github.com/en/get-started/using-github/github-flow
+  - title: "About pull requests"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests
+  - title: "Reviewing proposed changes in a pull request"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request
+  - title: "About merge methods on GitHub"
+    url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github
+  - title: "Removing sensitive data from a repository"
+    url: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
+  - title: "Linking a pull request to an issue"
+    url: https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue
+  - title: "git gc: reflog expiry settings"
+    url: https://git-scm.com/docs/git-gc
+  - title: "Conventional Commits 1.0.0"
+    url: https://www.conventionalcommits.org/en/v1.0.0/
+---
+
+## Why this matters
+
+Git appears in 24% of the postings you are targeting, and every team that uses it expects you to work through branches and pull requests. The mistakes in this lesson are the ones that cost teams time: a force-push that erases a teammate's work, a conflict settled by guessing, a bad commit that cannot be undone safely. Interviewers also ask how you work in a team and how you would undo a commit that is already pushed.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Explain what a commit, a branch and HEAD are, and predict where they point after a switch and a commit.
+2. Choose between merge and rebase for a situation, and explain what each does to history.
+3. Resolve a merge conflict by reading its markers and editing the file.
+4. Choose revert, reset or restore to undo a mistake safely, and explain why force-pushing rewritten history is dangerous on a shared branch.
+5. Write a conventional commit message and describe what makes a pull request easy to review.
+
+<Callout type="note" title="What this lesson assumes">
+
+You have a terminal with Git installed and have run `git add`, `git commit` and `git push` before. Git cannot run in your browser, so this lesson teaches the ideas with questions and small Python models of Git's history, and the practice repository at the end gives you the real commands. Practice differs between teams, and the lesson says so where it matters.
+
+</Callout>
+
+<Chunk n={1} title="Commits, branches and HEAD">
+
+A **commit** is a saved snapshot of your project, with a message, an author and a link to its **parent**, the commit it was built on. Following parents from any commit gives you the history.
+
+A **branch** is only a name that points at one commit, its **tip**. When you commit, the name of the current branch moves to the new commit. **HEAD** says where you are: normally it names the current branch. Creating a branch copies nothing, so make one for each piece of work.
+
+If you check out an old commit instead of a branch (`git switch --detach <commit>`), HEAD points straight at that commit: a **detached HEAD**. New commits then belong to no branch, so run `git switch -c <name>` to keep them.
+
+Keep each commit to one complete change, so it can be reviewed and undone on its own.
+
+**Worked example.** Start a branch and make one commit.
+
+```bash
+git switch -c add-reminder              # new branch `add-reminder` at the current commit; HEAD names it
+# edit reminders.py
+git add reminders.py                    # stage the change: choose what goes into the next commit
+git commit -m "feat: add reminder text" # save the snapshot; `add-reminder` moves to it
+```
+
+```text
+Before the commit:   A---B---C   main, add-reminder   (HEAD -> add-reminder)
+
+After the commit:    A---B---C   main
+                              \
+                               D   add-reminder   (HEAD -> add-reminder)
+```
+
+In words: `main` still points at `C`. Only `add-reminder`, the branch HEAD names, moved to the new commit `D`, whose parent is `C`.
+
+**Fill in the blanks.** Check your answers in the box below.
+
+```bash
+git switch ____ hotfix-phone-format        # create the branch and move to it
+git add reminders.py
+git ____ -m "fix: strip spaces from phone numbers"
+```
+
+<details>
+<summary>Check your answers</summary>
+
+`-c` (create) and `commit`. Without `-c`, `git switch hotfix-phone-format` would fail because no such branch exists yet.
+
+</details>
+
+The next cell models branches in Python: a dict from branch names to commits, and a variable for HEAD.
+
+<Predict lesson="git-01" item="git-01-q-predict-branch-pointer" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A branch is a copy of the project." It is one name for one commit, which is why branches are cheap.
+- "Committing moves every branch." Only the branch HEAD names moves.
+- "A commit stores only what changed." It is a snapshot of the whole project. Git shows you the difference from its parent.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Merge, rebase and conflicts">
+
+When your branch and `main` have both moved, you must join them. A **merge** adds a **merge commit** with two parents and leaves every existing commit unchanged. If `main` has not moved and you merge your branch into it, Git just moves `main` forward to your tip: a **fast-forward**. If the branch you merge is already part of your history, Git says "Already up to date".
+
+A **rebase** takes the commits that are on your branch but not on the other one, and replays them on top of it as new commits. The history becomes a straight line, but your branch is now made of copies with new ids.
+
+So rebase your own private branch, and merge when others may have built on it. Some teams require a linear history. Follow your team's rule.
+
+**Worked example.** Both branches moved since `B`.
+
+```text
+Both moved:      A---B---C   main
+                      \
+                       X---Y   add-name
+
+After a merge:   A---B---C-----M   M is a merge commit with parents C and Y
+                      \       /
+                       X---Y
+
+After a rebase:  A---B---C---X'---Y'   X' and Y' are new copies of X and Y
+```
+
+In words: a merge keeps `X` and `Y` and adds `M` on top. A rebase replaces `X` and `Y` with copies placed after `C`.
+
+A **conflict** happens when both sides changed the same lines. Git stops and marks the file:
+
+```text
+<<<<<<< HEAD
+Hello, team
+=======
+Hello, Amara
+>>>>>>> add-name
+```
+
+You are on `main` and merged `add-name`. Above the `=======` line is your side (HEAD), below is the merged branch. Edit the file into the text you want, delete all three marker lines, then:
+
+```bash
+git add greeting.txt     # tell Git the file is resolved
+git commit               # or: git merge --continue (during a rebase: git rebase --continue)
+git merge --abort        # to give up instead (during a rebase: git rebase --abort)
+```
+
+**Fill in the blanks.**
+
+```bash
+git switch main
+git ____ add-name                # bring add-name into main
+# CONFLICT: edit the file, delete the three marker lines, then
+git ____ greeting.txt            # mark the file as resolved
+git commit
+```
+
+<details>
+<summary>Check your answers</summary>
+
+`merge` and `add`. Git will not finish the merge until each conflicted file has been marked as resolved with `git add`.
+
+</details>
+
+The cell below models what a rebase replays: the commits reachable from your branch that are not reachable from the other one. A commit is reachable from a tip if you can get to it by following parents. In Python, `a - b` on sets keeps what is only in `a`.
+
+<Predict lesson="git-01" item="git-01-q-predict-replay" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "Rebase just moves my commits." It creates new commits, so the old ones are no longer part of the branch.
+- "The sides of a conflict are the same in a rebase." They are swapped: during a rebase, HEAD is the branch you are rebasing onto.
+- "A conflict means something went wrong." It means two people changed the same lines and Git needs a human to choose.
+- "Git picks the newer change if I ignore a conflict." It never picks. Until you resolve and `git add` the file, the merge is not finished.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Undoing mistakes safely">
+
+Choose the undo by asking where the mistake is.
+
+**Not committed yet.** `git restore <file>` replaces the file in your working tree with the staged version, so those edits are gone for good. `git restore --staged <file>` unstages the file and keeps your edits.
+
+**Committed, only on your machine.** `git reset <commit>` moves your branch back. `--soft` keeps the changes staged, the default `--mixed` keeps them in your working tree unstaged, and `--hard` also overwrites your working tree.
+
+**Already shared.** `git revert <commit>` adds a new commit that undoes the old one. History only grows, so nobody has to repair their copy.
+
+**Worked example.**
+
+```bash
+git restore notes.txt             # drop uncommitted edits to notes.txt (cannot be undone)
+git restore --staged notes.txt    # unstage notes.txt but keep the edits
+git reset HEAD~1                  # private branch: move back one commit, keep its changes unstaged
+git revert 3f2a9c1                # shared branch: add a commit that undoes commit 3f2a9c1
+git reflog                        # where HEAD used to be, to recover from a bad reset
+```
+
+<Callout type="note" title="Rewriting shared history">
+
+If you reset or rebase a pushed branch, a plain `git push` is refused: a push must be a fast-forward of the remote branch. `git push --force` overrides that check and can make the remote lose commits, including a teammate's. `--force-with-lease` is safer: it fails if the remote branch moved since you last fetched (an automatic background fetch can defeat it).
+
+`git reflog` lists where HEAD and your branches used to point in your local repository, so a lost commit can usually be found for a while. Reflog entries for commits that are no longer reachable expire after 30 days by default.
+
+To remove a committed secret, revoke it first; a later lesson covers the clean-up. Rewriting history with a tool such as `git filter-repo` gives the commits new ids, so everyone must rebase rather than merge.
+
+</Callout>
+
+<Predict lesson="git-01" item="git-01-q-predict-push-rule" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "`git reset --hard` deletes the commit for ever." It moves the branch. The commit is still in the reflog for a while. Uncommitted edits are different: Git never saved them.
+- "Force-pushing is fine because it is my branch." It is fine if only you use the branch. On a shared branch it overwrites other people's work.
+- "Deleting a leaked secret in a new commit fixes it." The old commit still holds it. Revoke it.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={4} title="Commits and pull requests a team can review">
+
+A commit message tells the next reader what changed. Git suggests a short summary line (no more than 50 characters), a blank line, then more detail.
+
+Many teams use **Conventional Commits**: `type(scope)!: description`, for example `fix(sms): strip spaces from phone numbers`. The scope and the `!` are optional, and a `!` right before the colon marks a breaking change. The colon must be followed by a space.
+
+A **pull request** (PR) proposes merging your branch into another. First publish the branch with `git push -u origin <branch>`. Make the PR easy to review: one purpose, a small diff, a title like a commit subject, and a description of what changed, why and how you tested it, with a link to the issue. A **draft** pull request asks for early feedback.
+
+Reviewers choose Comment, Approve or Request changes, and you answer by pushing more commits. Common practice, which varies by team: comment on the code, not the person, and say which points are optional.
+
+**Worked example.** A pull request description.
+
+```text
+Title: fix(sms): strip spaces from phone numbers before sending
+
+What changed: reminders remove spaces from the phone number before the SMS is sent.
+Why: numbers pasted from a spreadsheet contained spaces and the provider rejected them.
+How I tested it: two new tests for numbers with spaces; the full suite passes.
+Closes #42
+```
+
+`Closes #42` is a closing keyword: GitHub links the issue and closes it when the PR is merged into the default branch. Merge methods differ: a merge commit keeps the commits, a squash makes one commit, and a rebase copies them.
+
+**Fill in the blanks.** A change makes reminders use the booking's time zone instead of UTC, and callers that expect UTC must be updated.
+
+```text
+____(reminders)____: send reminders in the booking's time zone
+```
+
+<details>
+<summary>Check your answers</summary>
+
+`feat` (a new behaviour) and `!` (a breaking change), giving `feat(reminders)!: send reminders in the booking's time zone`. Choosing between types such as `feat` and `fix` is a judgement, and teams agree their own list.
+
+</details>
+
+<Quiz lesson="git-01" chunk={4} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 4">
+
+- "The diff explains itself." A diff shows what changed, not why. Say why in the description.
+- "One big pull request saves everyone's time." Large mixed changes are reviewed badly. Use a branch for each set of unrelated changes.
+- "A commit message is for me." Your teammates, your future self and tools that build changelogs all read it.
+
+</Callout>
+
+</Chunk>
+
+## Find the bug
+
+A release script reads Conventional Commits subjects and marks breaking changes. A subject that is not breaking is being marked as breaking. Find the line that causes it and fix it.
+
+<Exercise id="git-01-debug-breaking-flag" />
+
+<SessionBreak />
+
+## Write it yourself
+
+The make exercise uses the same toy model as the predict cells: a dict that gives each commit's parents.
+
+<Exercise id="git-01-make-merge-outcome" />
+
+<ExplainBack lesson="git-01" exercise="git-01-make-merge-outcome" />
+
+## Mastery check
+
+<MasteryCheck lesson="git-01" count={8} />
+
+<InterviewCorner lesson="git-01" />
+
+## Practise on a real repository
+
+Git runs on your computer, not in this page, so this practice is a checklist. Use a scratch folder, not one of your real projects. If your Git does not know the `-b` option of `git init`, update Git. Checklists are self-assessed, so they never count as unaided evidence.
+
+<Checklist id="git-01-checklist-practice-repo" />
+
+## Further reading
+
+- [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow)
+- [git rebase: recovering from upstream rebase](https://git-scm.com/docs/git-rebase#_recovering_from_upstream_rebase)
+- [Removing sensitive data from a repository](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
