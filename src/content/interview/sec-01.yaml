@@ -1,0 +1,21 @@
+lesson: sec-01
+questions:
+  - id: sec-01-iq-pushed-key
+    competencies: [sec.history, sec.secrets]
+    question: You pushed a key to a repository. What do you do now?
+    modelAnswer: I treat the key as compromised, because git history is copied to clones and forks and deleting the file does not remove the old commit. First I revoke or rotate it at the provider, so the leaked value stops working. Then I check the provider's logs to see whether it was used. If it is still worth it, I purge the history with git filter-repo, force-push, and tell collaborators to clean their clones; GitHub Support can remove cached views, and forks are outside my control. Last, I add prevention, a gitignore entry, a pre-commit hook, push protection and a scan in CI. I say what the key could access, because that tells the team how serious it was.
+    listenFor:
+      - treats the key as compromised even after deletion
+      - revokes or rotates first, before purging history
+      - checks logs for misuse
+      - knows the limits of a history rewrite (forks, clones)
+      - adds prevention afterwards
+  - id: sec-01-iq-injection
+    competencies: [sec.owasp-basics]
+    question: What is injection, and how do you prevent it?
+    modelAnswer: Injection is when untrusted input reaches an interpreter, such as a database or a shell, and part of it is run as a command. For SQL, an input like `x' OR '1'='1` can change the meaning of a query built by string concatenation. The preferred defence is to keep data separate from the command, with parameterised queries or an ORM, so the database always treats the input as a value. Server-side validation is a useful extra layer, but escaping by hand is fragile. It is number five in the OWASP Top 10:2025.
+    listenFor:
+      - untrusted input is run as a command by an interpreter
+      - a concrete example such as SQL
+      - parameterised queries keep data separate from commands
+      - validation helps but is not enough on its own

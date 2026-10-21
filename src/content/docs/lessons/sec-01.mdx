@@ -1,0 +1,216 @@
+---
+title: Secrets and security hygiene
+description: What to do when a secret is pushed, how to keep secrets out of a repository, and three of the most common web security risks from the OWASP Top 10:2025.
+sidebar:
+  order: 25
+lessonId: sec-01
+week: 2
+track: sec
+durationMin: 90
+anatomy: short
+competencies: [sec.secrets, sec.history, sec.least-privilege, sec.owasp-basics]
+prerequisites: [git-01]
+whyItMatters: >
+  Cloud skills appear in 35% of the postings you are targeting, and every cloud, payment or telephony integration comes
+  with keys. Pushing one to a public repository is one of the most common beginner mistakes, and an interviewer will ask
+  what you do next. The OWASP Top 10 is the shared vocabulary for web security, so being able to name and prevent its
+  main risks makes you a safer person to give production access to.
+objectives:
+  - Explain why a pushed secret stays compromised after you delete it, and put the incident steps in order
+  - Explain what .gitignore, a pre-commit hook and push protection each do and do not catch
+  - Spot leaked secrets in a repository listing and in client-side code, and choose the least-privilege option for a key
+  - Explain broken access control (A01), injection (A05) and authentication failures (A07), with one defence for each
+sources:
+  - title: "GitHub Docs: removing sensitive data from a repository"
+    url: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
+  - title: "GitHub Docs: about secret scanning"
+    url: https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning
+  - title: "GitHub Docs: about push protection"
+    url: https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection
+  - title: "GitHub Docs: managing your personal access tokens"
+    url: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+  - title: "Git documentation: gitignore"
+    url: https://git-scm.com/docs/gitignore
+  - title: "Git documentation: githooks"
+    url: https://git-scm.com/docs/githooks
+  - title: "Gitleaks README"
+    url: https://github.com/gitleaks/gitleaks
+  - title: "OWASP Secrets Management Cheat Sheet"
+    url: https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+  - title: "Stripe documentation: API keys"
+    url: https://docs.stripe.com/keys
+  - title: "OWASP Top 10:2025"
+    url: https://top10.owasp.org/2025
+  - title: "OWASP Top 10:2025, A01 Broken Access Control"
+    url: https://top10.owasp.org/2025/A01_2025-Broken_Access_Control/
+  - title: "OWASP Top 10:2025, A02 Security Misconfiguration"
+    url: https://top10.owasp.org/2025/A02_2025-Security_Misconfiguration/
+  - title: "OWASP Top 10:2025, A03 Software Supply Chain Failures"
+    url: https://top10.owasp.org/2025/A03_2025-Software_Supply_Chain_Failures/
+  - title: "OWASP Top 10:2025, A05 Injection"
+    url: https://top10.owasp.org/2025/A05_2025-Injection/
+  - title: "OWASP Top 10:2025, A07 Authentication Failures"
+    url: https://top10.owasp.org/2025/A07_2025-Authentication_Failures/
+---
+
+## Why this matters
+
+Cloud skills appear in 35% of the postings you are targeting, and every cloud, payment or telephony integration comes with keys. Pushing one to a public repository is one of the most common beginner mistakes, and an interviewer will ask what you do next. The OWASP Top 10 is the shared vocabulary for web security, so being able to name and prevent its main risks makes you a safer person to give production access to.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Explain why a pushed secret stays compromised after you delete it, and put the incident steps in order.
+2. Explain what `.gitignore`, a pre-commit hook and push protection each do and do not catch.
+3. Spot leaked secrets in a repository listing and in client-side code, and choose the least-privilege option for a key.
+4. Explain broken access control (A01), injection (A05) and authentication failures (A07), with one defence for each.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know what a commit, a branch and a push are (git-01). All keys in this lesson are invented, and each one contains the marker `ATHENA_FAKE`. Never paste a real key into Athena or into a chat.
+
+</Callout>
+
+<Chunk n={1} title="A pushed secret stays compromised">
+
+A **secret** is a value that grants access: an API key, a token or a database password. Git keeps every commit, and a push copies them to the server and to every clone and fork. Deleting a file in a later commit only changes the newest snapshot. The commit that contained the secret is still in the history.
+
+So once a secret has been pushed, treat it as **compromised**: assume someone has a copy. Rewriting history removes it from your repository, but not from forks or from other people's clones. Only the provider can make the leaked value useless, by **revoking** it (switching it off) or **rotating** it (issuing a new one and switching the old one off).
+
+That sets the order: first revoke or rotate, then check the provider's logs for use of the old key, then purge the history if it is still worth it, then add the prevention. GitHub's guidance says that after rotation, rewriting history may not be worth the extra effort.
+
+**Worked example.** A synthetic file `config/.env.production` was committed in `3f9a1c2` and deleted in the next commit.
+
+```bash
+git log --oneline --all -- config/.env.production   # both commits still show up
+git show 3f9a1c2:config/.env.production             # the old content is readable by anyone with the repo
+# Step 1, at the provider: revoke the key and create a new one. Do this before anything below.
+git filter-repo --sensitive-data-removal --invert-paths --path config/.env.production
+# Step 2, locally: rewrite every commit without that file (needs git-filter-repo; GitHub's page lists the full steps)
+```
+
+After a rewrite you force-push, which replaces the branches on the server. Anyone who already cloned must clean their own copy. GitHub Support can remove cached views of the data, and only when rotating cannot remove the risk.
+
+<Quiz lesson="sec-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "Deleting the file in a new commit fixes it." The old commit still holds the secret.
+- "Making the repository private fixes it." Anyone who already copied the secret still has it.
+- "Purge the history first, rotate later." While the old key still works, every minute of delay is a risk.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Keeping secrets out of the repository">
+
+The repository holds the **names** of settings. The **values** live outside it: in a local `.env` file that Git ignores, and in the secret store or environment variables of the platform that runs your code. A committed `.env.example` lists the names with blank or fake values, so a new teammate knows what to set.
+
+`.gitignore` only stops **untracked** files from being added. A file Git already tracks is not affected: untrack it with `git rm --cached`. When several patterns match, the last one wins.
+
+No single layer catches everything. A **pre-commit hook** such as gitleaks scans your staged changes before the commit exists, but it runs on your machine and `git commit --no-verify` skips it. **Push protection** on GitHub blocks pushes that contain a detected secret, but only for patterns it knows, and a user with write access can bypass it with a reason. **Secret scanning** looks through the whole history for credentials.
+
+**Worked example.** The three files that keep a repository clean.
+
+```text
+# .gitignore: the real values never get staged
+.env
+.env.*
+!.env.example
+```
+
+```text
+# .env.example: committed, names only
+PAYMENTS_API_KEY=
+DATABASE_URL=
+```
+
+```sh
+# .git/hooks/pre-commit: scan what is staged, abort the commit on a finding
+exec gitleaks git --pre-commit --staged --redact -v
+```
+
+<Callout type="note" title="Two more rules: who can read the key, and what it can do">
+
+Any key in code that is sent to a browser is public: anyone can read it in the developer tools. Keep secret keys on a server you control. Some providers issue a separate **publishable** key that is designed for the browser and cannot do sensitive things.
+
+**Least privilege** means a key gets only the access its job needs. Give each service its own key, make it read-only if it only reads, and limit it to the repositories it uses. A GitHub fine-grained token can be limited to chosen repositories, which a classic token cannot.
+
+</Callout>
+
+<Quiz lesson="sec-01" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "Adding `.env` to `.gitignore` removes it from the repository." It only affects files that are not tracked yet.
+- "The hook protects the whole team." It runs on one machine and can be skipped, so pair it with push protection and a scan in CI.
+- "A minified or obfuscated key in JavaScript is hidden." The browser has to read it, so anyone can.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Three risks from the OWASP Top 10:2025">
+
+The **OWASP Top 10:2025** is a ranked list of the most serious web application risks. Three of them come up in almost every backend interview.
+
+**Broken access control (A01)** means a user can act outside their permissions, for example by changing an id in a URL to read someone else's invoice. Deny by default, check ownership on the server for every request, and never rely on hiding a button in client-side JavaScript.
+
+**Injection (A05)** happens when untrusted input reaches an interpreter, such as a database, and part of it runs as a command. Keep data separate from commands: use parameterised queries, not string concatenation.
+
+**Authentication failures (A07)** mean the system accepts someone who is not who they claim to be. Defences are multi-factor authentication, rate limits on failed logins, checking new passwords against lists of breached ones, and giving the same message for every failed login.
+
+Two more matter for your work: **security misconfiguration (A02)**, such as verbose errors or unchanged defaults, and **software supply chain failures (A03)**, such as untrusted dependencies.
+
+**Worked example.** The same hostile input, handled two ways.
+
+```python
+import sqlite3
+
+db = sqlite3.connect(":memory:")
+db.execute("CREATE TABLE bookings (ref TEXT, guest TEXT)")
+db.executemany("INSERT INTO bookings VALUES (?, ?)", [("B1", "Amara"), ("B2", "Bo")])
+
+ref = "x' OR '1'='1"                  # hostile input from a web form
+bad = "SELECT guest FROM bookings WHERE ref = '" + ref + "'"
+print(db.execute(bad).fetchall())     # [('Amara',), ('Bo',)]: the input became part of the SQL
+
+good = "SELECT guest FROM bookings WHERE ref = ?"
+print(db.execute(good, (ref,)).fetchall())   # []: the input stayed data
+```
+
+<Predict lesson="sec-01" item="sec-01-q-predict-concat" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "Escaping quotes by hand is enough." OWASP calls escaping error-prone and fragile. Prefer parameters.
+- "If the admin page is not linked, it is protected." Anyone can request the address directly. The server must check.
+- "The OWASP Top 10 lists every possible vulnerability." It lists ten categories of risk, not every bug.
+
+</Callout>
+
+</Chunk>
+
+## Practise on your own repositories
+
+This checklist is self-assessed. Do it in a throwaway repository first, then audit your own. Nothing about your repositories is sent anywhere.
+
+<Checklist id="sec-01-checklist-hook-and-audit" />
+
+## Write it yourself
+
+<Exercise id="sec-01-make-env-example" />
+
+## Mastery check
+
+<MasteryCheck lesson="sec-01" count={6} />
+
+<InterviewCorner lesson="sec-01" />
+
+## Further reading
+
+- [GitHub Docs: removing sensitive data from a repository](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
+- [OWASP Top 10:2025](https://top10.owasp.org/2025)
+- [Git documentation: gitignore](https://git-scm.com/docs/gitignore)

@@ -1,0 +1,110 @@
+id: sec-01-mastery-tracked-env
+lesson: sec-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Find secret files that should not be tracked
+difficulty: 2
+competencies:
+  - sec.secrets
+  - sec.history
+timeoutMs: 5000
+packages: []
+prompt: |
+  `git ls-files` lists the paths Git tracks. Write `tracked_secret_files(paths)`, which returns the paths that should not be
+  tracked, in the same order they were given.
+
+  A path is flagged when its file name (the part after the last `/`) is:
+  - exactly `.env`, or starts with `.env.` (for example `.env.production`), except `.env.example`, which is safe; or
+  - ends with `.pem`.
+
+  Example: `["src/app.py", "config/.env.local", ".env.example"]` returns `["config/.env.local"]`.
+starter: |
+  def tracked_secret_files(paths: list[str]) -> list[str]:
+      ...
+visibleTests: |
+  def test_flags_env_files_and_keeps_order():
+      paths = ["src/app.py", "config/.env.local", ".env", "README.md"]
+      assert tracked_secret_files(paths) == ["config/.env.local", ".env"]
+
+  def test_env_example_is_safe():
+      assert tracked_secret_files([".env.example", "docs/.env.example"]) == []
+hiddenTests: |
+  def test_pem_files_are_flagged():
+      assert tracked_secret_files(["keys/server.pem", "keys/notes.txt"]) == ["keys/server.pem"]
+
+  def test_names_that_only_contain_env_are_not_flagged():
+      assert tracked_secret_files(["env.py", "docs/dotenv-guide.md", "not.env", "src/.environment"]) == []
+
+  def test_nested_env_files_are_flagged():
+      assert tracked_secret_files(["services/api/.env.production"]) == ["services/api/.env.production"]
+
+  def test_empty_list():
+      assert tracked_secret_files([]) == []
+
+  def test_input_list_is_not_changed():
+      paths = [".env", "a.py"]
+      tracked_secret_files(paths)
+      assert paths == [".env", "a.py"]
+
+  def test_returns_a_new_list():
+      paths = []
+      assert tracked_secret_files(paths) is not paths
+feedback:
+  - test: test_env_example_is_safe
+    message: '`.env.example` is meant to be committed. Exclude it before you test for the `.env.` prefix.'
+  - test: test_names_that_only_contain_env_are_not_flagged
+    message: Test the file name, not the whole path, and look for `.env` at the start of the name rather than anywhere in it.
+  - test: test_nested_env_files_are_flagged
+    message: Secret files are often in subfolders. Take the part after the last `/` and test that.
+  - test: test_flags_env_files_and_keeps_order
+    message: Return the flagged paths in the order they were given.
+  - test: test_pem_files_are_flagged
+    message: Private key files ending in `.pem` should be flagged too.
+referenceSolution: |
+  def tracked_secret_files(paths: list[str]) -> list[str]:
+      flagged = []
+      for path in paths:
+          name = path.rsplit("/", 1)[-1]
+          if name == ".env.example":
+              continue
+          if name == ".env" or name.startswith(".env.") or name.endswith(".pem"):
+              flagged.append(path)
+      return flagged
+wrongSolutions:
+  - label: Flags .env.example, which is meant to be committed
+    code: |
+      def tracked_secret_files(paths: list[str]) -> list[str]:
+          flagged = []
+          for path in paths:
+              name = path.rsplit("/", 1)[-1]
+              if name == ".env" or name.startswith(".env.") or name.endswith(".pem"):
+                  flagged.append(path)
+          return flagged
+  - label: Only checks the whole path, so nested files are missed
+    code: |
+      def tracked_secret_files(paths: list[str]) -> list[str]:
+          return [p for p in paths if (p == ".env" or p.startswith(".env.") or p.endswith(".pem")) and p != ".env.example"]
+  - label: Looks for ".env" anywhere in the name, so names like not.env are flagged
+    code: |
+      def tracked_secret_files(paths: list[str]) -> list[str]:
+          flagged = []
+          for path in paths:
+              name = path.rsplit("/", 1)[-1]
+              if name == ".env.example":
+                  continue
+              if ".env" in name or name.endswith(".pem"):
+                  flagged.append(path)
+          return flagged
+explanation: |
+  `path.rsplit("/", 1)[-1]` takes the file name, so the same rule works at any depth. Checking `.env.example` first stops the safe file from being caught by the `.env.` prefix. Alternative: `pathlib.PurePosixPath(path).name` does the same and reads more clearly, at the cost of an import. A real project would also list other secret file types in its `.gitignore`.
+hints:
+  - 'Which part of a path matters: the whole path or only the file name?'
+  - 'Take the text after the last `/`. Skip `.env.example`. Flag the name if it is `.env`, starts with `.env.` or ends with `.pem`.'
+  - |
+    name = path.rsplit("/", 1)[-1]
+    if name == "____":
+        continue
+    if name == ".env" or name.startswith("____") or name.endswith("____"):
+        flagged.append(path)
