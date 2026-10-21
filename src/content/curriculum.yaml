@@ -34,7 +34,7 @@
     - id: py-01
       title: 'Names, values and mutability'
       durationMin: 165
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Approach practice, untimed'

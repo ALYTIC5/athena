@@ -1,0 +1,76 @@
+id: py-01-faded-copy
+lesson: py-01
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Add a booking without changing the original list
+difficulty: 1
+competencies:
+  - py.mutability
+  - py.functions
+timeoutMs: 5000
+packages: []
+prompt: |
+  `add_booking(bookings, booking)` should return a new list that holds every booking in `bookings` plus `booking` at the end.
+  The list the caller passed in must not change. Fill in the blank with a way to make a copy of the list.
+starter: |
+  def add_booking(bookings, booking):
+      updated = ____
+      updated.append(booking)
+      return updated
+visibleTests: |
+  def test_adds_the_booking():
+      first = {"id": "b1", "name": "Amara"}
+      second = {"id": "b2", "name": "Jonas"}
+      assert add_booking([first], second) == [first, second]
+
+  def test_original_is_unchanged():
+      first = {"id": "b1", "name": "Amara"}
+      bookings = [first]
+      add_booking(bookings, {"id": "b2", "name": "Jonas"})
+      assert bookings == [first]
+hiddenTests: |
+  def test_returns_a_new_list():
+      bookings = [{"id": "b1", "name": "Amara"}]
+      assert add_booking(bookings, {"id": "b2", "name": "Jonas"}) is not bookings
+
+  def test_empty_list():
+      booking = {"id": "b1", "name": "Amara"}
+      assert add_booking([], booking) == [booking]
+
+  def test_two_calls_do_not_interfere():
+      base = [{"id": "b1", "name": "Amara"}]
+      one = add_booking(base, {"id": "b2", "name": "Jonas"})
+      two = add_booking(base, {"id": "b3", "name": "Mei"})
+      assert [b["id"] for b in one] == ["b1", "b2"]
+      assert [b["id"] for b in two] == ["b1", "b3"]
+feedback:
+  - test: test_original_is_unchanged
+    message: Your function changed the list it was given. Giving the list a second name only adds a name for the same list; make a real copy.
+  - test: test_adds_the_booking
+    message: The result is not the old bookings plus the new one. Check that you copy the existing list first (not an empty one) and return the list itself, not the result of `append`.
+hints:
+  - 'What does `updated = bookings` do: does it create a second list, or a second name?'
+  - Build a new list that holds the same items as `bookings`.
+  - updated = ____(bookings)   or   updated = bookings.____()
+referenceSolution: |
+  def add_booking(bookings, booking):
+      updated = list(bookings)
+      updated.append(booking)
+      return updated
+wrongSolutions:
+  - label: Uses an alias, so the caller's list changes
+    code: |
+      def add_booking(bookings, booking):
+          updated = bookings
+          updated.append(booking)
+          return updated
+  - label: Starts from an empty list and loses the existing bookings
+    code: |
+      def add_booking(bookings, booking):
+          updated = []
+          updated.append(booking)
+          return updated
+explanation: |
+  `list(bookings)` builds a new list with the same items, so appending to it leaves the caller's list alone. `bookings.copy()` and `bookings[:]` do the same. Alternative: `return bookings + [booking]`, which builds the new list in one step. The booking dicts themselves are shared, which is fine here because nothing changes them.
