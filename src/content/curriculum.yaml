@@ -19,7 +19,7 @@
     - id: sec-01
       title: 'Secrets and security hygiene'
       durationMin: 90
-      status: planned
+      status: published
     - id: wri-01
       title: 'READMEs, pull requests and design notes'
       durationMin: 75

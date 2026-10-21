@@ -1,0 +1,99 @@
+id: sec-01-mastery-mask
+lesson: sec-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Mask a secret for a log line
+difficulty: 2
+competencies:
+  - sec.secrets
+timeoutMs: 5000
+packages: []
+prompt: |
+  Logs must never contain a full secret, but showing the last few characters helps you tell two keys apart.
+
+  Write `mask_secret(value)`:
+  - A value of 8 characters or fewer is replaced by one `*` for each character.
+  - A longer value is replaced by `*` for every character except the last 4, which stay visible.
+  - An empty string stays empty.
+
+  Example: `mask_secret("ATHENA_FAKE_key_8f2a")` returns `****************8f2a`.
+starter: |
+  def mask_secret(value: str) -> str:
+      ...
+visibleTests: |
+  def test_long_value_shows_last_four():
+      assert mask_secret("ATHENA_FAKE_key_8f2a") == "****************8f2a"
+
+  def test_short_value_is_fully_masked():
+      assert mask_secret("abc12") == "*****"
+hiddenTests: |
+  def test_eight_characters_are_fully_masked():
+      assert mask_secret("abcd1234") == "********"
+
+  def test_nine_characters_show_four():
+      assert mask_secret("abcde1234") == "*****1234"
+
+  def test_empty_string():
+      assert mask_secret("") == ""
+
+  def test_never_reveals_more_than_four_characters():
+      masked = mask_secret("ATHENA_FAKE_token_zz91")
+      assert sum(1 for ch in masked if ch != "*") <= 4
+
+  def test_length_is_preserved():
+      for n in (1, 4, 8, 9, 30):
+          assert len(mask_secret("x" * n)) == n
+feedback:
+  - test: test_short_value_is_fully_masked
+    message: A short value would be almost fully revealed by showing 4 characters. Mask all of it when it has 8 characters or fewer.
+  - test: test_eight_characters_are_fully_masked
+    message: Exactly 8 characters still counts as short. Check the length with `<=`, not `<`.
+  - test: test_never_reveals_more_than_four_characters
+    message: Only the last 4 characters may be visible, and only for values longer than 8.
+  - test: test_nine_characters_show_four
+    message: A value longer than 8 characters keeps its last 4 characters and masks the rest.
+  - test: test_empty_string
+    message: An empty value should come back empty, not as stars.
+  - test: test_length_is_preserved
+    message: The masked text should have the same length as the original value.
+  - test: test_long_value_shows_last_four
+    message: Show the last 4 characters and put one `*` in place of each earlier character.
+referenceSolution: |
+  def mask_secret(value: str) -> str:
+      if len(value) <= 8:
+          return "*" * len(value)
+      return "*" * (len(value) - 4) + value[-4:]
+wrongSolutions:
+  - label: Always shows the last four, so short secrets are almost fully revealed
+    code: |
+      def mask_secret(value: str) -> str:
+          return "*" * max(len(value) - 4, 0) + value[-4:]
+  - label: Treats eight characters as long enough to show four
+    code: |
+      def mask_secret(value: str) -> str:
+          if len(value) < 8:
+              return "*" * len(value)
+          return "*" * (len(value) - 4) + value[-4:]
+  - label: Shows the first four characters instead of the last four
+    code: |
+      def mask_secret(value: str) -> str:
+          if len(value) <= 8:
+              return "*" * len(value)
+          return value[:4] + "*" * (len(value) - 4)
+  - label: Uses a fixed number of stars, so the length is lost
+    code: |
+      def mask_secret(value: str) -> str:
+          if len(value) <= 8:
+              return "****"
+          return "****" + value[-4:]
+explanation: |
+  Masking trades usefulness for safety: the last characters identify a key, but a short key would be mostly exposed, so it is hidden entirely. `value[-4:]` slices the last four characters and `"*" * n` repeats the star. The limit of 8 is a design choice; real keys are much longer, so for them the last 4 characters are a small part. Alternative: always return a fixed placeholder such as `"[redacted]"`, which is safest but cannot tell two keys apart.
+hints:
+  - How many characters can you safely show for a very short secret?
+  - Return only stars when the length is 8 or fewer. Otherwise build the stars for all but the last 4 characters, then add those last 4.
+  - |
+    if len(value) <= ____:
+        return "*" * len(value)
+    return "*" * (len(value) - ____) + value[-4:]

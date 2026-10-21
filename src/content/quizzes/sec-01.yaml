@@ -1,0 +1,543 @@
+lesson: sec-01
+items:
+  # ---- Chunk 1: a pushed secret stays compromised (objective 1) ----
+  - id: sec-01-q-history-persists
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sec.history, sec.secrets]
+    stem: You committed a file with an API key, noticed, deleted the file in the next commit and pushed both commits. Is the key still exposed?
+    options:
+      - text: 'No: the newest commit no longer contains the file'
+        correct: false
+        why: The newest snapshot is clean, but the earlier commit is still in the history that was pushed, and anyone can read the file from it.
+      - text: "Yes: the earlier commit that contains the key is still in the repository's history"
+        correct: true
+        why: Git keeps every commit. A later commit that deletes the file does not remove the earlier one, so the key must be treated as compromised.
+      - text: 'Only if the repository is public'
+        correct: false
+        why: A private repository can still be cloned or forked by everyone with access, and access changes over time. Treat every pushed secret as compromised.
+  - id: sec-01-q-predict-history
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [sec.history]
+    code: |
+      files = {"config.txt": "key=ATHENA_FAKE_1"}
+      history = []
+      history.append(dict(files))
+      del files["config.txt"]
+      history.append(dict(files))
+      print(len(history), "config.txt" in history[-1], "config.txt" in history[0])
+    investigate:
+      - Why is the old snapshot unchanged when line 4 deletes the file?
+      - What does this tell you about deleting a file that held a key?
+  - id: sec-01-q-incident-order
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: order
+    competencies: [sec.history, sec.secrets]
+    stem: A key was pushed to a shared repository an hour ago. Put the response in the order this lesson teaches.
+    steps:
+      - Revoke or rotate the key at the provider
+      - Check the provider's logs for use of the old key
+      - Purge the key from history and force-push, if it is still worth it
+      - Add prevention (gitignore, pre-commit hook, push protection)
+  - id: sec-01-q-first-action
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sec.secrets, sec.history]
+    stem: Two minutes ago you noticed that you pushed a live payment key to a public repository. What is the first thing to do?
+    options:
+      - text: Force-push a rewritten history without the key
+        correct: false
+        why: This does not stop the old key working, and copies and forks may already exist. It is a later step, if it is needed at all.
+      - text: Revoke the key at the provider and issue a new one
+        correct: true
+        why: Revoking is the only step that makes the leaked value useless, wherever copies of it exist.
+      - text: Make the repository private
+        correct: false
+        why: This stops new readers but not anyone who has already copied the key, so the key still works for them.
+      - text: Delete the file and push again
+        correct: false
+        why: The earlier commit still holds the key, and the key still works.
+  - id: sec-01-q-purge-limits
+    pools: [mastery]
+    objective: 1
+    type: multiple
+    competencies: [sec.history]
+    stem: You rewrote the history with git filter-repo and force-pushed. Which problems remain? Choose all that apply.
+    options:
+      - text: Copies of the secret in forks made earlier
+        correct: true
+        why: A fork is a separate repository, which your rewrite does not touch. GitHub's guidance says to ask fork owners to remove the data or delete their forks.
+      - text: Copies of the secret in other people's existing clones
+        correct: true
+        why: You cannot remove data from other people's clones. They must clean their own copies.
+      - text: The leaked key still being valid at the provider
+        correct: true
+        why: Rewriting history changes the repository, not the provider's records. Only revoking or rotating makes the key useless.
+      - text: The secret appearing in the commits of your branch
+        correct: false
+        why: This is what the rewrite does fix, on your side of the repository. (Pull request pages and cached views are different, because only GitHub Support can remove them.)
+  - id: sec-01-q-rotate-enough
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sec.history, sec.secrets]
+    stem: You have rotated a leaked key and the old one no longer works. According to GitHub's guidance, is rewriting history always required?
+    options:
+      - text: 'Yes: a secret in history is always a security hole'
+        correct: false
+        why: Once the old value is revoked it grants nothing. A rewrite is still sensible for other sensitive data, but not for a dead key.
+      - text: 'No: once the credential is rotated, a rewrite may not be worth the extra effort'
+        correct: true
+        why: GitHub's page says this. A rewrite needs careful coordination with collaborators and changes every commit hash after the change.
+      - text: "No: history is only visible to the repository's maintainers, so it is safe"
+        correct: false
+        why: Anyone with read access, and every clone or fork, can read the history. The point is that a dead key is harmless, not that the history is hidden.
+
+  # ---- Chunk 2: keeping secrets out of the repository (objectives 2 and 3) ----
+  - id: sec-01-q-gitignore-tracked
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sec.secrets, sec.history]
+    stem: '.env was committed last week. Today you add .env to .gitignore. What happens?'
+    options:
+      - text: Git stops tracking .env and removes it from the history
+        correct: false
+        why: .gitignore never rewrites history, and it does not affect files that are already tracked.
+      - text: Git still tracks it. Untrack it with git rm --cached; old commits keep the content
+        correct: true
+        why: Git's documentation says files already tracked are not affected, and gives git rm --cached for untracking. The old commit is untouched, so a leaked value must still be revoked.
+      - text: Git refuses the change because .env is tracked
+        correct: false
+        why: Git accepts the line without any message. It just has no effect on a tracked file.
+  - id: sec-01-q-predict-ignore
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [sec.secrets]
+    code: |
+      from fnmatch import fnmatch
+
+      def ignored(name, patterns):
+          result = False
+          for pattern in patterns:
+              if pattern.startswith("!"):
+                  if fnmatch(name, pattern[1:]):
+                      result = False
+              elif fnmatch(name, pattern):
+                  result = True
+          return result
+
+      print(ignored(".env.example", [".env", ".env.*", "!.env.example"]))
+      print(ignored(".env.example", ["!.env.example", ".env.*"]))
+    investigate:
+      - Why do the two calls give different answers when they contain the same patterns?
+      - Which order should a .gitignore use to keep .env.example committable?
+  - id: sec-01-q-gitignore-order
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: This .gitignore must ignore real env files but keep .env.example committable, and it does not. Which change fixes it?
+    code: |
+      # Secrets
+      !.env.example
+      .env
+      .env.*
+    options:
+      - text: Move the !.env.example line below .env.*
+        correct: true
+        why: When several patterns match, the last one decides. Placing the exception last re-includes .env.example after .env.* has ignored it.
+      - text: Delete the .env line
+        correct: false
+        why: The .env.* pattern would still ignore .env.example, because it comes after the exception.
+      - text: Add .env.example on a new line at the very end
+        correct: false
+        why: A plain pattern ignores a file. That would ignore .env.example even more firmly.
+      - text: Nothing, because Git always commits files that have a ! rule
+        correct: false
+        why: A ! rule only takes effect if it is the last matching pattern for that file.
+  - id: sec-01-q-hook-scope
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: A pre-commit hook runs `gitleaks git --pre-commit --staged`. What does it scan?
+    options:
+      - text: The changes staged for the commit about to be made
+        correct: true
+        why: --staged means the staged changes, and the hook runs before the commit is created, so a finding aborts the commit.
+      - text: The whole history of the repository, every time
+        correct: false
+        why: With --staged it scans only the changes about to be committed. Scanning the whole history is a separate run of gitleaks git without --staged.
+      - text: Only the files listed in .gitignore
+        correct: false
+        why: Ignored files are never staged, so they are not what the hook is for.
+  - id: sec-01-q-hook-bypass
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: A teammate runs `git commit --no-verify`. What happens to the pre-commit hook, and what should the team add?
+    options:
+      - text: It is skipped, so the team also needs a server-side check
+        correct: true
+        why: Git's documentation says --no-verify bypasses the pre-commit hook. A hook is a local convenience, so a second layer is needed.
+      - text: The hook still runs, because hooks cannot be disabled
+        correct: false
+        why: The hook can be skipped with --no-verify, and hooks that are not executable are also ignored.
+      - text: The commit fails with an error
+        correct: false
+        why: The option exists to skip the hook, so the commit goes ahead.
+  - id: sec-01-q-push-protection
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: What does GitHub push protection do?
+    options:
+      - text: It blocks a push that contains a detected secret before the secret reaches the repository
+        correct: true
+        why: This is its purpose. The push is blocked with a message, and you remove the secret and push again.
+      - text: It deletes secrets from commits that are already pushed
+        correct: false
+        why: Push protection acts at push time. Removing a secret already pushed is the job of revoking it and, if needed, rewriting history.
+      - text: It cannot be bypassed by anyone
+        correct: false
+        why: By default a user with write access can bypass it by giving a reason, which creates an alert and an audit log entry.
+  - id: sec-01-q-layers
+    pools: [mastery]
+    objective: 2
+    type: multiple
+    competencies: [sec.secrets]
+    stem: Which statements about these protections are true? Choose all that apply.
+    options:
+      - text: .gitignore does not affect files that Git already tracks
+        correct: true
+        why: Git's documentation says so. Untrack with git rm --cached.
+      - text: A pre-commit hook runs on your machine and can be skipped
+        correct: true
+        why: It is invoked by git commit and can be bypassed with --no-verify.
+      - text: By default, push protection can be bypassed by someone with write access who gives a reason
+        correct: true
+        why: GitHub's documentation says so. Each bypass creates an alert and an audit log entry.
+      - text: Adding a line to .gitignore removes a secret from old commits
+        correct: false
+        why: .gitignore only decides which untracked files are added in future. History is unchanged.
+  - id: sec-01-q-env-example
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sec.secrets]
+    stem: What belongs in a committed .env.example file?
+    options:
+      - text: The names of the settings with blank or fake values
+        correct: true
+        why: A new teammate can copy it to .env and fill in real values, and nothing secret is in the repository.
+      - text: A copy of the real .env, because the repository is private
+        correct: false
+        why: Real values in a repository are a leak waiting to happen, private or not.
+      - text: 'Nothing: it should be in .gitignore too'
+        correct: false
+        why: The example file is meant to be committed so the required settings are documented. That is why the usual .gitignore has an exception for it.
+  - id: sec-01-q-listing-leak
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sec.secrets]
+    stem: This is the output of `git ls-files` in a team repository. Which tracked file is the problem?
+    code: |
+      README.md
+      src/app.py
+      src/billing.py
+      config/.env.production
+      .env.example
+      docs/setup.md
+    options:
+      - text: .env.example
+        correct: false
+        why: This file is meant to be committed. It lists setting names without real values.
+      - text: config/.env.production
+        correct: true
+        why: A production .env file holds real values. It should be untracked and its contents revoked, because it is already in the history.
+      - text: src/billing.py
+        correct: false
+        why: A source file is normal. It may contain a secret too, but nothing here says so; the name of .env.production does.
+  - id: sec-01-q-bug-client-js
+    pools: [mastery]
+    objective: 3
+    type: bug
+    competencies: [sec.secrets]
+    code: |
+      const API = "https://api.example.com";
+      const apiKey = "ATHENA_FAKE_live_key_8f2a91c4";
+      async function loadInvoices() {
+        const res = await fetch(API + "/invoices", { headers: { Authorization: "Bearer " + apiKey } });
+        return res.json();
+      }
+    buggyLine: 2
+    explanation: This file is sent to every visitor's browser, so anyone can read the key in the developer tools and use it. Keep the key on a server you control and let the page call that server.
+  - id: sec-01-q-client-public
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sec.secrets]
+    stem: A website's JavaScript bundle is minified and contains a payment key. Who can read the key?
+    options:
+      - text: Only the developers
+        correct: false
+        why: The bundle is delivered to every visitor, so the key is delivered to them too.
+      - text: Anyone who loads the page, using the browser's developer tools
+        correct: true
+        why: The browser must receive the code to run it, so the key is public. Minifying changes the layout of the code, not who can read it.
+      - text: Only logged-in users
+        correct: false
+        why: Logged-in users receive the same bundle and can read it just as easily.
+  - id: sec-01-q-client-fix
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sec.secrets, sec.least-privilege]
+    stem: A static page needs data from an API that requires a secret key. What is the safe design?
+    options:
+      - text: Put the key in a build-time environment variable that the bundler copies into the page
+        correct: false
+        why: A value copied into the page is shipped to every visitor. An environment variable on your machine is not hidden once it is in the bundle.
+      - text: Base64-encode the key so it is not readable
+        correct: false
+        why: Base64 is an encoding, not protection. Anyone can decode it.
+      - text: Have the page call a server you control, which holds the key and calls the API
+        correct: true
+        why: The key stays on the server. The server can also limit what the page is allowed to ask for.
+  - id: sec-01-q-publishable
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sec.least-privilege, sec.secrets]
+    stem: A payment provider gives you a publishable key and a secret key. According to Stripe's documentation, which one may appear in browser code?
+    options:
+      - text: Only the publishable key
+        correct: true
+        why: Stripe designs the publishable key for front-end code because it cannot perform sensitive operations such as creating charges. The secret key stays on the server.
+      - text: Both, as long as the repository is private
+        correct: false
+        why: Browser code is delivered to every visitor whatever the repository's visibility, so a secret key would be public.
+      - text: 'Neither: all keys must stay on the server'
+        correct: false
+        why: A publishable key exists so the browser can talk to the provider safely. Check your provider's documentation for which keys are meant for the browser.
+  - id: sec-01-q-least-priv-token
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sec.least-privilege]
+    stem: A CI system outside GitHub Actions only needs to read one repository. Which token should it use?
+    options:
+      - text: A GitHub fine-grained token with read-only access, limited to that repository
+        correct: true
+        why: GitHub lets a fine-grained token be limited to chosen repositories and given specific permissions. If it leaks, the damage is small.
+      - text: A classic token with the repo scope from your personal account
+        correct: false
+        why: A classic token has broad scopes and covers every repository you can access. A leak would expose far more than the job needs.
+      - text: The token of an organisation owner, so the job never fails
+        correct: false
+        why: This gives the job the most power for no benefit. Least privilege asks for the smallest access that works.
+  - id: sec-01-q-least-priv-multiple
+    pools: [mastery]
+    objective: 3
+    type: multiple
+    competencies: [sec.least-privilege]
+    stem: Which practices follow the principle of least privilege? Choose all that apply.
+    options:
+      - text: Each service has its own key
+        correct: true
+        why: If one key leaks, only that service is affected, and you can revoke it without breaking the others.
+      - text: A reporting script gets a read-only key
+        correct: true
+        why: The script never writes, so it should not be able to.
+      - text: One admin key is shared by every service, for simplicity
+        correct: false
+        why: A leak of that one key gives an attacker full access everywhere, and rotating it breaks every service.
+      - text: A CI token is limited to the one repository it builds
+        correct: true
+        why: The job can reach only what it needs, so a leak exposes only that repository.
+  - id: sec-01-q-short-least-priv
+    pools: [mastery]
+    objective: 3
+    type: short
+    competencies: [sec.least-privilege]
+    stem: What is the name of the security principle of giving a key only the access its job needs, and no more?
+    accepted:
+      - least privilege
+      - the principle of least privilege
+      - principle of least privilege
+      - minimum privilege
+    patterns:
+      - ^(the )?(principle of )?(least|minimum)[- ]privilege( principle)?$
+    explanation: This is least privilege. It limits how much an attacker gains from one leaked key.
+
+  # ---- Chunk 3: OWASP Top 10:2025 (objective 4) ----
+  - id: sec-01-q-predict-concat
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [sec.owasp-basics]
+    code: |
+      import sqlite3
+
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE invoices (id INTEGER, owner TEXT, total INTEGER)")
+      db.executemany(
+          "INSERT INTO invoices VALUES (?, ?, ?)",
+          [(1, "amara", 120), (2, "bo", 80), (3, "chen", 95)],
+      )
+
+      def unsafe_for(owner):
+          sql = "SELECT id FROM invoices WHERE owner = '" + owner + "'"
+          return db.execute(sql).fetchall()
+
+      def safe_for(owner):
+          sql = "SELECT id FROM invoices WHERE owner = ?"
+          return db.execute(sql, (owner,)).fetchall()
+
+      attack = "x' OR '1'='1"
+      print(len(unsafe_for(attack)), len(safe_for(attack)), len(safe_for("o'neil")))
+    investigate:
+      - Why does the same input return every invoice from one function and none from the other?
+      - Why does safe_for still work for a name that contains a quote, such as o'neil?
+  - id: sec-01-q-a01-scenario
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: A logged-in user changes /invoices/1042 to /invoices/1043 in the address bar and sees another customer's invoice. Which OWASP Top 10:2025 risk is this?
+    options:
+      - text: A01 Broken Access Control
+        correct: true
+        why: The user is acting outside their permissions. The server did not check that the invoice belongs to them.
+      - text: A05 Injection
+        correct: false
+        why: No input was run as a command. The id was accepted as it should be; the missing step is checking who may see that record.
+      - text: A07 Authentication Failures
+        correct: false
+        why: The user is correctly logged in. The failure is what the system lets a logged-in user do.
+  - id: sec-01-q-a01-fix
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: A web app hides the admin button from normal users with JavaScript, and the /admin/export endpoint does no check. What is the fix?
+    options:
+      - text: Hide the button more carefully, for example by renaming it
+        correct: false
+        why: Anyone can send a request to the endpoint without the page. Hiding a button is not access control.
+      - text: Check on the server, on every request, and deny by default
+        correct: true
+        why: OWASP says access control is only effective in trusted server-side code, and recommends denying by default except for public resources.
+      - text: Obfuscate the JavaScript
+        correct: false
+        why: The endpoint is still open to a direct request. Obfuscation only makes the page harder to read.
+  - id: sec-01-q-a05-fix
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: What is the preferred defence against SQL injection?
+    options:
+      - text: Parameterised queries, which keep the data separate from the SQL
+        correct: true
+        why: OWASP prefers a safe interface that keeps data separate from commands. The database treats the parameter as a value, never as SQL.
+      - text: Replace quote characters in the input by hand
+        correct: false
+        why: OWASP treats escaping as an error-prone fallback for when parameters are not possible. One missed case is enough.
+      - text: Check that the input is not too long
+        correct: false
+        why: A short hostile input is still hostile. Validation helps as an extra layer but is not a complete defence.
+  - id: sec-01-q-a05-multiple
+    pools: [mastery]
+    objective: 4
+    type: multiple
+    competencies: [sec.owasp-basics]
+    stem: Which of these help prevent injection? Choose all that apply.
+    options:
+      - text: Passing user input as query parameters
+        correct: true
+        why: The interpreter receives the command and the data separately.
+      - text: Building the SQL with an f-string, then checking it by eye
+        correct: false
+        why: Concatenation puts the input in the command. Nobody can reliably review every input by eye.
+      - text: Validating input on the server against what is allowed, as an extra layer
+        correct: true
+        why: OWASP lists positive server-side validation as helpful but not a complete defence.
+      - text: Using a stored procedure that builds its query by concatenating its arguments
+        correct: false
+        why: OWASP notes that stored procedures can still be injectable when they concatenate data into queries.
+  - id: sec-01-q-bug-sql-concat
+    pools: [mastery]
+    objective: 4
+    type: bug
+    competencies: [sec.owasp-basics]
+    code: |
+      def find_booking(db, ref):
+          sql = f"SELECT * FROM bookings WHERE ref = '{ref}'"
+          return db.execute(sql).fetchall()
+    buggyLine: 2
+    explanation: The f-string puts the input inside the SQL, so input like `x' OR '1'='1` changes the query. Use a placeholder and pass the value separately, for example `db.execute("SELECT * FROM bookings WHERE ref = ?", (ref,))`.
+  - id: sec-01-q-a07-fix
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: A login endpoint is attacked with lists of leaked passwords tried against many accounts. Which set of defences does OWASP recommend for this authentication failure?
+    options:
+      - text: Multi-factor authentication, limits on failed logins, and checking new passwords against known breached ones
+        correct: true
+        why: These blunt credential stuffing (trying leaked passwords on many accounts), slow automated attempts and stop users picking passwords that are already public.
+      - text: Forcing users to change their password every week
+        correct: false
+        why: OWASP follows modern guidance and advises against forced rotation, keeping it for suspected breaches.
+      - text: Showing a different message for an unknown username than for a wrong password
+        correct: false
+        why: That lets an attacker find which usernames exist. Return the same message for every failed login.
+  - id: sec-01-q-misconfiguration
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: A live site shows full stack traces with file paths to visitors when an error happens. Which category is closest?
+    options:
+      - text: A02 Security Misconfiguration
+        correct: true
+        why: OWASP lists error messages that expose internal details among its examples of misconfiguration.
+      - text: A05 Injection
+        correct: false
+        why: Nothing here involves untrusted input being run as a command.
+      - text: A07 Authentication Failures
+        correct: false
+        why: The page is not accepting a wrong user. It is revealing more than it should.
+  - id: sec-01-q-supply-chain
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sec.owasp-basics]
+    stem: A project installs packages from an unofficial source without checking where they come from, and one is malicious. Which category is this?
+    options:
+      - text: A03 Software Supply Chain Failures
+        correct: true
+        why: The category covers compromises in how software is built, distributed or updated, including malicious third-party dependencies. OWASP advises getting components from official, trusted sources.
+      - text: A01 Broken Access Control
+        correct: false
+        why: The problem is the code being installed, not who may use a feature.
+      - text: A05 Injection
+        correct: false
+        why: Injection is about untrusted input reaching an interpreter, not about dependencies.

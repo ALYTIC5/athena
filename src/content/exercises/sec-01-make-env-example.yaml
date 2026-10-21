@@ -1,0 +1,152 @@
+id: sec-01-make-env-example
+lesson: sec-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Turn a .env file into a safe .env.example
+difficulty: 2
+competencies:
+  - sec.secrets
+timeoutMs: 5000
+packages: []
+estMin: 14
+prompt: |
+  Write `make_env_example(env_text)`. It takes the text of a `.env` file and returns the text of a `.env.example` file:
+  every setting keeps its name but loses its value.
+
+  Rules:
+  - A line with an `=` that is not a comment becomes everything before the first `=`, followed by `=` and nothing else.
+  - Comment lines (starting with `#`, after any spaces), blank lines and lines without an `=` stay exactly as they are.
+  - Keep the line order. Keep a final newline if the input had one.
+
+  Example: the line `API_KEY=ATHENA_FAKE_abc123` becomes `API_KEY=`. The line `export MODE=live` becomes `export MODE=`. The line `# Payments` stays `# Payments`.
+starter: |
+  def make_env_example(env_text: str) -> str:
+      ...
+visibleTests: |
+  def test_values_are_removed():
+      assert make_env_example("API_KEY=ATHENA_FAKE_abc123\nMODE=live") == "API_KEY=\nMODE="
+
+  def test_comments_and_blank_lines_stay():
+      text = "# Payments\nAPI_KEY=ATHENA_FAKE_abc123\n\n# Database\nDB_HOST=db.example.net\n"
+      assert make_env_example(text) == "# Payments\nAPI_KEY=\n\n# Database\nDB_HOST=\n"
+hiddenTests: |
+  def test_value_may_contain_equals_signs():
+      assert make_env_example("TOKEN=ATHENA_FAKE_dGVzdA==") == "TOKEN="
+
+  def test_comment_containing_equals_is_unchanged():
+      assert make_env_example("# set MODE=live in production") == "# set MODE=live in production"
+
+  def test_indented_comment_is_unchanged():
+      assert make_env_example("   # A=1") == "   # A=1"
+
+  def test_empty_value_stays_empty():
+      assert make_env_example("EMPTY=") == "EMPTY="
+
+  def test_no_secret_text_survives():
+      text = "A=ATHENA_FAKE_one\nB=\"ATHENA_FAKE_two\"\nexport C=ATHENA_FAKE_three\n"
+      assert "ATHENA_FAKE" not in make_env_example(text)
+
+  def test_export_prefix_is_kept():
+      assert make_env_example("export C=1") == "export C="
+
+  def test_line_without_equals_is_unchanged():
+      assert make_env_example("just some text") == "just some text"
+
+  def test_empty_input():
+      assert make_env_example("") == ""
+
+  def test_final_newline_is_kept_only_if_present():
+      assert make_env_example("A=1\n") == "A=\n"
+      assert make_env_example("A=1") == "A="
+feedback:
+  - test: test_value_may_contain_equals_signs
+    message: Values such as base64 text can end in `=`. Only the first `=` separates the name from the value.
+  - test: test_comment_containing_equals_is_unchanged
+    message: A comment can mention an `=`. Check for a comment before you look for an `=`.
+  - test: test_indented_comment_is_unchanged
+    message: A comment can start after spaces. Strip the line before you test for `#`.
+  - test: test_no_secret_text_survives
+    message: A value is still left in your output. Everything after the first `=` must go, including quotes.
+  - test: test_values_are_removed
+    message: Each setting should keep its name and the `=` but lose its value.
+  - test: test_comments_and_blank_lines_stay
+    message: Comment lines and blank lines must stay exactly as they are, in the same order.
+  - test: test_export_prefix_is_kept
+    message: Keep everything before the first `=`, including an `export ` prefix. Do not try to clean up the name.
+  - test: test_line_without_equals_is_unchanged
+    message: A line with no `=` is not a setting, so leave it exactly as it is.
+  - test: test_empty_value_stays_empty
+    message: A setting that already has no value should come out as the name followed by `=`.
+  - test: test_empty_input
+    message: An empty string has no lines, so the result should be an empty string too.
+  - test: test_final_newline_is_kept_only_if_present
+    message: Keep a final newline if the input had one, and do not add one if it did not.
+referenceSolution: |
+  def make_env_example(env_text: str) -> str:
+      lines = []
+      for line in env_text.split("\n"):
+          if line.strip().startswith("#") or "=" not in line:
+              lines.append(line)
+          else:
+              name, _, _ = line.partition("=")
+              lines.append(name + "=")
+      return "\n".join(lines)
+wrongSolutions:
+  - label: Returns the text unchanged, so every secret is committed
+    code: |
+      def make_env_example(env_text: str) -> str:
+          return env_text
+  - label: Splits on every "=" and crashes on values that contain "="
+    code: |
+      def make_env_example(env_text: str) -> str:
+          lines = []
+          for line in env_text.split("\n"):
+              if line.strip().startswith("#") or "=" not in line:
+                  lines.append(line)
+              else:
+                  name, value = line.split("=")
+                  lines.append(name + "=")
+          return "\n".join(lines)
+  - label: Blanks the text after "=" in comments too
+    code: |
+      def make_env_example(env_text: str) -> str:
+          lines = []
+          for line in env_text.split("\n"):
+              if "=" in line:
+                  lines.append(line.partition("=")[0] + "=")
+              else:
+                  lines.append(line)
+          return "\n".join(lines)
+  - label: Uses splitlines, so the final newline is lost
+    code: |
+      def make_env_example(env_text: str) -> str:
+          lines = []
+          for line in env_text.splitlines():
+              if line.strip().startswith("#") or "=" not in line:
+                  lines.append(line)
+              else:
+                  lines.append(line.partition("=")[0] + "=")
+          return "\n".join(lines)
+  - label: Drops comments and blank lines
+    code: |
+      def make_env_example(env_text: str) -> str:
+          lines = []
+          for line in env_text.split("\n"):
+              if "=" in line and not line.strip().startswith("#"):
+                  lines.append(line.partition("=")[0] + "=")
+          return "\n".join(lines)
+explanation: |
+  `str.partition("=")` splits at the first `=` only, so a value that contains `=` is cut off whole. Checking for a comment first keeps comments that mention an `=`, and splitting on `"\n"` (not `splitlines()`) means a final newline survives the `"\n".join(...)`. Alternative: `line.split("=", 1)[0]` gives the same name. It is fine once you have checked that the line has an `=`. A regular expression such as `re.sub(r"=.*", "=", line)` also works, but it is harder to read.
+hints:
+  - Which part of a line do you keep, and which part of the line tells you to leave it alone?
+  - 'Go through the lines one at a time. Leave comments and lines without an `=` as they are; for the others keep only what comes before the first `=`, then add `=` back. Join the lines with a newline.'
+  - |
+    lines = []
+    for line in env_text.split("\n"):
+        if line.strip().startswith("____") or "=" not in line:
+            lines.append(line)
+        else:
+            lines.append(line.partition("____")[0] + "=")
+    return "\n".join(lines)
