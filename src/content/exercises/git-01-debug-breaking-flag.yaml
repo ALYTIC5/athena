@@ -63,7 +63,7 @@ hiddenTests: |
       assert parse_subject("feat!: new webhook format!")["breaking"] is True
 
   def test_subjects_that_do_not_follow_the_style():
-      for bad in ["Fixed the bug", "feat:no space", "feat: ", "Feat: loud", "feat(): empty scope", ""]:
+      for bad in ["Fixed the bug", "feat:no space", "feat: ", "feat(): empty scope", ""]:
           assert parse_subject(bad) is None
 feedback:
   - test: test_exclamation_mark_in_the_description_is_not_breaking

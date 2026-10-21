@@ -6,7 +6,7 @@ competencies:
   - git.rebase-merge
   - git.undo
   - git.commits
-title: Practise a branch, a conflict, a revert and a reset in a scratch repository (use Git Bash, or a macOS or Linux terminal)
+title: Practise a branch, a conflict, a revert and a reset in a scratch repository (use Git Bash, or a macOS or Linux terminal; press q if a pager opens)
 estMin: 12
 steps:
   - do: 'git init -b main practice-repo && cd practice-repo'
@@ -19,8 +19,8 @@ steps:
     expect: 'Git says "Switched to a new branch ''add-name''" and then reports 1 file changed.'
   - do: 'git switch main && echo "Hello, team" > greeting.txt && git commit -am "feat: greet the team"'
     expect: 'You are back on main and a second commit is created there, so the two branches have diverged.'
-  - do: 'git merge add-name'
-    expect: 'Git stops with "CONFLICT (content): Merge conflict in greeting.txt". Open the file and look for the lines starting with <<<<<<<, ======= and >>>>>>>.'
+  - do: 'git merge add-name; cat greeting.txt'
+    expect: 'Git stops with "CONFLICT (content): Merge conflict in greeting.txt". The file shows the lines starting with <<<<<<<, ======= and >>>>>>>.'
   - do: 'echo "Hello, Amara and team" > greeting.txt && git add greeting.txt && git commit -m "chore: merge add-name"'
     expect: 'The merge commit is created. The file now holds your resolved text and no marker lines.'
   - do: 'git log --oneline --graph --all'

@@ -18,7 +18,7 @@ items:
       print(branches, head)
     investigate:
       - Why did `main` stay at `c` when the new commit `d` was made?
-      - What would line 9 do to `main` if `head` were still `"main"` on line 8?
+      - What would line 8 do to `main` if `head` were still `"main"` after line 5?
   - id: git-01-q-head-names
     pools: [mastery, warmup]
     objective: 1
@@ -133,7 +133,7 @@ items:
       - What would the line print if the feature branch were at `b` instead of `y`?
   - id: git-01-q-order-feature-workflow
     pools: [check, mastery, warmup]
-    chunk: 2
+    chunk: 4
     objective: 5
     type: order
     competencies: [git.branching, git.pull-requests]
@@ -243,7 +243,7 @@ items:
       # edit greeting.txt: keep both greetings and delete the three marker lines
       git commit -m "chore: merge add-name"
     buggyLine: 4
-    explanation: After editing the file you must tell Git the conflict is resolved with `git add greeting.txt`. Without it, the file is still marked as unmerged and the merge cannot be finished. Then `git commit` (or `git merge --continue`) completes the merge.
+    explanation: After editing the file you must tell Git the conflict is resolved with `git add greeting.txt`. Without it, the file is still marked as unmerged and the merge cannot be finished. Line 4 commits before the file has been marked as resolved. Then `git commit` (or `git merge --continue`) completes the merge.
   - id: git-01-q-abort-short
     pools: [mastery, warmup]
     objective: 3
@@ -361,7 +361,7 @@ items:
         why: '`--staged` restores the index from HEAD, so the file is no longer staged. Your working tree is not touched.'
       - text: '`git restore notes.txt`'
         correct: false
-        why: Without `--staged`, restore overwrites the file in your working tree and your edits are lost. The staging area stays as it is.
+        why: Without `--staged`, restore copies the staged version over your working file. The file is already staged, so nothing changes and it stays staged.
       - text: '`git reset --hard`'
         correct: false
         why: That discards your edits as well as unstaging them.
@@ -380,7 +380,7 @@ items:
         why: The default mode moves the branch and updates the index to match, so nothing stays staged. Your working tree is left alone.
       - text: '`git reset --soft HEAD~1`'
         correct: false
-        why: Soft leaves the index unchanged, so the undone commit''s changes stay staged.
+        why: Soft leaves the index unchanged, so the undone commit's changes stay staged.
       - text: '`git reset --hard HEAD~1`'
         correct: false
         why: Hard also overwrites your working tree, so the changes from that commit disappear.
@@ -396,7 +396,7 @@ items:
     options:
       - text: Run `git reflog`, find where the branch was, and reset back to it
         correct: true
-        why: The reflog records where branch tips and HEAD used to be in your local repository, so the removed commit can usually be found for a while (90 days by default).
+        why: The reflog records where branch tips and HEAD used to be in your local repository, so the removed commit can usually be found for a while. After a reset the old tip is no longer reachable from the branch, and such entries expire after 30 days by default.
       - text: Nothing can be done, because the commit is deleted immediately
         correct: false
         why: Reset moves the branch name. The commit still exists, and the reflog remembers it. Changes you never committed would be a different matter.
@@ -459,13 +459,12 @@ items:
     type: bug
     competencies: [git.undo]
     code: |
-      # main has a bad commit that teammates have already pulled
-      git switch main
-      git pull
-      git reset --hard HEAD~1
+      # add-reminder is my own branch; main is shared by the whole team
+      git switch add-reminder
+      git commit -am "feat: add reminder text"
       git push --force origin main
     buggyLine: 4
-    explanation: The mistake is in choosing to rewrite a branch that others already have. Resetting and force-pushing (lines 4 and 5) replaces the shared history, so teammates' copies no longer match the server. Use `git revert HEAD` and a normal push instead, which adds an undo commit and rewrites nothing.
+    explanation: This force-pushes to the shared main branch. A force-push overwrites the remote branch and can destroy teammates' commits, and here it is not even needed. Push your own branch with `git push -u origin add-reminder` and open a pull request.
   - id: git-01-q-good-subject
     pools: [check, mastery, warmup]
     chunk: 4
@@ -474,9 +473,9 @@ items:
     competencies: [git.commits]
     stem: 'Which is the best commit subject for a change that strips spaces from phone numbers before an SMS is sent?'
     options:
-      - text: 'fix(sms): strip spaces from phone numbers before sending'
+      - text: 'fix(sms): strip spaces from phone numbers'
         correct: true
-        why: It has a type, a scope and a short description of what changed, and it is under 60 characters.
+        why: It has a type, a scope and a short description of what changed.
       - text: fixed stuff
         correct: false
         why: It has no type and says nothing a reader can use when scanning history.

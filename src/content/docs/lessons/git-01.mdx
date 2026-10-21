@@ -86,7 +86,9 @@ A **commit** is a saved snapshot of your project, with a message, an author and 
 
 A **branch** is only a name that points at one commit, its **tip**. When you commit, the name of the current branch moves to the new commit. **HEAD** says where you are: normally it names the current branch. Creating a branch copies nothing, so make one for each piece of work.
 
-Keep each commit to one complete change. Then it can be reviewed, found later and, if needed, undone on its own.
+If you check out an old commit instead of a branch (`git switch --detach <commit>`), HEAD points straight at that commit: a **detached HEAD**. New commits then belong to no branch, so run `git switch -c <name>` to keep them.
+
+Keep each commit to one complete change, so it can be reviewed and undone on its own.
 
 **Worked example.** Start a branch and make one commit.
 
@@ -138,7 +140,7 @@ The next cell models branches in Python: a dict from branch names to commits, an
 
 <Chunk n={2} title="Merge, rebase and conflicts">
 
-When your branch and `main` have both moved, you must join them. A **merge** adds a **merge commit** with two parents and leaves every existing commit unchanged. If `main` has not moved, Git does not need a merge commit and just moves your branch forward: a **fast-forward**.
+When your branch and `main` have both moved, you must join them. A **merge** adds a **merge commit** with two parents and leaves every existing commit unchanged. If `main` has not moved and you merge your branch into it, Git just moves `main` forward to your tip: a **fast-forward**. If the branch you merge is already part of your history, Git says "Already up to date".
 
 A **rebase** takes the commits that are on your branch but not on the other one, and replays them on top of it as new commits. The history becomes a straight line, but your branch is now made of copies with new ids.
 
@@ -193,9 +195,9 @@ git commit
 
 </details>
 
-<Predict lesson="git-01" item="git-01-q-predict-replay" />
+The cell below models what a rebase replays: the commits reachable from your branch that are not reachable from the other one. A commit is reachable from a tip if you can get to it by following parents.
 
-<Quiz lesson="git-01" chunk={2} />
+<Predict lesson="git-01" item="git-01-q-predict-replay" />
 
 <Callout type="misconception" title="Common misconceptions in chunk 2">
 
@@ -229,11 +231,11 @@ git reflog                        # where HEAD used to be, to recover from a bad
 
 <Callout type="note" title="Rewriting shared history">
 
-If you reset or rebase a branch that is already pushed, a plain `git push` is refused, because a push must be a fast-forward of the remote branch. `git push --force` overrides that check and can make the remote lose commits, including a teammate's. `--force-with-lease` is safer: it fails if the remote branch moved since you last fetched.
+If you reset or rebase a pushed branch, a plain `git push` is refused: a push must be a fast-forward of the remote branch. `git push --force` overrides that check and can make the remote lose commits, including a teammate's. `--force-with-lease` is safer: it fails if the remote branch moved since you last fetched.
 
-`git reflog` lists where HEAD and your branches used to point in your local repository, so a lost commit can usually be found for a while (90 days by default).
+`git reflog` lists where HEAD and your branches used to point in your local repository, so a lost commit can usually be found for a while (commits no longer on a branch expire after 30 days by default).
 
-To remove a committed secret, use a history-rewriting tool such as `git filter-repo` (not part of Git itself; `git filter-branch` is not recommended). Revoke the secret first. The rewritten commits get new ids, you force-push, collaborators must rebase rather than merge, and forks and cached views may still hold the old commits.
+To remove a committed secret, revoke it first. Then a tool such as `git filter-repo` (separate from Git; `git filter-branch` is not recommended) rewrites history. The commits get new ids, you force-push, collaborators must rebase rather than merge, and forks may still hold the old commits.
 
 </Callout>
 
@@ -255,9 +257,9 @@ A commit message tells the next reader what changed. Git suggests a short summar
 
 Many teams use **Conventional Commits**: `type(scope)!: description`, for example `fix(sms): strip spaces from phone numbers`. The scope and the `!` are optional, and a `!` right before the colon marks a breaking change. The colon must be followed by a space.
 
-A **pull request** (PR) proposes merging your branch into another. Make it easy to review: one purpose, a small diff, a title like a commit subject, and a description of what changed, why and how you tested it, with a link to the issue. A **draft** pull request asks for early feedback.
+A **pull request** (PR) proposes merging your branch into another. First publish the branch with `git push -u origin <branch>`. Make the PR easy to review: one purpose, a small diff, a title like a commit subject, and a description of what changed, why and how you tested it, with a link to the issue. A **draft** pull request asks for early feedback.
 
-Reviewers choose Comment, Approve or Request changes. You answer by pushing more commits, and the PR updates itself. Reviewers should comment on the code, not the person, and say which points are optional. Etiquette varies by team.
+Reviewers choose Comment, Approve or Request changes, and you answer by pushing more commits. Common practice, which varies by team: comment on the code, not the person, and say which points are optional.
 
 **Worked example.** A pull request description.
 
@@ -270,7 +272,7 @@ How I tested it: two new tests for numbers with spaces; the full suite passes.
 Closes #42
 ```
 
-`Closes #42` is a closing keyword. GitHub links the issue and closes it when the PR is merged. When it is approved, the repository's settings decide how it merges: a merge commit, a squash into one commit, or a rebase.
+`Closes #42` is a closing keyword: GitHub links the issue and closes it when the PR is merged into the default branch. The repository allows some merge methods (a merge commit, a squash into one commit, or a rebase), and whoever merges picks one.
 
 **Fill in the blanks.** A change makes reminders use the booking's time zone instead of UTC, and callers that expect UTC must be updated.
 

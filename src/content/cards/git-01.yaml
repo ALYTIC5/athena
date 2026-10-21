@@ -8,7 +8,7 @@ cards:
   - id: git-01-c-head
     type: explain
     competencies: [git.branching]
-    front: What is HEAD, and what is a detached HEAD?
+    front: What happens to a commit you make while HEAD is detached, and how do you keep it?
     back: HEAD says where you are. Normally it names the current branch, and that branch moves when you commit. In a detached HEAD it points straight at a commit, so new commits belong to no branch until you create one with `git switch -c name`.
   - id: git-01-c-predict-pointers
     type: predict
@@ -55,7 +55,7 @@ cards:
     type: basic
     competencies: [git.undo]
     front: You ran `git reset --hard` and lost a commit. Where do you look?
-    back: '`git reflog` lists where HEAD and your branches used to point in your local repository. Find the old tip and reset to it. Entries expire after a while (90 days by default).'
+    back: '`git reflog` lists where HEAD and your branches used to point in your local repository. Find the old tip and reset to it. Entries expire: by default after 30 days when the commit is no longer reachable from a branch, as after a reset.'
   - id: git-01-c-force
     type: explain
     competencies: [git.undo]
@@ -69,8 +69,8 @@ cards:
   - id: git-01-c-conventional
     type: basic
     competencies: [git.commits]
-    front: What does a Conventional Commits subject look like, and what does the `!` mean?
-    back: '`type(scope)!: description`. The scope and the `!` are optional. The `!` right before the colon marks a breaking change.'
+    front: 'What is wrong with the subject `feat:add reminders`, and what would `feat(sms)!: ...` mean?'
+    back: 'The style is `type(scope)!: description` and needs a space after the colon, so `feat: add reminders` is right. The scope is optional, and a `!` right before the colon marks a breaking change.'
   - id: git-01-c-review
     type: explain
     competencies: [git.pull-requests]
