@@ -56,6 +56,10 @@ sources:
     url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github
   - title: "Removing sensitive data from a repository"
     url: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
+  - title: "Linking a pull request to an issue"
+    url: https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue
+  - title: "git gc: reflog expiry settings"
+    url: https://git-scm.com/docs/git-gc
   - title: "Conventional Commits 1.0.0"
     url: https://www.conventionalcommits.org/en/v1.0.0/
 ---
@@ -160,6 +164,8 @@ After a merge:   A---B---C-----M   M is a merge commit with parents C and Y
 After a rebase:  A---B---C---X'---Y'   X' and Y' are new copies of X and Y
 ```
 
+In words: a merge keeps `X` and `Y` and adds `M` on top. A rebase replaces `X` and `Y` with copies placed after `C`.
+
 A **conflict** happens when both sides changed the same lines. Git stops and marks the file:
 
 ```text
@@ -195,13 +201,14 @@ git commit
 
 </details>
 
-The cell below models what a rebase replays: the commits reachable from your branch that are not reachable from the other one. A commit is reachable from a tip if you can get to it by following parents.
+The cell below models what a rebase replays: the commits reachable from your branch that are not reachable from the other one. A commit is reachable from a tip if you can get to it by following parents. In Python, `a - b` on sets keeps what is only in `a`.
 
 <Predict lesson="git-01" item="git-01-q-predict-replay" />
 
 <Callout type="misconception" title="Common misconceptions in chunk 2">
 
 - "Rebase just moves my commits." It creates new commits, so the old ones are no longer part of the branch.
+- "The sides of a conflict are the same in a rebase." They are swapped: during a rebase, HEAD is the branch you are rebasing onto.
 - "A conflict means something went wrong." It means two people changed the same lines and Git needs a human to choose.
 - "Git picks the newer change if I ignore a conflict." It never picks. Until you resolve and `git add` the file, the merge is not finished.
 
@@ -231,11 +238,11 @@ git reflog                        # where HEAD used to be, to recover from a bad
 
 <Callout type="note" title="Rewriting shared history">
 
-If you reset or rebase a pushed branch, a plain `git push` is refused: a push must be a fast-forward of the remote branch. `git push --force` overrides that check and can make the remote lose commits, including a teammate's. `--force-with-lease` is safer: it fails if the remote branch moved since you last fetched.
+If you reset or rebase a pushed branch, a plain `git push` is refused: a push must be a fast-forward of the remote branch. `git push --force` overrides that check and can make the remote lose commits, including a teammate's. `--force-with-lease` is safer: it fails if the remote branch moved since you last fetched (an automatic background fetch can defeat it).
 
-`git reflog` lists where HEAD and your branches used to point in your local repository, so a lost commit can usually be found for a while (commits no longer on a branch expire after 30 days by default).
+`git reflog` lists where HEAD and your branches used to point in your local repository, so a lost commit can usually be found for a while. Reflog entries for commits that are no longer reachable expire after 30 days by default.
 
-To remove a committed secret, revoke it first. Then a tool such as `git filter-repo` (separate from Git; `git filter-branch` is not recommended) rewrites history. The commits get new ids, you force-push, collaborators must rebase rather than merge, and forks may still hold the old commits.
+To remove a committed secret, revoke it first; a later lesson covers the clean-up. Rewriting history with a tool such as `git filter-repo` gives the commits new ids, so everyone must rebase rather than merge.
 
 </Callout>
 
@@ -272,7 +279,7 @@ How I tested it: two new tests for numbers with spaces; the full suite passes.
 Closes #42
 ```
 
-`Closes #42` is a closing keyword: GitHub links the issue and closes it when the PR is merged into the default branch. The repository allows some merge methods (a merge commit, a squash into one commit, or a rebase), and whoever merges picks one.
+`Closes #42` is a closing keyword: GitHub links the issue and closes it when the PR is merged into the default branch. Merge methods differ: a merge commit keeps the commits, a squash makes one commit, and a rebase copies them.
 
 **Fill in the blanks.** A change makes reminders use the booking's time zone instead of UTC, and callers that expect UTC must be updated.
 
@@ -299,13 +306,13 @@ ____(reminders)____: send reminders in the booking's time zone
 
 </Chunk>
 
-<SessionBreak />
-
 ## Find the bug
 
 A release script reads Conventional Commits subjects and marks breaking changes. A subject that is not breaking is being marked as breaking. Find the line that causes it and fix it.
 
 <Exercise id="git-01-debug-breaking-flag" />
+
+<SessionBreak />
 
 ## Write it yourself
 

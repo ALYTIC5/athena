@@ -142,7 +142,7 @@ items:
       - 'Update your local main: `git switch main`, then `git pull`'
       - 'Create a branch for the work: `git switch -c add-reminder-text`'
       - 'Make small commits as you go: `git add`, then `git commit`'
-      - 'Publish the branch: `git push -u origin add-reminder-text`'
+      - 'Publish the branch once your commits are ready: `git push -u origin add-reminder-text`'
       - Open a pull request on GitHub
       - Answer review comments with more commits and push again
       - Merge the approved pull request
@@ -466,7 +466,7 @@ items:
     buggyLine: 4
     explanation: This force-pushes to the shared main branch. A force-push overwrites the remote branch and can destroy teammates' commits, and here it is not even needed. Push your own branch with `git push -u origin add-reminder` and open a pull request.
   - id: git-01-q-good-subject
-    pools: [check, mastery, warmup]
+    pools: [mastery, warmup]
     chunk: 4
     objective: 5
     type: single
