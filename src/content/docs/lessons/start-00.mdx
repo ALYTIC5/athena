@@ -1,0 +1,238 @@
+---
+title: How Athena works
+description: Meet every kind of question and exercise on a tiny topic, set your start date, back up your progress and learn the think-aloud approach.
+sidebar:
+  order: 10
+lessonId: start-00
+week: 1
+track: start
+durationMin: 30
+anatomy: orientation
+competencies: [int.approach]
+prerequisites: []
+whyItMatters: >
+  Interviews for the roles you are targeting test code you write without help, and 59% of postings list English
+  communication as a requirement. Athena is built around both: you write code unaided, and you learn to explain your
+  thinking out loud. This short lesson shows you every kind of question first, on a topic so small that you can focus on
+  the interface, and sets up the habits that protect your progress.
+objectives:
+  - Use every kind of question and exercise in Athena
+  - Set a start date and describe what your weekly plan contains
+  - Export your progress and explain why Safari can delete it
+  - Explain the AI rule - Claude is your tutor, not your author
+  - Describe the think-aloud approach in seven steps
+sources:
+  - title: "Python tutorial: lists and indexing"
+    url: https://docs.python.org/3/tutorial/introduction.html#lists
+  - title: "Python tutorial: formatted string literals"
+    url: https://docs.python.org/3/tutorial/inputoutput.html#formatted-string-literals
+  - title: "Python reference: identifiers and keywords"
+    url: https://docs.python.org/3/reference/lexical_analysis.html#identifiers
+  - title: "Python library: numeric types, including // and %"
+    url: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex
+  - title: "Python library: str.split"
+    url: https://docs.python.org/3/library/stdtypes.html#str.split
+  - title: "pytest: assertions about expected exceptions"
+    url: https://docs.pytest.org/en/stable/how-to/assert.html#assertions-about-expected-exceptions
+  - title: "PostgreSQL: the WHERE clause"
+    url: https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-WHERE
+  - title: "PostgreSQL: sorting rows"
+    url: https://www.postgresql.org/docs/current/queries-order.html
+  - title: "MDN: storage quotas and eviction criteria"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria
+  - title: "MDN: StorageManager.persist()"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist
+  - title: "WebKit: updates to storage policy"
+    url: https://webkit.org/blog/14403/updates-to-storage-policy/
+---
+
+import { url as href } from '../../../lib/url';
+
+## Why this matters
+
+Interviews for the roles you are targeting test code you write without help, and 59% of postings list English communication as a requirement. Athena is built around both: you write code unaided, and you learn to explain your thinking out loud. This short lesson shows you every kind of question first, on a topic so small that you can focus on the interface, and sets up the habits that protect your progress.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Use every kind of question and exercise in Athena.
+2. Set a start date and describe what your weekly plan contains.
+3. Export your progress and explain why Safari can delete it.
+4. Explain the AI rule: Claude is your tutor, not your author.
+5. Describe the think-aloud approach in seven steps.
+
+This lesson has no warm-up, no mastery check and no cards. Nothing here is graded for mastery, so use it to try things and make mistakes.
+
+<Chunk n={1} title="Questions that make you commit first">
+
+Most lessons check you with short questions. You answer first and read the explanation second, because trying to remember or work something out helps it stick better than re-reading.
+
+Before you submit a graded question or a prediction, you pick how sure you are: guessing, unsure, fairly sure or certain. This is on purpose. Over time it shows you where you are confident and wrong, which is the most useful thing to find out.
+
+A **predict** item shows a few lines of Python. You type the output you expect, then press Run to see what really happens. Then you answer one or two "investigate" questions, such as "what if the number were 45?". The code runs in your browser. Nothing you type is sent anywhere.
+
+**Worked example.** The operators in the next item are `//` (whole-number division) and `%` (the remainder).
+
+```python
+print(7 // 2, 7 % 2)   # 3 1: two fits into seven 3 times, with 1 left over
+```
+
+Try three kinds of question: predict, multiple choice (choose all that apply) and short answer (type a value).
+
+<Predict lesson="start-00" item="start-00-q-predict-minutes" />
+
+<Quiz lesson="start-00" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "Picking a confidence level is a formality." It is recorded with each answer. Being sure and wrong tells you more than being unsure and wrong.
+- "I should run the code first and then predict." Predict first. The surprise when you are wrong is what teaches you.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Exercises: five ways to practise">
+
+Exercises run in your browser. Python runs in Pyodide, a version of Python that runs inside your browser, and SQL runs in PGlite, a version of PostgreSQL that runs there too. The first run in a session takes a few seconds while the runtime loads.
+
+Every exercise has an editor and buttons. **Run** shows the output. **Run tests** runs the visible tests. **Check** runs all tests, including hidden ones. Hidden tests show only their name and a message that names the likely mistake, never their code. **Reset** restores the starter code.
+
+The five exercise kinds are **faded** (fill the blanks), **debug** (fix a planted bug), **make** (write it from scratch), **write-tests** (write pytest tests that catch buggy versions) and **SQL** (write a query). In the first lessons, expect more support. Later, you meet the problem first.
+
+**Hints and credit.** There are three hints: a question, then a strategy, then a near-solution with blanks. A pass with no help earns full credit. Each hint lowers the credit, and the solution unlocks after a pass or after three failed checks and all three hints. Only a full-credit pass counts as **unaided**, which is how Athena records that you did it yourself.
+
+First, a Parsons problem and a spot-the-bug question, which are quick. Drag lines, or use the keyboard: Space picks a line up, arrow keys move it, Enter drops it.
+
+<Parsons lesson="start-00" item="start-00-q-parsons-label" />
+
+<Quiz lesson="start-00" chunk={2} />
+
+Now the five exercise kinds, smallest first.
+
+<Exercise id="start-00-faded-reminder" />
+
+<Exercise id="start-00-debug-last-slot" />
+
+<Exercise id="start-00-make-short-name" />
+
+<Exercise id="start-00-write-tests-delivery-fee" />
+
+<Exercise id="start-00-sql-open-slots" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "A hint costs nothing if I only read it." Each hint you reveal is recorded and lowers the credit. That is the point: unaided work stays visible.
+- "I should struggle until I solve it." After about 15 minutes stuck, the page suggests the first hint or the tutor prompt. Struggling usefully is good; struggling for an hour is not.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Your progress lives in this browser">
+
+Athena has no accounts and no server. Your progress, answers and drafts are saved in your browser's own storage on this device (localStorage and IndexedDB). That keeps your data private, but it means two things you must do.
+
+First, set a **start date** in <a href={href('settings/')}>Settings</a>. It must be a Monday. Home counts weeks from it and shows what is planned for this week. If you fall behind, move the date later in Settings.
+
+Second, **export your progress** regularly. A browser keeps site data on a best-effort basis: it can delete it when the device runs low on space, and when you clear site data. **Safari** goes further. If you have not clicked or tapped on a site for seven days of Safari use, and cross-site tracking prevention is on, Safari deletes the data the site created with script, which is exactly where Athena stores your progress. Use Chrome or Firefox for Athena if you can, or add the site to your Home Screen or Dock. Safari is more likely to grant persistent storage to a site opened as a Home Screen web app, but a backup is still the only thing you can rely on.
+
+Settings shows whether the browser granted persistent storage. Export creates a file called `athena-progress-YYYY-MM-DD.json`. Import brings it back, merging with what is there or replacing it. Keep exports in a synced or backed-up folder.
+
+<Quiz lesson="start-00" chunk={3} />
+
+<Checklist id="start-00-checklist-setup" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "My progress is safe because it is on my own computer." The browser, not you, decides when site data is deleted. An export file is yours.
+- "Persistent storage means I do not need to export." It makes automatic deletion much less likely. It does not protect you from clearing site data, a new browser, or a new device.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={4} title="Claude is your tutor, not your author">
+
+Live coding interviews often ask you to write code without AI help, and you need to understand every line you ship. So Athena has one rule for exercises: **write it yourself.** Claude can be your tutor, but not your author.
+
+Every code exercise has an "I'm stuck" button. It builds a prompt from the exercise and your current code, opens Claude in a new tab and copies the prompt, so you paste it in. The prompt tells Claude not to write the solution and to ask you one question at a time. You write the fix. Using it caps the credit at 0.75, so the record stays honest. It does not cost anything else, and it is better than staying stuck.
+
+After your main make exercise in most lessons, **explain-back** builds a different prompt: Claude acts as an interviewer and asks you why your code works, what could go wrong, and what else you could have done. Explaining your own code out loud is a skill the interview tests, and it shows you what you only half understand.
+
+Later in the course, the Interview Gym has **AI-assisted drills** where using AI is the point: you direct it, then check and fix what it produces. That is a different skill, practised on purpose, and kept separate from the unaided exercises.
+
+<Quiz lesson="start-00" chunk={4} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 4">
+
+- "Using AI at all is cheating." Not here. The rule is about who writes the code in an unaided exercise, and Athena also trains you to use AI well.
+- "If Claude explains it, I understand it." Reading an explanation feels like understanding. Writing the code yourself is how you find out.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={5} title="The think-aloud approach">
+
+In a coding interview, how you work counts as much as the answer. The approach has seven steps, and you say each one out loud:
+
+1. **Clarify** the problem: the input, the limits, the odd cases.
+2. **Examples:** work two or three by hand, including an empty or tiny input.
+3. **Brute force:** describe the simplest solution that works, and what it costs.
+4. **Optimise:** find something faster or simpler, and say the trade-off.
+5. **Code** it.
+6. **Test** it with your examples.
+7. **Complexity:** say how the time and memory grow with the input size, written with Big-O, such as O(n).
+
+**Worked example.** *Return the longest call duration in a list of minutes.*
+
+1. Clarify: can the list be empty? Yes, then return `None`. Ties do not matter, since we return only the number.
+2. Examples: `[12, 45, 30]` gives `45`. `[7]` gives `7`. `[]` gives `None`.
+3. Brute force: sort the list from largest to smallest and take the first item. It works, but sorting does more work than the question needs, which grows faster than the list.
+4. Optimise: walk the list once and remember the largest so far. One pass is enough.
+5. Code:
+
+```python
+def longest(durations):
+    best = None                        # nothing seen yet
+    for d in durations:
+        if best is None or d > best:   # first item, or a bigger one
+            best = d
+    return best
+
+print(longest([12, 45, 30]), longest([7]), longest([]))   # 45 7 None
+```
+
+6. Test: the three examples above give `45`, `7` and `None`.
+7. Complexity: one pass over n items is O(n) time, and two variables is O(1) extra memory.
+
+You do not need to know Big-O yet. A later lesson teaches it. For now, practise saying the seven steps. Then put them in order, and try them on a new problem.
+
+<Quiz lesson="start-00" chunk={5} />
+
+**Try it.** Set a 2-minute timer. Say out loud, without writing code, how you would solve this: *given a list of caller names, return the names that appear more than once.* Then rate yourself.
+
+<Rubric id="start-00-rubric-think-aloud" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 5">
+
+- "Starting with the brute-force idea wastes time." It proves you understand the problem, and it gives you a correct answer to improve on.
+- "The seven steps are a script to recite." They are a checklist for staying unstuck. Skip a step when the problem is trivial, but say that you are skipping it.
+
+</Callout>
+
+</Chunk>
+
+<InterviewCorner lesson="start-00" />
+
+## Next steps
+
+Your week 1 continues with `git-01`. Open Home to see this week's plan, and use the <a href={href('start/')}>Start here</a> page whenever you need a reminder of how Athena works.
+
+## Further reading
+
+- [MDN: storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
+- [Python tutorial: an informal introduction (lists and indexing)](https://docs.python.org/3/tutorial/introduction.html#lists)
+- [pytest: assertions about expected exceptions](https://docs.pytest.org/en/stable/how-to/assert.html#assertions-about-expected-exceptions)

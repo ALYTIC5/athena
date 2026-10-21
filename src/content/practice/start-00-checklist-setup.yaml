@@ -1,0 +1,14 @@
+id: start-00-checklist-setup
+lesson: start-00
+kind: checklist
+competencies:
+  - int.approach
+title: Set your start date and make your first backup
+estMin: 2
+steps:
+  - do: Open Settings, choose a start date that is a Monday, check the hours per week, and press Save.
+    expect: The page says "Settings saved." A start date that is not a Monday is refused with a message.
+  - do: In Settings, press "Export progress".
+    expect: Your browser downloads a file named athena-progress-YYYY-MM-DD.json with today's date, and the page says when you last exported.
+  - do: Move that file out of the Downloads folder into a folder that is backed up or synced.
+    expect: You can find the file again, outside the browser.

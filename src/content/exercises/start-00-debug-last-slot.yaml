@@ -1,0 +1,74 @@
+id: start-00-debug-last-slot
+lesson: start-00
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: Find the last free slot
+difficulty: 1
+competencies:
+  - int.approach
+timeoutMs: 5000
+packages: []
+estMin: 2
+prompt: |
+  A debug exercise gives you code with one planted bug and a test that fails. Read the error, find the line, fix it.
+  `last_slot(slots)` should return the last item of a list of time slots, or `None` when the list is empty.
+  Right now it crashes.
+starter: |
+  def last_slot(slots):
+      if not slots:
+          return None
+      return slots[len(slots)]
+visibleTests: |
+  def test_returns_last_slot():
+      assert last_slot(["09:00", "10:00", "11:00"]) == "11:00"
+
+  def test_empty_list():
+      assert last_slot([]) is None
+hiddenTests: |
+  def test_one_slot():
+      assert last_slot(["09:00"]) == "09:00"
+
+  def test_input_unchanged():
+      slots = ["09:00", "10:00"]
+      last_slot(slots)
+      assert slots == ["09:00", "10:00"]
+
+  def test_not_the_first_slot():
+      assert last_slot(["13:00", "08:00"]) == "08:00"
+feedback:
+  - test: test_returns_last_slot
+    message: The error is an IndexError. A list with 3 items has positions 0, 1 and 2, so position 3 does not exist.
+  - test: test_one_slot
+    message: A list with one item has only position 0. Count positions from 0 and your fix should work for any length.
+  - test: test_input_unchanged
+    message: The function should only read the list. Do not remove items from it.
+  - test: test_not_the_first_slot
+    message: The result must be the last item in the list, not the earliest time and not the first item.
+hints:
+  - What is the position number of the last item in a list of 3 items? What does `len(slots)` give?
+  - Positions start at 0, so the last position is one less than the length. Python also lets you count from the end.
+  - 'return slots[____]  (either len(slots) minus something, or a negative number)'
+referenceSolution: |
+  def last_slot(slots):
+      if not slots:
+          return None
+      return slots[-1]
+wrongSolutions:
+  - label: Returns the first item instead of the last
+    code: |
+      def last_slot(slots):
+          if not slots:
+              return None
+          return slots[0]
+  - label: Removes the last item from the caller's list
+    code: |
+      def last_slot(slots):
+          if not slots:
+              return None
+          return slots.pop()
+explanation: |
+  Positions start at 0, so a list of `n` items has positions 0 to `n - 1`, and `slots[len(slots)]` is one past the end.
+  `slots[-1]` counts from the end and is the usual way to write it; `slots[len(slots) - 1]` is the same position written
+  out. The empty-list check stays, because `slots[-1]` on an empty list raises an IndexError too.

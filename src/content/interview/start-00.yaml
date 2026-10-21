@@ -1,0 +1,14 @@
+lesson: start-00
+questions:
+  - id: start-00-iq-approach
+    competencies:
+      - int.approach
+    question: An interviewer gives you a coding problem you have not seen before. What do you do before you write any code?
+    modelAnswer: I do not start typing. First I clarify the problem out loud. I ask what the input looks like, what size it can be, and what should happen for empty or odd input. Then I work two or three small examples by hand, including an edge case. Next I describe the simplest solution that would work, even if it is slow, and say what it would cost. Only then do I look for something faster, and I explain the trade-off. When we agree on a plan, I write the code, run my examples through it, and finish by stating the time and space complexity. Saying all of this out loud lets the interviewer correct me early and see how I think.
+    listenFor:
+      - clarifies the input, the limits and the edge cases before coding
+      - works examples by hand
+      - starts with a brute-force solution and says what it costs
+      - improves it and explains the trade-off
+      - tests with examples after coding, and states the complexity
+      - talks while working, so the interviewer can follow

@@ -1,0 +1,32 @@
+id: start-00-rubric-think-aloud
+lesson: start-00
+kind: rubric
+competencies:
+  - int.approach
+title: Rate your own think-aloud
+estMin: 3
+criteria:
+  - name: Clarify and examples
+    levels:
+      - score: 0
+        description: I started writing code without asking anything or trying an example.
+      - score: 1
+        description: I asked a question or tried an example, but not both.
+      - score: 2
+        description: I asked about the input and the edge cases, and worked at least two examples by hand, including an empty list.
+  - name: Brute force first, then better
+    levels:
+      - score: 0
+        description: I jumped straight to one solution and did not say why.
+      - score: 1
+        description: I described a solution that works, but did not say what it costs.
+      - score: 2
+        description: I described a simple solution, said what it costs, and then said how I would make it faster.
+  - name: Test and complexity
+    levels:
+      - score: 0
+        description: I stopped when the code looked right.
+      - score: 1
+        description: I ran one example through my code, but did not state the complexity.
+      - score: 2
+        description: I traced my examples through the code, including an edge case, and stated time and space complexity.

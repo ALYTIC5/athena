@@ -1,0 +1,141 @@
+lesson: start-00
+items:
+  - id: start-00-q-predict-minutes
+    pools:
+      - check
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies:
+      - int.approach
+    code: |
+      minutes = 90
+      hours = minutes // 60
+      left = minutes % 60
+      print(hours, left)
+    investigate:
+      - What would the output be if `minutes` were 45? Change the number and run it to check your answer.
+      - Why does the output show two numbers on one line?
+  - id: start-00-q-names-multiple
+    pools:
+      - check
+    chunk: 1
+    objective: 1
+    type: multiple
+    competencies:
+      - int.approach
+    stem: Which of these are valid Python variable names? Choose all that apply.
+    options:
+      - text: slot_1
+        correct: true
+        why: Letters, digits and underscores are allowed, as long as the name does not start with a digit.
+      - text: 1st_slot
+        correct: false
+        why: A name cannot start with a digit.
+      - text: slot-1
+        correct: false
+        why: A hyphen is the minus operator, so Python reads this as `slot - 1`.
+      - text: _slot
+        correct: true
+        why: A name may start with an underscore.
+      - text: class
+        correct: false
+        why: '`class` is a reserved keyword, so it cannot be used as a name.'
+  - id: start-00-q-len-short
+    pools:
+      - check
+    chunk: 1
+    objective: 1
+    type: short
+    competencies:
+      - int.approach
+    stem: 'What does `len(["09:00", "10:00", "11:00"])` return? Type the number.'
+    accepted:
+      - '3'
+    patterns: []
+    explanation: '`len` counts the items in a list. This list has three strings, so it returns 3.'
+  - id: start-00-q-parsons-label
+    pools:
+      - check
+    chunk: 2
+    objective: 1
+    type: parsons
+    competencies:
+      - int.approach
+    lines:
+      - 'def label(name, slot):'
+      - '    text = name + " at " + slot'
+      - '    return text'
+    distractors:
+      - '    print(text)'
+  - id: start-00-q-bug-average
+    pools:
+      - check
+    chunk: 2
+    objective: 1
+    type: bug
+    competencies:
+      - int.approach
+    code: |
+      def average_minutes(durations):
+          total = 0
+          for d in durations:
+              total = d
+          return total / len(durations)
+    buggyLine: 4
+    explanation: '`total = d` replaces the running total on every pass, so only the last duration is kept. It should be `total += d`, which adds each duration to the total.'
+  - id: start-00-q-safari-single
+    pools:
+      - check
+    chunk: 3
+    objective: 3
+    type: single
+    competencies:
+      - int.approach
+    stem: You use Athena in Safari and do not visit the site for a while. When can Safari delete your progress?
+    options:
+      - text: Never, because progress is stored on the device
+        correct: false
+        why: Stored on the device does not mean protected. Browsers can delete site data, and Safari does it proactively for sites you have not interacted with.
+      - text: When the site has had no click or tap from you in the last seven days of Safari use, if cross-site tracking prevention is on
+        correct: true
+        why: This is the rule MDN documents for Safari. It deletes data a site created with script, which includes the localStorage and IndexedDB data Athena uses. An export file on your disk is not affected.
+      - text: Only when you press Reset in Settings
+        correct: false
+        why: Reset is one way to lose progress, but the browser can also remove it without asking, which is why you export regularly.
+  - id: start-00-q-ai-rule-single
+    pools:
+      - check
+    chunk: 4
+    objective: 4
+    type: single
+    competencies:
+      - int.approach
+    stem: You are stuck on a make exercise. Which use of Claude follows the rule "tutor, not author"?
+    options:
+      - text: Paste the exercise and ask Claude to write the function, then retype it
+        correct: false
+        why: Claude wrote the solution here. Retyping it does not build the skill, and the credit is capped.
+      - text: Press "I'm stuck", answer Claude's question about your own code, and write the fix yourself
+        correct: true
+        why: The tutor prompt asks Claude to ask questions and not to write the solution. You still write the code, and the pass is recorded as tutor-assisted.
+      - text: Ask Claude to fix your code and paste back the result
+        correct: false
+        why: This also makes Claude the author. You would learn how Claude fixed it, not how to find the problem yourself.
+  - id: start-00-q-order-approach
+    pools:
+      - check
+    chunk: 5
+    objective: 5
+    type: order
+    competencies:
+      - int.approach
+    stem: Put the steps of the think-aloud approach in order.
+    steps:
+      - Clarify the problem
+      - Work through examples
+      - Describe a brute-force solution
+      - Optimise it
+      - Write the code
+      - Test it
+      - State the complexity

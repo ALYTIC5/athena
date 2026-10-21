@@ -4,7 +4,7 @@
     - id: start-00
       title: 'How Athena works'
       durationMin: 30
-      status: planned
+      status: published
     - id: git-01
       title: 'Git and GitHub as a team member'
       durationMin: 120
