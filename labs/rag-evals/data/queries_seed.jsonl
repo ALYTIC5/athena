@@ -1,0 +1,20 @@
+{"query_id": "q01", "query": "who prefers Tuesday morning appointments", "relevant_ids": ["mem_086", "mem_284"]}
+{"query_id": "q02", "query": "caller with a penicillin allergy", "relevant_ids": ["mem_022"]}
+{"query_id": "q03", "query": "wants reminders by text message and not phone calls", "relevant_ids": ["mem_044"]}
+{"query_id": "q04", "query": "caller whose dog barks during the call", "relevant_ids": ["mem_056"]}
+{"query_id": "q05", "query": "needs step-free access because of a wheelchair", "relevant_ids": ["mem_232"]}
+{"query_id": "q06", "query": "asked to speak Portuguese", "relevant_ids": ["mem_286"]}
+{"query_id": "q07", "query": "complained about being charged twice on an invoice", "relevant_ids": ["mem_172"]}
+{"query_id": "q08", "query": "cancelled after a bereavement and asked for no fee", "relevant_ids": ["mem_272"]}
+{"query_id": "q09", "query": "heard about us from a neighbour", "relevant_ids": ["mem_088"]}
+{"query_id": "q10", "query": "needs somewhere to plug in the car", "relevant_ids": ["mem_195"]}
+{"query_id": "q11", "query": "pays by bank transfer instead of card", "relevant_ids": ["mem_004"]}
+{"query_id": "q12", "query": "can only be called after 6pm", "relevant_ids": ["mem_198"]}
+{"query_id": "q13", "query": "nut allergy catering", "relevant_ids": ["mem_177"]}
+{"query_id": "q14", "query": "moving house in June", "relevant_ids": ["mem_249"]}
+{"query_id": "q15", "query": "struggles to catch what is said on the phone", "relevant_ids": ["mem_138"]}
+{"query_id": "q16", "query": "secret anniversary surprise", "relevant_ids": ["mem_009"]}
+{"query_id": "q17", "query": "always wants the same technician Sam", "relevant_ids": ["mem_182"]}
+{"query_id": "q18", "query": "disputed a late fee", "relevant_ids": ["mem_126"]}
+{"query_id": "q19", "query": "works night shifts so avoid morning calls", "relevant_ids": ["mem_199"]}
+{"query_id": "q20", "query": "asked to unsubscribe from the newsletter", "relevant_ids": ["mem_018"]}
