@@ -1,0 +1,162 @@
+id: git-01-debug-breaking-flag
+lesson: git-01
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: A changelog tool marks the wrong commits as breaking
+difficulty: 2
+estMin: 8
+competencies:
+  - git.commits
+timeoutMs: 5000
+packages: []
+prompt: |
+  A small release script reads commit subjects written in the Conventional Commits style: `type(scope)!: description`.
+  The scope in parentheses and the `!` before the colon are optional. A `!` marks a breaking change.
+
+  `parse_subject` returns a dict with the keys `type`, `scope`, `breaking` and `description`, or `None` when the subject
+  does not follow the style. The release notes now list `fix: stop crashing on empty names!` as a breaking change, and a test fails.
+  Find the line that causes it and fix it. Do not change the pattern.
+starter: |
+  import re
+
+  SUBJECT = re.compile(
+      r"(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<bang>!)?: (?P<description>\S.*)"
+  )
+
+
+  def parse_subject(subject):
+      match = SUBJECT.fullmatch(subject)
+      if match is None:
+          return None
+      return {
+          "type": match["type"],
+          "scope": match["scope"],
+          "breaking": "!" in subject,
+          "description": match["description"],
+      }
+visibleTests: |
+  def test_plain_subject():
+      assert parse_subject("fix: handle empty phone number") == {
+          "type": "fix",
+          "scope": None,
+          "breaking": False,
+          "description": "handle empty phone number",
+      }
+
+  def test_exclamation_mark_in_the_description_is_not_breaking():
+      assert parse_subject("fix: stop crashing on empty names!")["breaking"] is False
+hiddenTests: |
+  def test_bang_before_the_colon_is_breaking():
+      result = parse_subject("feat(api)!: drop the v1 bookings route")
+      assert result["breaking"] is True
+      assert result["scope"] == "api"
+      assert result["type"] == "feat"
+
+  def test_scope_without_bang():
+      result = parse_subject("docs(readme): explain the setup")
+      assert result["scope"] == "readme"
+      assert result["breaking"] is False
+
+  def test_bang_in_both_places():
+      assert parse_subject("feat!: new webhook format!")["breaking"] is True
+
+  def test_subjects_that_do_not_follow_the_style():
+      for bad in ["Fixed the bug", "feat:no space", "feat: ", "Feat: loud", "feat(): empty scope", ""]:
+          assert parse_subject(bad) is None
+feedback:
+  - test: test_exclamation_mark_in_the_description_is_not_breaking
+    message: A `!` only marks a breaking change when it sits right before the colon. Use the part of the pattern that matched there, not a search of the whole subject.
+  - test: test_bang_before_the_colon_is_breaking
+    message: The `!` before the colon must still make `breaking` true. Check the group the pattern captured for it.
+  - test: test_bang_in_both_places
+    message: Only the `!` before the colon counts. An exclamation mark in the description must not change the answer in either direction.
+hints:
+  - "The subject `fix: stop crashing on empty names!` has no `!` before the colon. Which `!` does the code look at?"
+  - "The pattern already captures the `!` that sits before the colon in a group named `bang`. Use that group to decide `breaking`."
+  - |-
+    "breaking": match[____] is not ____,
+referenceSolution: |
+  import re
+
+  SUBJECT = re.compile(
+      r"(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<bang>!)?: (?P<description>\S.*)"
+  )
+
+
+  def parse_subject(subject):
+      match = SUBJECT.fullmatch(subject)
+      if match is None:
+          return None
+      return {
+          "type": match["type"],
+          "scope": match["scope"],
+          "breaking": match["bang"] is not None,
+          "description": match["description"],
+      }
+wrongSolutions:
+  - label: Looks for a ! anywhere in the subject (the original bug)
+    code: |
+      import re
+
+      SUBJECT = re.compile(
+          r"(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<bang>!)?: (?P<description>\S.*)"
+      )
+
+
+      def parse_subject(subject):
+          match = SUBJECT.fullmatch(subject)
+          if match is None:
+              return None
+          return {
+              "type": match["type"],
+              "scope": match["scope"],
+              "breaking": "!" in subject,
+              "description": match["description"],
+          }
+  - label: Only checks whether the subject ends with !, so it still misreads the description
+    code: |
+      import re
+
+      SUBJECT = re.compile(
+          r"(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<bang>!)?: (?P<description>\S.*)"
+      )
+
+
+      def parse_subject(subject):
+          match = SUBJECT.fullmatch(subject)
+          if match is None:
+              return None
+          return {
+              "type": match["type"],
+              "scope": match["scope"],
+              "breaking": subject.endswith("!"),
+              "description": match["description"],
+          }
+  - label: Never reports a breaking change
+    code: |
+      import re
+
+      SUBJECT = re.compile(
+          r"(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<bang>!)?: (?P<description>\S.*)"
+      )
+
+
+      def parse_subject(subject):
+          match = SUBJECT.fullmatch(subject)
+          if match is None:
+              return None
+          return {
+              "type": match["type"],
+              "scope": match["scope"],
+              "breaking": False,
+              "description": match["description"],
+          }
+explanation: |
+  The pattern already does the hard part: it captures an optional `!` in the group `bang`, and only when it sits right
+  before the colon. The bug is one line below it, where `"!" in subject` searches the whole subject, so an exclamation
+  mark in the description counted as a breaking change. Testing `match["bang"] is not None` asks the question the style
+  asks. The second wrong solution only looks at the last character of the subject, which is the description, so it
+  misreads `fix: stop crashing on empty names!` and misses `feat(api)!: drop the v1 bookings route`. Alternative:
+  `match["bang"] == "!"`, which is equivalent here because the group is either `"!"` or `None`.

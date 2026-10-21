@@ -1,0 +1,20 @@
+lesson: git-01
+questions:
+  - id: git-01-iq-merge-vs-rebase
+    competencies: [git.rebase-merge]
+    question: What is the difference between merge and rebase, and how do you choose between them?
+    modelAnswer: A merge joins two lines of history with a merge commit that has two parents, or just moves the branch forward when it can fast-forward. It never changes existing commits. A rebase replays my commits on top of another branch as new commits with new ids, which gives a straight history but rewrites the branch. So I rebase my own private branch to keep it tidy and up to date, and I merge when the branch is shared or already pushed and others may have built on it. Teams differ, and some require a linear history, so I follow the team's rule.
+    listenFor:
+      - merge keeps history as it happened and never changes commits
+      - rebase makes new commits with new ids
+      - do not rebase commits others have built on
+      - acknowledges that teams have their own convention
+  - id: git-01-iq-undo-pushed
+    competencies: [git.undo, git.commits]
+    question: You pushed a commit that breaks the main branch and teammates have already pulled it. What do you do?
+    modelAnswer: I tell the team, then I use git revert on that commit and push normally. Revert adds a new commit that undoes the change, so history only grows and nobody has to repair their copy. I would not reset and force-push on a shared branch, because that rewrites history others already have and can destroy their work. If the problem was a leaked secret, I revoke the secret first, because cleaning history does not make it safe again.
+    listenFor:
+      - revert, not reset, on a shared branch
+      - history only grows, so teammates are not affected
+      - why force-push on shared branches is dangerous
+      - communicates with the team

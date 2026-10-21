@@ -1,0 +1,33 @@
+id: git-01-checklist-practice-repo
+lesson: git-01
+kind: checklist
+competencies:
+  - git.branching
+  - git.rebase-merge
+  - git.undo
+  - git.commits
+title: Practise a branch, a conflict, a revert and a reset in a scratch repository (use Git Bash, or a macOS or Linux terminal)
+estMin: 12
+steps:
+  - do: 'git init -b main practice-repo && cd practice-repo'
+    expect: 'Git says "Initialized empty Git repository" and you are inside the new folder. Nothing here touches your real projects.'
+  - do: 'git config user.name "Practice Learner" && git config user.email "learner@example.com"'
+    expect: No output. These settings apply to this scratch repository only.
+  - do: 'echo "Hello" > greeting.txt && git add greeting.txt && git commit -m "feat: add greeting file"'
+    expect: 'Git reports a root-commit with 1 file changed.'
+  - do: 'git switch -c add-name && echo "Hello, Amara" > greeting.txt && git commit -am "feat: greet by name"'
+    expect: 'Git says "Switched to a new branch ''add-name''" and then reports 1 file changed.'
+  - do: 'git switch main && echo "Hello, team" > greeting.txt && git commit -am "feat: greet the team"'
+    expect: 'You are back on main and a second commit is created there, so the two branches have diverged.'
+  - do: 'git merge add-name'
+    expect: 'Git stops with "CONFLICT (content): Merge conflict in greeting.txt". Open the file and look for the lines starting with <<<<<<<, ======= and >>>>>>>.'
+  - do: 'echo "Hello, Amara and team" > greeting.txt && git add greeting.txt && git commit -m "chore: merge add-name"'
+    expect: 'The merge commit is created. The file now holds your resolved text and no marker lines.'
+  - do: 'git log --oneline --graph --all'
+    expect: 'A graph in which the merge commit has two lines joining it, one from each branch.'
+  - do: 'echo "TODO" >> greeting.txt && git commit -am "chore: add todo line" && git revert --no-edit HEAD'
+    expect: 'Two new commits: the todo line, then a "Revert" commit that removes it. Nothing was deleted from the history.'
+  - do: 'git reset --hard HEAD~1 && git reflog'
+    expect: 'The revert commit disappears from git log, but the reflog still lists where HEAD was before the reset.'
+  - do: 'git reset --hard HEAD@{1} && git log --oneline'
+    expect: 'The revert commit is back. You have recovered a commit that the reset removed.'

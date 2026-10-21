@@ -1,0 +1,605 @@
+lesson: git-01
+items:
+  - id: git-01-q-predict-branch-pointer
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [git.branching, git.commits]
+    code: |
+      parents = {"a": [], "b": ["a"], "c": ["b"]}   # each commit lists its parent
+      branches = {"main": "c"}                      # a branch is a name for one commit
+      head = "main"                                 # HEAD names the current branch
+
+      branches["fix"] = branches[head]   # git switch -c fix: a new name for the same commit
+      head = "fix"                       # HEAD now names the new branch
+      parents["d"] = [branches[head]]    # git commit: the new commit's parent is the tip
+      branches[head] = "d"               # only the current branch moves to the new commit
+      print(branches, head)
+    investigate:
+      - Why did `main` stay at `c` when the new commit `d` was made?
+      - What would line 9 do to `main` if `head` were still `"main"` on line 8?
+  - id: git-01-q-head-names
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [git.branching]
+    stem: 'You are on the branch `add-reminder` and run `git commit`. How does Git know which branch to move forward?'
+    options:
+      - text: HEAD names the current branch, and that branch moves to the new commit
+        correct: true
+        why: Normally HEAD holds the name of the branch you are on. A new commit becomes that branch's new tip.
+      - text: Git moves every branch to the new commit
+        correct: false
+        why: Only the current branch moves. Other branches keep pointing at the commits they had.
+      - text: Git moves whichever branch was updated most recently
+        correct: false
+        why: Git does not guess. HEAD says which branch is current, and that is the one that moves.
+      - text: The branch called `main` always moves
+        correct: false
+        why: There is nothing special about the name `main` here. The branch HEAD names is the one that moves.
+  - id: git-01-q-branch-is
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [git.branching]
+    stem: What is a branch in Git?
+    options:
+      - text: A name that points at one commit, its tip, and moves forward when you commit on it
+        correct: true
+        why: A branch is a movable name for a commit. That is why creating a branch is cheap.
+      - text: A full copy of every file in the project
+        correct: false
+        why: Commits store snapshots, but a branch is only a name that points at one of them. Nothing is copied when you create it.
+      - text: A folder on your disk that holds the branch's files
+        correct: false
+        why: Your working folder shows the files of one commit at a time. Switching branches updates those files; branches are not separate folders.
+      - text: A list of every change you have not committed yet
+        correct: false
+        why: Uncommitted changes live in your working tree and index. A branch points at a commit.
+  - id: git-01-q-diagram-after-commit
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [git.branching, git.commits]
+    stem: 'The history is shown below. After the commit, which description is right?'
+    code: |
+      A---B---C   main, fix   (HEAD -> fix)
+
+      git commit -m "fix: trim phone numbers"    # creates commit D
+    options:
+      - text: '`fix` points at D, `main` still points at C, and HEAD still names `fix`'
+        correct: true
+        why: Only the current branch moves. D is a child of C, and `main` stays where it was.
+      - text: Both `fix` and `main` point at D
+        correct: false
+        why: Branches do not move together. Only the branch HEAD names moves.
+      - text: '`main` points at D and `fix` stays at C'
+        correct: false
+        why: HEAD names `fix`, so `fix` moves. `main` is not touched.
+      - text: Git creates a new branch pointing at D and leaves `fix` at C
+        correct: false
+        why: Git never creates a branch on its own when you commit. The current branch moves.
+  - id: git-01-q-parent-count
+    pools: [mastery, warmup]
+    objective: 1
+    type: short
+    competencies: [git.commits]
+    stem: How many parents does an ordinary commit (not the first commit, not a merge commit) have? Type a number.
+    accepted: ['1', one]
+    patterns: ['^(1|one)( parent)?$']
+    explanation: An ordinary commit records the one commit it was built on. The first commit has none, and a merge commit has two.
+  - id: git-01-q-detached-head
+    pools: [mastery]
+    objective: 1
+    type: multiple
+    competencies: [git.branching]
+    stem: 'You run `git switch --detach 3f2a9c1` to look at an older commit. Which statements are true? Choose all that apply.'
+    options:
+      - text: HEAD now points directly at that commit instead of at a branch
+        correct: true
+        why: This is a detached HEAD. Normally HEAD names a branch; here it holds a commit.
+      - text: A commit you make now is not added to any branch
+        correct: true
+        why: Commits made while HEAD is detached move HEAD but do not move any branch.
+      - text: If the experiment is worth keeping, `git switch -c good-surprises` gives it a branch name
+        correct: true
+        why: Creating a branch at the current commit gives the work a name, so you can find it again.
+      - text: Git refuses to commit until you switch back to a branch
+        correct: false
+        why: Committing works in a detached HEAD. The risk is losing track of the commits, not being blocked from making them.
+  - id: git-01-q-predict-replay
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [git.rebase-merge]
+    code: |
+      parents = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"]}
+
+      def reachable(tip):
+          seen, todo = set(), [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+      # main is at c; the feature branch is at y
+      print(sorted(reachable("y") - reachable("c")))
+    investigate:
+      - Which of these commits would `git rebase main` copy onto the tip of `main`, and why not `a` and `b`?
+      - What would the line print if the feature branch were at `b` instead of `y`?
+  - id: git-01-q-order-feature-workflow
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 5
+    type: order
+    competencies: [git.branching, git.pull-requests]
+    stem: Put the steps of a feature-branch workflow in order, from first to last.
+    steps:
+      - 'Update your local main: `git switch main`, then `git pull`'
+      - 'Create a branch for the work: `git switch -c add-reminder-text`'
+      - 'Make small commits as you go: `git add`, then `git commit`'
+      - 'Publish the branch: `git push -u origin add-reminder-text`'
+      - Open a pull request on GitHub
+      - Answer review comments with more commits and push again
+      - Merge the approved pull request
+  - id: git-01-q-merge-or-rebase-shared
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [git.rebase-merge]
+    stem: 'A teammate has pulled your branch `feature-x` and is building on it. `main` has moved on and you want its changes in your branch. What is the safest way?'
+    options:
+      - text: Merge `main` into `feature-x`
+        correct: true
+        why: A merge only adds a commit. Every commit your teammate has keeps its id, so their work still fits on top of yours.
+      - text: Rebase `feature-x` onto `main` and force-push
+        correct: false
+        why: A rebase replaces your commits with new copies. Your teammate's work is built on the old ones, so they would have to repair their history by hand.
+      - text: Delete `feature-x` and create it again from `main`
+        correct: false
+        why: That throws away the shared history and your teammate's work no longer matches anything on the remote.
+      - text: Run `git reset --hard main` on `feature-x`
+        correct: false
+        why: That discards your own commits from the branch, and pushing the result would need a force-push.
+  - id: git-01-q-rebase-new-ids
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [git.rebase-merge]
+    stem: 'You rebase your private, unpushed branch `feature` onto the latest `main`. What is true afterwards?'
+    options:
+      - text: Each of your commits was replaced by a new copy, with a new id, on top of `main`
+        correct: true
+        why: Rebase replays your commits one by one, so the branch is made of new commits.
+      - text: Your commits keep their ids, and only the branch name moves
+        correct: false
+        why: A commit's parent is part of what it is. Putting it on a different parent makes a different commit.
+      - text: A merge commit joins `feature` and `main`
+        correct: false
+        why: Merging makes a merge commit. A rebase makes the history a straight line.
+      - text: '`main` now contains your commits'
+        correct: false
+        why: A rebase moves your branch. `main` is unchanged until you merge your branch into it.
+  - id: git-01-q-merge-outcome
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [git.rebase-merge, git.branching]
+    stem: '`main` is at C. The branch `feature` has two commits, D and E, built on C. You run `git switch main` and `git merge feature`. What happens?'
+    code: |
+      A---B---C                main
+               \
+                D---E          feature
+    options:
+      - text: A fast-forward. `main` moves to E and no merge commit is created
+        correct: true
+        why: The tip of `main` is an ancestor of `feature`, so Git only needs to move `main` forward.
+      - text: Git creates a merge commit with C and E as parents
+        correct: false
+        why: A merge commit is needed only when both branches have commits the other lacks. Here `main` has nothing new.
+      - text: Git prints "Already up to date"
+        correct: false
+        why: That message appears when the other branch is already part of yours. Here `feature` has commits that `main` lacks.
+      - text: Git reports a conflict
+        correct: false
+        why: A conflict needs both sides to change the same lines. `main` has no changes of its own here.
+  - id: git-01-q-conflict-markers-side
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [git.rebase-merge]
+    stem: 'You are on `main` and run `git merge add-name`. Git stops with a conflict in `greeting.txt`. Which line comes from `main`, the branch you are on?'
+    code: |
+      <<<<<<< HEAD
+      Hello, team
+      =======
+      Hello, Amara
+      >>>>>>> add-name
+    options:
+      - text: Hello, team
+        correct: true
+        why: The part before the `=======` line is your side (HEAD), which is `main` here. The part after it is the branch you merged.
+      - text: Hello, Amara
+        correct: false
+        why: That is the text from `add-name`, the branch you are merging in. It comes after the `=======` line.
+      - text: Both lines come from `main`
+        correct: false
+        why: Each side of the conflict comes from a different branch. That is what makes it a conflict.
+      - text: 'Neither: Git has already chosen the newer line'
+        correct: false
+        why: Git does not choose when both sides changed the same lines. It stops and leaves the markers for you.
+  - id: git-01-q-resolve-bug
+    pools: [mastery]
+    objective: 3
+    type: bug
+    competencies: [git.rebase-merge]
+    code: |
+      git merge add-name
+      # CONFLICT (content): Merge conflict in greeting.txt
+      # edit greeting.txt: keep both greetings and delete the three marker lines
+      git commit -m "chore: merge add-name"
+    buggyLine: 4
+    explanation: After editing the file you must tell Git the conflict is resolved with `git add greeting.txt`. Without it, the file is still marked as unmerged and the merge cannot be finished. Then `git commit` (or `git merge --continue`) completes the merge.
+  - id: git-01-q-abort-short
+    pools: [mastery, warmup]
+    objective: 3
+    type: short
+    competencies: [git.rebase-merge]
+    stem: 'A merge has stopped with conflicts you do not want to deal with now. Type the command that abandons the merge and returns to the state before it.'
+    accepted: [git merge --abort]
+    patterns: ['^`?git merge --abort`?$']
+    explanation: '`git merge --abort` stops the merge and tries to restore the state from before it started. For a rebase the equivalent is `git rebase --abort`.'
+  - id: git-01-q-rebase-continue
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [git.rebase-merge]
+    stem: 'During `git rebase main`, Git stops on a conflict. You edit the file and remove the markers. What do you run next?'
+    options:
+      - text: '`git add <file>`, then `git rebase --continue`'
+        correct: true
+        why: Mark the file as resolved with `git add`, then tell the rebase to carry on with the next commit.
+      - text: '`git merge --continue`'
+        correct: false
+        why: That continues a merge. You are in the middle of a rebase.
+      - text: '`git rebase --abort`'
+        correct: false
+        why: That cancels the rebase and returns your branch to how it was. It throws away the resolution you just made.
+      - text: '`git push --force`'
+        correct: false
+        why: The rebase is not finished yet. Pushing now would not publish a finished history.
+  - id: git-01-q-resolve-multiple
+    pools: [mastery]
+    objective: 3
+    type: multiple
+    competencies: [git.rebase-merge]
+    stem: 'You are resolving a conflict in `greeting.txt`. Which statements are true? Choose all that apply.'
+    options:
+      - text: You edit the file into the text you want, which can use pieces of both sides or something new
+        correct: true
+        why: The final file is your decision. Git only shows you where the two sides disagree.
+      - text: You must delete the three marker lines (the ones starting with `<<<<<<<`, `=======` and `>>>>>>>`)
+        correct: true
+        why: Markers left in the file would be committed as text, and the code or text would be broken.
+      - text: You run `git add` on the file to mark it as resolved
+        correct: true
+        why: Staging the file tells Git that you have dealt with its conflict.
+      - text: If you do nothing, Git keeps the newer of the two lines
+        correct: false
+        why: Git never picks a side for you when the same lines changed on both sides.
+  - id: git-01-q-predict-push-rule
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [git.undo]
+    code: |
+      remote = ["a", "b", "c"]          # commits on the server; a teammate already has c
+
+      # Option 1: git reset --hard HEAD~1, then a new commit d
+      mine = ["a", "b", "d"]
+      # A plain push is accepted only if the remote history is the start of yours
+      print(mine[:len(remote)] == remote)
+
+      # Option 2: git revert c, which adds a commit that undoes c
+      reverted = remote + ["undo-c"]
+      print(reverted[:len(remote)] == remote)
+    investigate:
+      - Why is option 1 refused by a plain push, and what would a force-push do to your teammate's copy of c?
+      - Option 2 leaves c in the history. Why is that the price of a safe undo?
+  - id: git-01-q-undo-pushed
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'A commit with a bug is already on the shared `main` and teammates have pulled it. What is the safest way to undo it?'
+    options:
+      - text: '`git revert <commit>`, then a normal push'
+        correct: true
+        why: Revert adds a new commit that undoes the bad one. History only grows, so nobody has to repair their copy.
+      - text: '`git reset --hard HEAD~1`, then `git push --force`'
+        correct: false
+        why: This rewrites history that others already have. Their copies now disagree with the server.
+      - text: '`git restore .`'
+        correct: false
+        why: That discards uncommitted edits in your working tree. The bad commit is already committed and pushed.
+      - text: Delete the local repository and clone it again
+        correct: false
+        why: The bad commit is on the server, so a new clone would contain it too.
+  - id: git-01-q-undo-edits
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'You edited `notes.txt` but have not staged or committed anything. You want the file back as it was in the last commit. What do you run?'
+    options:
+      - text: '`git restore notes.txt`'
+        correct: true
+        why: Restore overwrites the file in your working tree with the staged version, which is the last commit if nothing is staged. The discarded edits are not recoverable, because Git never saved them.
+      - text: '`git revert notes.txt`'
+        correct: false
+        why: Revert undoes commits by making new commits. It does not discard uncommitted edits.
+      - text: '`git reset --soft HEAD~1`'
+        correct: false
+        why: That moves the branch back one commit and keeps all changes. It does not touch your edits to the file.
+      - text: '`git switch -c notes`'
+        correct: false
+        why: That creates a new branch. Your edits come along unchanged.
+  - id: git-01-q-unstage
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'You ran `git add notes.txt` by mistake. You want to unstage it but keep your edits in the file. What do you run?'
+    options:
+      - text: '`git restore --staged notes.txt`'
+        correct: true
+        why: '`--staged` restores the index from HEAD, so the file is no longer staged. Your working tree is not touched.'
+      - text: '`git restore notes.txt`'
+        correct: false
+        why: Without `--staged`, restore overwrites the file in your working tree and your edits are lost. The staging area stays as it is.
+      - text: '`git reset --hard`'
+        correct: false
+        why: That discards your edits as well as unstaging them.
+      - text: '`git revert notes.txt`'
+        correct: false
+        why: Revert works on commits, not on staged files.
+  - id: git-01-q-reset-modes
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'You want to move your branch back one commit, keep the changes from that commit as edits in your working tree, and have nothing staged. Which command does that?'
+    options:
+      - text: '`git reset HEAD~1` (the default, `--mixed`)'
+        correct: true
+        why: The default mode moves the branch and updates the index to match, so nothing stays staged. Your working tree is left alone.
+      - text: '`git reset --soft HEAD~1`'
+        correct: false
+        why: Soft leaves the index unchanged, so the undone commit''s changes stay staged.
+      - text: '`git reset --hard HEAD~1`'
+        correct: false
+        why: Hard also overwrites your working tree, so the changes from that commit disappear.
+      - text: '`git revert HEAD`'
+        correct: false
+        why: That adds a new commit instead of moving the branch back.
+  - id: git-01-q-reset-hard-recover
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'On a private branch you ran `git reset --hard HEAD~1` and now regret it. The commit you removed was committed earlier. What is the best first step?'
+    options:
+      - text: Run `git reflog`, find where the branch was, and reset back to it
+        correct: true
+        why: The reflog records where branch tips and HEAD used to be in your local repository, so the removed commit can usually be found for a while (90 days by default).
+      - text: Nothing can be done, because the commit is deleted immediately
+        correct: false
+        why: Reset moves the branch name. The commit still exists, and the reflog remembers it. Changes you never committed would be a different matter.
+      - text: Run `git revert HEAD`
+        correct: false
+        why: That adds a commit undoing the current tip, which is not the commit you lost.
+      - text: Run `git push --force`
+        correct: false
+        why: Pushing does not bring the lost commit back, and a force-push could overwrite work on the server.
+  - id: git-01-q-reflog-short
+    pools: [mastery, warmup]
+    objective: 4
+    type: short
+    competencies: [git.undo]
+    stem: Which Git command lists where HEAD and your branches used to point, so you can recover a commit after a bad reset? Type the command.
+    accepted: [git reflog, reflog]
+    patterns: ['^`?(git )?reflog`?$']
+    explanation: '`git reflog` shows the reference log: when the tips of branches and other references were updated in your local repository. It is a local safety net, not something that is shared or kept forever.'
+  - id: git-01-q-force-with-lease
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [git.undo]
+    stem: 'After rewriting your own branch you must force-push. Why is `git push --force-with-lease` safer than `git push --force`?'
+    options:
+      - text: It refuses to overwrite the remote branch if it is no longer where your remote-tracking branch says it was
+        correct: true
+        why: If someone pushed since your last fetch, the push fails instead of silently destroying their commits. It only protects against changes you have not fetched.
+      - text: It makes the force-push reversible for everyone
+        correct: false
+        why: It adds a check, not a backup. Commits that are overwritten are still lost from the remote branch.
+      - text: It merges the remote commits into yours first
+        correct: false
+        why: It never merges. It compares the remote branch with what you last saw, and fails if they differ.
+      - text: It only pushes the last commit
+        correct: false
+        why: It pushes the same things as a normal push. The difference is the safety check.
+  - id: git-01-q-filter-repo
+    pools: [mastery]
+    objective: 4
+    type: multiple
+    competencies: [git.undo]
+    stem: 'A service key was committed and pushed. Which statements are true? Choose all that apply.'
+    options:
+      - text: Revoke or rotate the key first, because anyone who saw it can still use it
+        correct: true
+        why: Cleaning history does not make a leaked key safe again. Once it is revoked, it can no longer be used.
+      - text: A tool such as `git filter-repo` rewrites history, so the affected commits get new ids and the branches must be force-pushed
+        correct: true
+        why: It rewrites commits to remove the data, and a rewritten branch is not a fast-forward of the old one.
+      - text: Collaborators should rebase their work onto the cleaned history rather than merge it, or the old commits can come back
+        correct: true
+        why: A merge could reintroduce the data you purged. GitHub advises collaborators to rebase, not merge.
+      - text: After the force-push, no copy of the old commits exists anywhere
+        correct: false
+        why: Forks, other clones and cached views on GitHub can still hold the old commits.
+  - id: git-01-q-force-push-bug
+    pools: [mastery]
+    objective: 4
+    type: bug
+    competencies: [git.undo]
+    code: |
+      # main has a bad commit that teammates have already pulled
+      git switch main
+      git pull
+      git reset --hard HEAD~1
+      git push --force origin main
+    buggyLine: 4
+    explanation: The mistake is in choosing to rewrite a branch that others already have. Resetting and force-pushing (lines 4 and 5) replaces the shared history, so teammates' copies no longer match the server. Use `git revert HEAD` and a normal push instead, which adds an undo commit and rewrites nothing.
+  - id: git-01-q-good-subject
+    pools: [check, mastery, warmup]
+    chunk: 4
+    objective: 5
+    type: single
+    competencies: [git.commits]
+    stem: 'Which is the best commit subject for a change that strips spaces from phone numbers before an SMS is sent?'
+    options:
+      - text: 'fix(sms): strip spaces from phone numbers before sending'
+        correct: true
+        why: It has a type, a scope and a short description of what changed, and it is under 60 characters.
+      - text: fixed stuff
+        correct: false
+        why: It has no type and says nothing a reader can use when scanning history.
+      - text: 'fix: updated the sms module, the README and the version number, and removed the old retry code'
+        correct: false
+        why: It is far too long for a subject and it describes several changes. Split them into separate commits.
+      - text: WIP
+        correct: false
+        why: It says nothing about the change, and a work-in-progress label should not reach the shared history.
+  - id: git-01-q-bad-subjects
+    pools: [mastery]
+    objective: 5
+    type: multiple
+    competencies: [git.commits]
+    stem: 'The team uses the style `type(scope)!: description`, with the scope and the `!` optional. Which subjects do NOT follow it? Choose all that apply.'
+    options:
+      - text: update stuff
+        correct: true
+        why: It has no type and no colon.
+      - text: 'feat add reminder text'
+        correct: true
+        why: The colon is missing between the type and the description.
+      - text: 'feat:add reminder text'
+        correct: true
+        why: The style needs a space after the colon.
+      - text: 'feat(sms)!: send reminders in the booking time zone'
+        correct: false
+        why: Type, scope, `!` before the colon and a description. This follows the style and marks a breaking change.
+      - text: 'fix: handle empty phone number'
+        correct: false
+        why: Type, colon, space, description. This follows the style.
+  - id: git-01-q-commit-size
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [git.commits]
+    stem: 'Which makes the best single commit?'
+    options:
+      - text: One complete logical change that you could revert on its own
+        correct: true
+        why: Small, focused commits are easier to review, and one change can be undone without undoing others.
+      - text: Everything you did today, committed at the end of the day
+        correct: false
+        why: A reviewer cannot tell which lines belong to which change, and reverting one idea means untangling all of them.
+      - text: One line per commit, even if the change needs five lines to work
+        correct: false
+        why: A commit that leaves the project broken is not a complete change. Keep related lines together.
+      - text: Whatever changed since the last commit, with the message "update"
+        correct: false
+        why: The size is arbitrary and the message tells the reader nothing.
+  - id: git-01-q-pr-reviewable
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [git.pull-requests]
+    stem: 'Which pull request is the easiest to review?'
+    options:
+      - text: One purpose, a small diff, and a description saying what changed, why and how you tested it
+        correct: true
+        why: A reviewer can see the intent, check the change against it and know what was tried.
+      - text: A week of unrelated work in one pull request, so the reviewer sees everything at once
+        correct: false
+        why: Large mixed changes are hard to review well. Use a separate branch for each set of unrelated changes.
+      - text: A small diff with no description, because the code speaks for itself
+        correct: false
+        why: The diff shows what changed but not why. The reviewer has to guess the intent.
+      - text: Many small unrelated fixes under the title "updates"
+        correct: false
+        why: The title gives no clue, and unrelated fixes make it harder to approve or revert one of them.
+  - id: git-01-q-review-states
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [git.pull-requests]
+    stem: 'You reviewed a pull request and found a bug that must be fixed before it can merge. Which option do you choose when you submit your review on GitHub?'
+    options:
+      - text: Request changes
+        correct: true
+        why: This submits feedback that must be addressed before the pull request can be merged.
+      - text: Approve
+        correct: false
+        why: Approve says the change can be merged as it is.
+      - text: Comment
+        correct: false
+        why: Comment gives general feedback without approving or blocking. Use it for questions and suggestions.
+      - text: Close the pull request
+        correct: false
+        why: Closing rejects the whole proposal. Here the author can fix the problem and push again.
+  - id: git-01-q-merge-methods
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [git.pull-requests, git.rebase-merge]
+    stem: 'A repository allows "Squash and merge". What ends up on the base branch when you use it on a pull request with five commits?'
+    options:
+      - text: One new commit with the combined changes; the five commits are not added to the base branch
+        correct: true
+        why: Squash and merge combines the pull request into one commit. The history is linear, and the original commits and their ids are not kept on the base branch.
+      - text: The five commits and an extra merge commit
+        correct: false
+        why: That describes the default "Create a merge commit" method.
+      - text: The five commits as new copies, with no merge commit
+        correct: false
+        why: That describes "Rebase and merge", which replays each commit individually.
+      - text: Nothing, until a maintainer merges it again
+        correct: false
+        why: Squash and merge completes the merge. The difference is how the history looks afterwards.
+  - id: git-01-q-pr-description
+    pools: [mastery]
+    objective: 5
+    type: multiple
+    competencies: [git.pull-requests]
+    stem: 'Which belong in a good pull request description? Choose all that apply.'
+    options:
+      - text: What changed and why
+        correct: true
+        why: The reviewer needs the intent to judge whether the change is right.
+      - text: How you tested it
+        correct: true
+        why: It shows what has been checked and what the reviewer may still need to try.
+      - text: A link to the issue, with a closing keyword if the pull request completes it
+        correct: true
+        why: GitHub links the two, and a closing keyword closes the issue when the pull request merges.
+      - text: A real API key so the reviewer can run the code
+        correct: false
+        why: Secrets never belong in a pull request, a commit or a description. Anything pushed there is public to everyone with access.
