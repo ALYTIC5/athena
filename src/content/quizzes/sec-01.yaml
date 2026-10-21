@@ -8,13 +8,13 @@ items:
     competencies: [sec.history, sec.secrets]
     stem: You committed a file with an API key, noticed, deleted the file in the next commit and pushed both commits. Is the key still exposed?
     options:
-      - text: "No: the newest commit no longer contains the file"
+      - text: 'No: the newest commit no longer contains the file'
         correct: false
         why: The newest snapshot is clean, but the earlier commit is still in the history that was pushed, and anyone can read the file from it.
       - text: "Yes: the earlier commit that contains the key is still in the repository's history"
         correct: true
         why: Git keeps every commit. A later commit that deletes the file does not remove the earlier one, so the key must be treated as compromised.
-      - text: "Only if the repository is public"
+      - text: 'Only if the repository is public'
         correct: false
         why: A private repository can still be cloned or forked by everyone with access, and access changes over time. Treat every pushed secret as compromised.
   - id: sec-01-q-predict-history
@@ -90,10 +90,10 @@ items:
     competencies: [sec.history, sec.secrets]
     stem: You have rotated a leaked key and the old one no longer works. According to GitHub's guidance, is rewriting history always required?
     options:
-      - text: "Yes: a secret in history is always a security hole"
+      - text: 'Yes: a secret in history is always a security hole'
         correct: false
         why: Once the old value is revoked it grants nothing. A rewrite is still sensible for other sensitive data, but not for a dead key.
-      - text: "No: once the credential is rotated, a rewrite may not be worth the extra effort"
+      - text: 'No: once the credential is rotated, a rewrite may not be worth the extra effort'
         correct: true
         why: GitHub's page says this. A rewrite needs careful coordination with collaborators and changes every commit hash after the change.
       - text: "No: history is only visible to the repository's maintainers, so it is safe"
@@ -106,7 +106,7 @@ items:
     objective: 2
     type: single
     competencies: [sec.secrets, sec.history]
-    stem: ".env was committed last week. Today you add .env to .gitignore. What happens?"
+    stem: '.env was committed last week. Today you add .env to .gitignore. What happens?'
     options:
       - text: Git stops tracking .env and removes it from the history
         correct: false
@@ -246,7 +246,7 @@ items:
       - text: A copy of the real .env, because the repository is private
         correct: false
         why: Real values in a repository are a leak waiting to happen, private or not.
-      - text: "Nothing: it should be in .gitignore too"
+      - text: 'Nothing: it should be in .gitignore too'
         correct: false
         why: The example file is meant to be committed so the required settings are documented. That is why the usual .gitignore has an exception for it.
   - id: sec-01-q-listing-leak
@@ -331,7 +331,7 @@ items:
       - text: Both, as long as the repository is private
         correct: false
         why: Browser code is delivered to every visitor whatever the repository's visibility, so a secret key would be public.
-      - text: "Neither: all keys must stay on the server"
+      - text: 'Neither: all keys must stay on the server'
         correct: false
         why: A publishable key exists so the browser can talk to the provider safely. Check your provider's documentation for which keys are meant for the browser.
   - id: sec-01-q-least-priv-token
