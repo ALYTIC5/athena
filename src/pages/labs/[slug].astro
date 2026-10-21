@@ -1,0 +1,71 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { render } from 'astro:content';
+import { LabPanel } from '../../components/labs/LabPanel';
+import { LabsApp } from '../../components/labs/LabsApp';
+import { labDocument, labMilestones } from '../../lib/content/labs';
+import { LABS } from '../../lib/labs/progress';
+import { url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const milestones = await labMilestones();
+  return [
+    ...LABS.map((lab) => ({
+      params: { slug: lab.slug },
+      props: { kind: 'lab' as const, lab: lab.slug, milestone: undefined },
+    })),
+    ...milestones.map((m) => ({
+      params: { slug: m.id },
+      props: { kind: 'milestone' as const, lab: m.lab, milestone: m.id },
+    })),
+  ];
+}
+
+const { kind, lab, milestone } = Astro.props;
+const labInfo = LABS.find((l) => l.slug === lab)!;
+const found = (await labMilestones()).find((m) => m.id === milestone);
+const entry = kind === 'lab' ? await labDocument(lab, 'readme') : found!.entry;
+const { Content, headings } = await render(entry);
+const title = kind === 'lab' ? labInfo.name : `${milestone}: ${found!.title}`;
+const contractUrl = url(`labs/${lab}/contract/`);
+---
+
+<StarlightPage frontmatter={{ title, description: labInfo.summary }} headings={headings}>
+  {kind === 'lab' ? (
+    <>
+      <p>{labInfo.summary}</p>
+      <p>
+        <a href={contractUrl}>Read the contract</a> first and keep it open while you build. Your
+        project lives in your own repository; Athena holds only the rules, the data and the checks.
+      </p>
+      <h2 id="milestones">Milestones</h2>
+      <LabsApp client:load lab={lab} />
+      <div class="lab-body" id="lab-body">
+        <Content />
+      </div>
+    </>
+  ) : (
+    <>
+      <p>
+        Part of <a href={url(`labs/${lab}/`)}>{labInfo.name}</a>. <a href={contractUrl}>Contract</a>
+        {found!.hours ? <> · about {found!.hours}</> : null}
+        {found!.weeks.length > 0 ? (
+          <>
+            {' '}
+            · week{found!.weeks.length > 1 ? 's' : ''} {found!.weeks.join(', ')}
+          </>
+        ) : null}
+      </p>
+      <div class="lab-body" id="lab-body">
+        <Content />
+      </div>
+      <LabPanel client:load milestone={milestone!} bodyId="lab-body" />
+    </>
+  )}
+</StarlightPage>
+
+<style is:global>
+  .lab-body > h1:first-child {
+    display: none;
+  }
+</style>

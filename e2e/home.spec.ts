@@ -41,7 +41,7 @@ test('this week comes from the curriculum: published lessons link, planned ones 
   await expect(page.getByTestId('week-jobs')).toHaveCount(0);
 });
 
-test('week 2 adds the job-search targets and the week-9 lab milestone shows coming soon', async ({
+test('week 2 adds the job-search targets and the week-9 lab milestone links to its page', async ({
   page,
 }) => {
   await seedStore(
@@ -58,8 +58,12 @@ test('week 2 adds the job-search targets and the week-9 lab milestone shows comi
   await today(page, '2026-12-07');
   await page.goto('./');
   await expect(page.getByTestId('week-heading')).toHaveText('Week 9 of 28');
-  await expect(page.getByTestId('week-lab')).toContainText('wa-m1');
-  await expect(page.getByTestId('week-lab')).toContainText('(coming soon)');
+  const lab = page.getByTestId('week-lab');
+  await expect(lab.getByRole('link', { name: 'wa-m1' })).toHaveAttribute(
+    'href',
+    /\/labs\/wa-m1\/$/,
+  );
+  await expect(lab).not.toContainText('(coming soon)');
 });
 
 test('the week does not shift across a daylight-saving change', async ({ page }) => {

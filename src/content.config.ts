@@ -26,6 +26,12 @@ export const collections = {
   interview: defineCollection({ loader: yamlDir('interview'), schema: interviewSchema }),
   problems: defineCollection({ loader: yamlDir('problems'), schema: problemSchema }),
   drills: defineCollection({ loader: yamlDir('drills'), schema: drillSchema }),
+  labs: defineCollection({
+    loader: glob({
+      pattern: ['*/CONTRACT.md', '*/README.md', '*/milestones/*.md'],
+      base: './labs',
+    }),
+  }),
   curriculum: defineCollection({
     loader: file('./src/content/curriculum.yaml'),
     schema: curriculumWeekSchema,

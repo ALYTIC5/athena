@@ -1,0 +1,27 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { render } from 'astro:content';
+import { labDocument } from '../../../lib/content/labs';
+import { LABS } from '../../../lib/labs/progress';
+import { url } from '../../../lib/url';
+
+export function getStaticPaths() {
+  return LABS.map((lab) => ({ params: { slug: lab.slug }, props: { lab: lab.slug } }));
+}
+
+const { lab } = Astro.props;
+const labInfo = LABS.find((l) => l.slug === lab)!;
+const { Content, headings } = await render(await labDocument(lab, 'contract'));
+---
+
+<StarlightPage
+  frontmatter={{ title: `${labInfo.name}: contract`, description: labInfo.summary }}
+  headings={headings}
+>
+  <p>
+    <a href={url(`labs/${lab}/`)}>Back to {labInfo.name}</a>
+  </p>
+  <div class="lab-body">
+    <Content />
+  </div>
+</StarlightPage>
