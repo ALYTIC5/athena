@@ -1,0 +1,267 @@
+{
+  "evt_m4_book": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "book",
+        "summary": "Amara wants to book a morning visit on 2 November.",
+        "caller_name": "Amara Okafor",
+        "confidence": 0.93
+      }
+    }
+  ],
+  "evt_m4_cancel": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "cancel",
+        "summary": "Jonas cannot make his Thursday appointment and wants to cancel it.",
+        "caller_name": "Jonas Weber",
+        "confidence": 0.88
+      }
+    }
+  ],
+  "evt_m4_billing": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "billing_question",
+        "summary": "Mei asks why her last invoice was higher than usual.",
+        "caller_name": "Mei Tanaka",
+        "confidence": 0.81
+      }
+    }
+  ],
+  "evt_m4_other": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "other",
+        "summary": "Sofia is asking for the opening hours.",
+        "caller_name": "Sofia Reyes",
+        "confidence": 0.7
+      }
+    }
+  ],
+  "evt_m4_invalid_then_valid": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "refund",
+        "summary": "",
+        "caller_name": "Kofi Mensah",
+        "confidence": 3
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "intent": "billing_question",
+        "summary": "Kofi wants to know about a duplicate charge.",
+        "caller_name": "Kofi Mensah",
+        "confidence": 0.84
+      }
+    }
+  ],
+  "evt_m4_always_invalid": [
+    {
+      "action": "final",
+      "content": {
+        "intent": "refund",
+        "summary": "x",
+        "caller_name": "Lena Fischer",
+        "confidence": 0.5
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "summary": "missing the intent",
+        "caller_name": "Lena Fischer",
+        "confidence": 0.5
+      }
+    }
+  ],
+  "evt_m5_book": [
+    {
+      "action": "tool_call",
+      "name": "lookup_availability",
+      "arguments": {
+        "date": "2026-11-02"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Amara Okafor",
+        "date": "2026-11-02",
+        "time": "10:00"
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "intent": "book",
+        "summary": "Booked Amara for 10:00 on 2 November.",
+        "caller_name": "Amara Okafor",
+        "confidence": 0.95
+      }
+    }
+  ],
+  "evt_m5_escalate": [
+    {
+      "action": "tool_call",
+      "name": "escalate_to_human",
+      "arguments": {
+        "reason": "Caller is upset about a missed appointment and asks for a manager."
+      }
+    }
+  ],
+  "evt_m5_double_book": [
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Ravi Patel",
+        "date": "2026-11-03",
+        "time": "09:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Ravi Patel",
+        "date": "2026-11-03",
+        "time": "10:00"
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "intent": "book",
+        "summary": "Should not be reached.",
+        "caller_name": "Ravi Patel",
+        "confidence": 0.9
+      }
+    }
+  ],
+  "evt_m5_wrong_name": [
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Someone Else",
+        "date": "2026-11-04",
+        "time": "09:00"
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "intent": "book",
+        "summary": "Should not be reached.",
+        "caller_name": "Chidi Eze",
+        "confidence": 0.9
+      }
+    }
+  ],
+  "evt_m5_bad_tool": [
+    {
+      "action": "tool_call",
+      "name": "delete_all_bookings",
+      "arguments": {}
+    },
+    {
+      "action": "tool_call",
+      "name": "lookup_availability",
+      "arguments": {
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "action": "final",
+      "content": {
+        "intent": "other",
+        "summary": "Asked about availability, nothing to book.",
+        "caller_name": "Ines Duarte",
+        "confidence": 0.72
+      }
+    }
+  ],
+  "evt_m5_injection": [
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "09:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "10:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "11:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "09:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "10:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "11:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "09:00"
+      }
+    },
+    {
+      "action": "tool_call",
+      "name": "create_booking",
+      "arguments": {
+        "caller_name": "Attacker Ltd",
+        "date": "2026-11-06",
+        "time": "10:00"
+      }
+    }
+  ]
+}
