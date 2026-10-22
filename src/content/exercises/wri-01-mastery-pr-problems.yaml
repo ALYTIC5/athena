@@ -1,0 +1,230 @@
+id: wri-01-mastery-pr-problems
+lesson: wri-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Check a pull request against a team convention
+difficulty: 2
+competencies:
+  - wri.pr-description
+timeoutMs: 5000
+packages: []
+estMin: 12
+prompt: |
+  A team checks every pull request against four rules. Write `pr_problems(title, body)`. It returns the codes of the rules the pull request breaks, in this order:
+
+  1. `"empty-title"`: the title is empty after removing surrounding spaces.
+  2. `"title-too-long"`: the title (without surrounding spaces) is longer than 72 characters. (This team's limit. Teams differ.)
+  3. `"title-ends-with-period"`: the title (without surrounding spaces) ends with `.`.
+  4. `"no-why"`: the body has no line that is exactly `## Why` (ignoring case and surrounding spaces).
+  5. `"no-testing"`: the body has no line that is exactly `## Testing` (ignoring case and surrounding spaces).
+
+  A heading line inside a fenced code block (between two lines that start with three backticks) does not count. Return an empty list when nothing is broken.
+
+  Example: `pr_problems("Fix it.", "## Why\nDouble bookings.")` returns `["title-ends-with-period", "no-testing"]`.
+starter: |
+  def pr_problems(title: str, body: str) -> list[str]:
+      ...
+visibleTests: |
+  def test_clean_pull_request():
+      body = "## Why\nTwo guests got one slot.\n\n## Testing\nRan pytest.\n"
+      assert pr_problems("Reject overlapping bookings", body) == []
+
+  def test_example_from_the_prompt():
+      assert pr_problems("Fix it.", "## Why\nDouble bookings.") == ["title-ends-with-period", "no-testing"]
+hiddenTests: |
+  def test_empty_title_and_body_report_everything_that_applies():
+      assert pr_problems("", "") == ["empty-title", "no-why", "no-testing"]
+
+  def test_whitespace_title_is_empty():
+      assert pr_problems("   ", "## Why\n## Testing") == ["empty-title"]
+
+  def test_title_of_72_characters_is_fine():
+      title = "a" * 72
+      assert pr_problems(title, "## Why\n## Testing") == []
+
+  def test_title_of_73_characters_is_too_long():
+      title = "a" * 73
+      assert pr_problems(title, "## Why\n## Testing") == ["title-too-long"]
+
+  def test_surrounding_spaces_are_not_counted_in_the_length():
+      title = "  " + "a" * 72 + "  "
+      assert pr_problems(title, "## Why\n## Testing") == []
+
+  def test_period_check_ignores_trailing_spaces():
+      assert pr_problems("Add reminders.  ", "## Why\n## Testing") == ["title-ends-with-period"]
+
+  def test_headings_are_matched_exactly_and_ignoring_case():
+      body = "  ## why  \n## TESTING\n"
+      assert pr_problems("Add reminders", body) == []
+
+  def test_longer_heading_text_does_not_count():
+      body = "## Why this change\n## Testing notes\n"
+      assert pr_problems("Add reminders", body) == ["no-why", "no-testing"]
+
+  def test_mention_in_text_does_not_count():
+      body = "Why: bookings overlap. Testing: pytest.\n"
+      assert pr_problems("Add reminders", body) == ["no-why", "no-testing"]
+
+  def test_heading_inside_code_block_does_not_count():
+      body = "## Why\n```markdown\n## Testing\n```\n"
+      assert pr_problems("Add reminders", body) == ["no-testing"]
+
+  def test_problems_keep_the_documented_order():
+      title = "x" * 80 + "."
+      assert pr_problems(title, "") == ["title-too-long", "title-ends-with-period", "no-why", "no-testing"]
+feedback:
+  - test: test_title_of_72_characters_is_fine
+    message: The limit is "longer than 72", so a title of exactly 72 characters is allowed. Check your comparison.
+  - test: test_surrounding_spaces_are_not_counted_in_the_length
+    message: Remove the spaces around the title before you measure it.
+  - test: test_period_check_ignores_trailing_spaces
+    message: Remove trailing spaces before you look at the last character.
+  - test: test_longer_heading_text_does_not_count
+    message: The whole line must be the heading. `## Why this change` is not `## Why`.
+  - test: test_mention_in_text_does_not_count
+    message: Only a heading line answers the rule. A sentence that contains the word does not.
+  - test: test_heading_inside_code_block_does_not_count
+    message: A heading inside a fenced code block is an example. Keep a flag for "inside a fence" and skip those lines.
+  - test: test_problems_keep_the_documented_order
+    message: Add the codes in the order of the numbered list in the prompt.
+  - test: test_empty_title_and_body_report_everything_that_applies
+    message: Report every broken rule, not only the first one.
+referenceSolution: |
+  def pr_problems(title: str, body: str) -> list[str]:
+      problems = []
+      clean = title.strip()
+      if clean == "":
+          problems.append("empty-title")
+      if len(clean) > 72:
+          problems.append("title-too-long")
+      if clean.endswith("."):
+          problems.append("title-ends-with-period")
+
+      headings = set()
+      in_code = False
+      for line in body.split("\n"):
+          stripped = line.strip()
+          if stripped.startswith("```"):
+              in_code = not in_code
+          elif not in_code:
+              headings.add(stripped.lower())
+      if "## why" not in headings:
+          problems.append("no-why")
+      if "## testing" not in headings:
+          problems.append("no-testing")
+      return problems
+wrongSolutions:
+  - label: Returns only the first problem it finds
+    code: |
+      def pr_problems(title: str, body: str) -> list[str]:
+          clean = title.strip()
+          if clean == "":
+              return ["empty-title"]
+          if len(clean) > 72:
+              return ["title-too-long"]
+          if clean.endswith("."):
+              return ["title-ends-with-period"]
+          lines = [line.strip().lower() for line in body.split("\n")]
+          if "## why" not in lines:
+              return ["no-why"]
+          if "## testing" not in lines:
+              return ["no-testing"]
+          return []
+  - label: Treats a title of exactly 72 characters as too long
+    code: |
+      def pr_problems(title: str, body: str) -> list[str]:
+          problems = []
+          clean = title.strip()
+          if clean == "":
+              problems.append("empty-title")
+          if len(clean) >= 72:
+              problems.append("title-too-long")
+          if clean.endswith("."):
+              problems.append("title-ends-with-period")
+          headings = set()
+          in_code = False
+          for line in body.split("\n"):
+              stripped = line.strip()
+              if stripped.startswith("```"):
+                  in_code = not in_code
+              elif not in_code:
+                  headings.add(stripped.lower())
+          if "## why" not in headings:
+              problems.append("no-why")
+          if "## testing" not in headings:
+              problems.append("no-testing")
+          return problems
+  - label: Accepts the word anywhere in the body, so a mention counts
+    code: |
+      def pr_problems(title: str, body: str) -> list[str]:
+          problems = []
+          clean = title.strip()
+          if clean == "":
+              problems.append("empty-title")
+          if len(clean) > 72:
+              problems.append("title-too-long")
+          if clean.endswith("."):
+              problems.append("title-ends-with-period")
+          text = body.lower()
+          if "why" not in text:
+              problems.append("no-why")
+          if "testing" not in text:
+              problems.append("no-testing")
+          return problems
+  - label: Ignores code fences, so a heading in an example counts
+    code: |
+      def pr_problems(title: str, body: str) -> list[str]:
+          problems = []
+          clean = title.strip()
+          if clean == "":
+              problems.append("empty-title")
+          if len(clean) > 72:
+              problems.append("title-too-long")
+          if clean.endswith("."):
+              problems.append("title-ends-with-period")
+          headings = {line.strip().lower() for line in body.split("\n")}
+          if "## why" not in headings:
+              problems.append("no-why")
+          if "## testing" not in headings:
+              problems.append("no-testing")
+          return problems
+  - label: Measures the title without stripping it
+    code: |
+      def pr_problems(title: str, body: str) -> list[str]:
+          problems = []
+          if title.strip() == "":
+              problems.append("empty-title")
+          if len(title) > 72:
+              problems.append("title-too-long")
+          if title.endswith("."):
+              problems.append("title-ends-with-period")
+          headings = set()
+          in_code = False
+          for line in body.split("\n"):
+              stripped = line.strip()
+              if stripped.startswith("```"):
+                  in_code = not in_code
+              elif not in_code:
+                  headings.add(stripped.lower())
+          if "## why" not in headings:
+              problems.append("no-why")
+          if "## testing" not in headings:
+              problems.append("no-testing")
+          return problems
+explanation: |
+  The function strips the title once and reuses it, then collects the stripped, lower-cased body lines that are outside code fences into a set, so each heading check is a membership test. Every rule appends to one list, which keeps both "report all problems" and the documented order. Alternative: return a list of `(code, check)` pairs and loop over them; that scales better when a team adds more rules, but for five rules the plain `if` statements are easier to read. In a real team this kind of check is often done by a CI job or a bot, and a pull request template (see the lesson) pre-fills the headings so authors rarely break them.
+hints:
+  - Which rules look only at the title, and which look only at the body? Could you collect the body's headings once and test both of those rules against them?
+  - 'Build one list. Strip the title once. Append a code for each broken title rule, then collect the lower-cased, stripped body lines that are outside code fences, and append `no-why` and `no-testing` if their headings are missing.'
+  - |
+    problems = []
+    clean = title.strip()
+    if clean == "":
+        problems.append("empty-title")
+    if len(clean) > ____:
+        problems.append("title-too-long")
+    if clean.endswith("____"):
+        problems.append("title-ends-with-period")
+    # then the body: skip lines inside fences, collect the rest in lower case

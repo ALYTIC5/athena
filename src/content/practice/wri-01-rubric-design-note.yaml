@@ -1,0 +1,48 @@
+id: wri-01-rubric-design-note
+lesson: wri-01
+kind: rubric
+competencies:
+  - wri.design-note
+title: Rate your design note for the booking reminder service
+estMin: 6
+criteria:
+  - name: Context and goals
+    levels:
+      - score: 0
+        description: A reader who has never seen the service could not tell what problem it solves or what success looks like.
+      - score: 1
+        description: The problem is clear, but the goals are vague, for example "make it good", or there is no way to tell whether they were met.
+      - score: 2
+        description: In a few sentences I state the problem and two or three goals that a reader could check afterwards.
+  - name: Non-goals
+    levels:
+      - score: 0
+        description: I did not say what the service will not do.
+      - score: 1
+        description: I listed non-goals, but they are things nobody would have expected anyway.
+      - score: 2
+        description: I named at least one tempting thing I am deliberately leaving out, with a short reason.
+  - name: Options and trade-offs
+    levels:
+      - score: 0
+        description: I described one approach only.
+      - score: 1
+        description: I described two or more options, but only said what is good about each.
+      - score: 2
+        description: I described at least two real options and said what each one costs and what each one gives.
+  - name: Decision and reasons
+    levels:
+      - score: 0
+        description: There is no decision, or it is stated without a reason.
+      - score: 1
+        description: I chose an option and gave a reason, but the reason does not refer to my goals or to the trade-offs above.
+      - score: 2
+        description: I chose one option and tied the reason to my goals, and said what I accept losing by choosing it.
+  - name: Risks and length
+    levels:
+      - score: 0
+        description: No risks are listed, or the note runs well over one page.
+      - score: 1
+        description: I listed risks but not what I would do about them, or the note is a little too long to read in a few minutes.
+      - score: 2
+        description: I listed the main risks, each with a first response or a question to settle, and the note fits on one page.

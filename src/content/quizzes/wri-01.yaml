@@ -1,0 +1,339 @@
+lesson: wri-01
+items:
+  # ---- Chunk 1: a README answers five questions (objective 1) ----
+  - id: wri-01-q-readme-opening
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [wri.readme]
+    stem: A stranger opens the README of a booking service. Which opening lets them decide in ten seconds whether it is relevant?
+    options:
+      - text: '"Slotkeeper is a small service that reserves appointment slots for a salon and sends a reminder message the day before. It is for developers who run their own booking page."'
+        correct: true
+        why: It says what the project is, what it does and who it is for, in two sentences. That is the first question a README must answer.
+      - text: '"Welcome! Thanks for visiting. This project was started in March and has had many contributors."'
+        correct: false
+        why: It is friendly but says nothing about what the project does. A reader still cannot decide whether to keep reading.
+      - text: '"slotkeeper v2.3.1. See docs/ for everything."'
+        correct: false
+        why: A version number and a pointer are not an explanation. The reader has to leave the page to find out what the project is.
+  - id: wri-01-q-quickstart-fix
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [wri.readme]
+    stem: 'A README quickstart says: "Install the dependencies and start the server." What is the main problem?'
+    options:
+      - text: It describes the steps instead of giving the exact commands to copy and run in order
+        correct: true
+        why: A quickstart works when a reader can paste the commands and see the project run. The reader should not have to guess which tool or command is meant.
+      - text: It is too short; a quickstart should explain how the server works internally
+        correct: false
+        why: Internals do not belong in the first two minutes. A quickstart should be as short as the commands allow.
+      - text: Quickstarts belong in a separate wiki, not in the README
+        correct: false
+        why: The README is the first file a reader opens, so the quickstart belongs there. Longer guides can live elsewhere and be linked.
+  - id: wri-01-q-readme-config
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [wri.readme, sec.secrets]
+    stem: Your service needs a payment API key. How should the README's configuration section handle it?
+    options:
+      - text: List the setting name, say what it is for and tell the reader to copy .env.example to .env and fill it in
+        correct: true
+        why: The README documents the name and where to set it. The real value stays out of the repository.
+      - text: Put a working test key in the README so new readers can start at once
+        correct: false
+        why: A key in the README is in the history and in every clone. Even a test key can be misused, and it teaches a bad habit.
+      - text: Leave configuration out; readers will find the setting in the code
+        correct: false
+        why: Reading code to find settings is the cost the README exists to remove. A missing setting also shows up as a confusing error.
+  - id: wri-01-q-readme-order
+    pools: [mastery]
+    objective: 1
+    type: order
+    competencies: [wri.readme]
+    stem: Put the README sections in the order a new reader needs them.
+    steps:
+      - Overview (what it is and who it is for)
+      - Quickstart (commands to run it)
+      - Usage (one example with its output)
+      - Configuration (settings by name)
+      - Tests and contributing
+  - id: wri-01-q-readme-too-long
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [wri.readme]
+    stem: A README is 40 screens long and documents every function. What is the main risk?
+    options:
+      - text: Readers leave before they find how to run the project
+        correct: true
+        why: The README has to work in the first two minutes. Detail the reader does not need yet should be linked, not placed in front of the quickstart.
+      - text: The README can no longer be edited in a pull request
+        correct: false
+        why: Length does not stop anyone editing a file. The risk is about the reader, not the tool.
+      - text: Long READMEs cannot contain code blocks
+        correct: false
+        why: Code blocks work at any length. The risk is that nobody gets as far as the one that matters.
+  - id: wri-01-q-readme-example
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [wri.readme]
+    stem: What should the usage section of a README show?
+    options:
+      - text: One realistic example with the command and the output it produces
+        correct: true
+        why: The reader can compare their result with yours and know the project works. One example is easier to follow than a list of every option.
+      - text: Only the list of every command-line option
+        correct: false
+        why: A list of options is reference material. It does not show a first successful use.
+      - text: A link to the source code
+        correct: false
+        why: Sending the reader into the code is the effort the README should save them.
+  - id: wri-01-q-readme-stale
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [wri.readme]
+    stem: A new teammate says the quickstart fails on the third command. What is the best response?
+    options:
+      - text: Run the quickstart in a fresh clone, find the missing step, and fix the README
+        correct: true
+        why: A fresh clone shows what a new reader sees. A quickstart that works only on the author's machine is a bug in the README.
+      - text: Tell the teammate to ask for help in chat each time
+        correct: false
+        why: That moves the cost to every new reader and does not fix the cause.
+      - text: Delete the quickstart, because setups differ
+        correct: false
+        why: Setups differ, which is why the commands need to be exact and tested. Without a quickstart, every reader starts from nothing.
+
+  # ---- Chunk 2: pull request descriptions (objective 2) ----
+  - id: wri-01-q-pr-missing
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [wri.pr-description]
+    stem: 'A pull request has the description "Fixed bug." What does the reviewer most need that is missing?'
+    options:
+      - text: Why the change is needed and how it was checked
+        correct: true
+        why: The reviewer cannot tell which bug, what the approach was or what to run to confirm it. The reason and the evidence are what a diff cannot show.
+      - text: A list of every line that changed
+        correct: false
+        why: The diff already shows that. A description should say what the diff cannot.
+      - text: The author's name
+        correct: false
+        why: The pull request already shows who opened it.
+  - id: wri-01-q-pr-title
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [wri.pr-description]
+    stem: Which pull request title will be most useful in the list of merged changes?
+    options:
+      - text: Reject a booking that overlaps an existing one
+        correct: true
+        why: It states what the change does, in a few words, and can be understood without opening the pull request.
+      - text: Fix stuff
+        correct: false
+        why: It tells nobody anything, so the history becomes unreadable.
+      - text: Updated bookings.py and test_bookings.py.
+        correct: false
+        why: The files are visible in the diff. The title should say what the change does, not where, and it does not need a full stop.
+      - text: WIP
+        correct: false
+        why: It says the work is unfinished but not what it is. Mark a pull request as a draft and give it a real title.
+  - id: wri-01-q-pr-closes
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [wri.pr-description, git.pull-requests]
+    stem: Your pull request description contains the line "Closes #42". What happens when the pull request is merged into the default branch?
+    options:
+      - text: Issue 42 is closed automatically
+        correct: true
+        why: GitHub links the pull request to the issue and closes the issue on merge into the default branch. Keywords such as fixes and resolves work the same way.
+      - text: Nothing; the line is only a comment
+        correct: false
+        why: GitHub reads these keywords. The line creates a link and closes the issue on merge.
+      - text: Issue 42 is deleted
+        correct: false
+        why: Issues are closed, not deleted, and they keep their history.
+  - id: wri-01-q-pr-tested
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [wri.pr-description]
+    stem: Which "how I checked it" entry helps a reviewer most?
+    options:
+      - text: 'Ran `pytest tests/test_bookings.py`: 12 passed. Not checked: bookings that cross midnight.'
+        correct: true
+        why: It names the command and result so the reviewer can repeat it, and it says where the weak spot is.
+      - text: Tested.
+        correct: false
+        why: There is nothing to repeat and nothing to judge. The reviewer has to take it on trust.
+      - text: Works on my machine.
+        correct: false
+        why: It gives no command and no result, and it says nothing about what was not checked.
+  - id: wri-01-q-pr-what
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [wri.pr-description]
+    stem: What belongs in the "what changed" part of a pull request description?
+    options:
+      - text: The approach in a few sentences, and anything the reviewer might find surprising
+        correct: true
+        why: This gives the reviewer a map before they read the diff, and warns them about the parts that need care.
+      - text: A line-by-line retelling of the diff
+        correct: false
+        why: The reviewer can read the diff. A retelling doubles their work and hides what matters.
+      - text: Nothing; the code should explain itself
+        correct: false
+        why: Code shows what it does, but not why it was done this way or what to look at first.
+  - id: wri-01-q-pr-template
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [wri.pr-description, git.pull-requests]
+    stem: What is a pull request template for?
+    options:
+      - text: It pre-fills the description with headings, so every author answers the same questions
+        correct: true
+        why: A template in the repository, such as .github/pull_request_template.md, shows the headings in every new pull request, so authors rarely forget the reason or the checks.
+      - text: It stops anyone from merging without approval
+        correct: false
+        why: Enforcing approval is done with branch protection rules. A template only fills in text.
+      - text: It writes the description from the diff
+        correct: false
+        why: A template is plain text with headings. The author still writes the content.
+  - id: wri-01-q-pr-order
+    pools: [mastery]
+    objective: 2
+    type: order
+    competencies: [wri.pr-description]
+    stem: Put the parts of a pull request description in the order that helps the reviewer most.
+    steps:
+      - Why (the problem, with a link to the issue)
+      - What changed (the approach and anything surprising)
+      - How it was checked (commands, results, what was not checked)
+
+  # ---- Chunk 3: design notes (objective 3) ----
+  - id: wri-01-q-dn-nongoals
+    pools: [check, mastery]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: Why does a design note list non-goals?
+    options:
+      - text: To name tempting things you are deliberately not solving, so the scope stays small and nobody argues for them later
+        correct: true
+        why: A non-goal is a decision. Writing it down saves the reviewer from asking for it and you from defending it.
+      - text: To list the features the team has not thought of yet
+        correct: false
+        why: Unknown future features are not non-goals. A non-goal is something you considered and left out.
+      - text: To make the note longer so it looks thorough
+        correct: false
+        why: A design note should fit on a page. Non-goals earn their place by limiting scope.
+  - id: wri-01-q-dn-options
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: A design note describes one approach and says "we will do this". What is missing?
+    options:
+      - text: At least one real alternative, with what each option costs and gives
+        correct: true
+        why: Without alternatives the reader cannot tell whether the choice was made or just assumed. Trade-offs let them check your reasoning.
+      - text: A longer list of goals
+        correct: false
+        why: More goals do not show that the approach was chosen over another one.
+      - text: The names of the reviewers
+        correct: false
+        why: Reviewers are named elsewhere. The note itself needs the comparison.
+  - id: wri-01-q-dn-decision
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: Which decision statement is strongest?
+    options:
+      - text: 'We chose a scheduled job that runs every hour. It reuses the existing worker and needs no new service. The cost is that a reminder can be up to an hour late.'
+        correct: true
+        why: It names the option, gives reasons that tie to the goals and says what is given up. A reader can disagree with something specific.
+      - text: We chose the hourly job because it is better.
+        correct: false
+        why: The word "better" is not a reason. The reader cannot check it against the goals.
+      - text: We are still discussing options.
+        correct: false
+        why: A design note exists to reach a decision. Open points belong in the risks and questions part.
+  - id: wri-01-q-dn-when
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: When is a design note most useful?
+    options:
+      - text: Before building a change that would be costly to undo
+        correct: true
+        why: Disagreements are cheapest to settle in a page of text, before the code exists.
+      - text: After the change has been merged, to record what happened
+        correct: false
+        why: A record has some value, but a note that arrives after the work cannot change the decision.
+      - text: For every one-line fix
+        correct: false
+        why: A note for a trivial change costs more than it saves. Use it where the choice matters.
+  - id: wri-01-q-dn-risks
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: Which risk entry is most useful in a design note?
+    options:
+      - text: 'The SMS provider may reject messages during an outage. First response: queue them and retry for up to an hour, then alert the team.'
+        correct: true
+        why: It names a concrete risk and says what you would do first, so the reviewer can judge whether the plan is enough.
+      - text: Things may go wrong.
+        correct: false
+        why: It is true of every project and tells the reader nothing to act on.
+      - text: There are no risks.
+        correct: false
+        why: Every design has risks. Saying there are none suggests they were not considered.
+  - id: wri-01-q-dn-length
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [wri.design-note]
+    stem: Why keep a design note to about one page?
+    options:
+      - text: Reviewers will read it, and a short page forces you to choose what matters
+        correct: true
+        why: A long note often goes unread. The limit makes you cut to the context, the options and the decision.
+      - text: Longer documents are not allowed on GitHub
+        correct: false
+        why: There is no such rule. The limit is about readers' time.
+      - text: One page is a legal requirement for design notes
+        correct: false
+        why: It is a convention, not a rule, and teams differ. The aim is a note people finish.
+  - id: wri-01-q-dn-order
+    pools: [mastery]
+    objective: 3
+    type: order
+    competencies: [wri.design-note]
+    stem: Put the parts of a one-page design note in the usual order.
+    steps:
+      - Context (the problem and why now)
+      - Goals
+      - Non-goals
+      - Options, with trade-offs
+      - Decision and reason
+      - Risks and open questions

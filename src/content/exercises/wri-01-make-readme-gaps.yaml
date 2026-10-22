@@ -1,0 +1,174 @@
+id: wri-01-make-readme-gaps
+lesson: wri-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Find the questions a README does not answer
+difficulty: 2
+competencies:
+  - wri.readme
+timeoutMs: 5000
+packages: []
+estMin: 9
+prompt: |
+  A README should answer four questions, each under its own heading. Write `missing_sections(readme)`. It takes the text of a README and returns the names from `REQUIRED` that have no heading, in the order of `REQUIRED`.
+
+  Rules:
+  - A heading is a line that starts with `## ` (two hashes and a space) at the very start of the line. The heading text is what follows, without surrounding spaces.
+  - Compare the text with a name ignoring upper and lower case. `## quickstart` counts as `Quickstart`, but `## Quickstart guide` does not.
+  - Lines inside a fenced code block (between two lines that start with three backticks) are not headings, even if they start with `## `.
+  - `### Tests` is a level-3 heading, so it does not count.
+
+  Example: a README with only `## Overview` and `## Tests` returns `["Quickstart", "Configuration"]`.
+starter: |
+  REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+  def missing_sections(readme: str) -> list[str]:
+      ...
+visibleTests: |
+  def test_reports_missing_in_order():
+      readme = "# Slotkeeper\n\n## Overview\nBooks slots.\n\n## Tests\nRun pytest.\n"
+      assert missing_sections(readme) == ["Quickstart", "Configuration"]
+
+  def test_complete_readme_has_nothing_missing():
+      readme = "## Overview\n\n## Quickstart\n\n## Configuration\n\n## Tests\n"
+      assert missing_sections(readme) == []
+hiddenTests: |
+  def test_empty_readme_misses_everything():
+      assert missing_sections("") == ["Overview", "Quickstart", "Configuration", "Tests"]
+
+  def test_heading_case_is_ignored():
+      readme = "## overview\n## QUICKSTART\n## configuration\n## Tests\n"
+      assert missing_sections(readme) == []
+
+  def test_heading_inside_code_block_does_not_count():
+      readme = "## Overview\n\n```markdown\n## Tests\n## Quickstart\n```\n\n## Configuration\n"
+      assert missing_sections(readme) == ["Quickstart", "Tests"]
+
+  def test_level_three_heading_does_not_count():
+      readme = "## Overview\n### Tests\n"
+      assert missing_sections(readme) == ["Quickstart", "Configuration", "Tests"]
+
+  def test_extra_words_in_heading_do_not_count():
+      readme = "## Overview\n## Quickstart guide\n## Configuration\n## Tests\n"
+      assert missing_sections(readme) == ["Quickstart"]
+
+  def test_mentioning_a_name_in_text_does_not_count():
+      readme = "## Overview\nSee the tests and the quickstart and the configuration.\n"
+      assert missing_sections(readme) == ["Quickstart", "Configuration", "Tests"]
+
+  def test_spaces_around_heading_text_are_ignored():
+      readme = "##   Overview  \n## Quickstart\n## Configuration\n## Tests   \n"
+      assert missing_sections(readme) == []
+
+  def test_result_follows_required_order_not_file_order():
+      readme = "## Tests\n## Configuration\n"
+      assert missing_sections(readme) == ["Overview", "Quickstart"]
+feedback:
+  - test: test_heading_inside_code_block_does_not_count
+    message: Text inside a fenced code block is an example, not a heading. Track whether you are inside a fence, and toggle it on each line that starts with three backticks.
+  - test: test_level_three_heading_does_not_count
+    message: Only a line that starts with exactly `## ` counts. `### Tests` has a third hash, so it is a different level.
+  - test: test_extra_words_in_heading_do_not_count
+    message: The whole heading text must match the name. `Quickstart guide` is not `Quickstart`.
+  - test: test_mentioning_a_name_in_text_does_not_count
+    message: Mentioning a word in a sentence does not answer the question. Look at headings only.
+  - test: test_heading_case_is_ignored
+    message: Compare in lower case on both sides, then report the name as it is spelled in REQUIRED.
+  - test: test_result_follows_required_order_not_file_order
+    message: Build the result by walking through REQUIRED, so the order never depends on the README.
+  - test: test_spaces_around_heading_text_are_ignored
+    message: Strip the heading text before you compare it.
+  - test: test_empty_readme_misses_everything
+    message: An empty README has no headings, so every name in REQUIRED is missing.
+referenceSolution: |
+  REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+  def missing_sections(readme: str) -> list[str]:
+      found = set()
+      in_code = False
+      for line in readme.split("\n"):
+          if line.strip().startswith("```"):
+              in_code = not in_code
+          elif not in_code and line.startswith("## "):
+              found.add(line[3:].strip().lower())
+      return [name for name in REQUIRED if name.lower() not in found]
+wrongSolutions:
+  - label: Looks for the word anywhere in the text, so a mention counts as an answer
+    code: |
+      REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+      def missing_sections(readme: str) -> list[str]:
+          text = readme.lower()
+          return [name for name in REQUIRED if name.lower() not in text]
+  - label: Ignores code fences, so a heading in an example counts
+    code: |
+      REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+      def missing_sections(readme: str) -> list[str]:
+          found = set()
+          for line in readme.split("\n"):
+              if line.startswith("## "):
+                  found.add(line[3:].strip().lower())
+          return [name for name in REQUIRED if name.lower() not in found]
+  - label: Compares case-sensitively
+    code: |
+      REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+      def missing_sections(readme: str) -> list[str]:
+          found = set()
+          in_code = False
+          for line in readme.split("\n"):
+              if line.strip().startswith("```"):
+                  in_code = not in_code
+              elif not in_code and line.startswith("## "):
+                  found.add(line[3:].strip())
+          return [name for name in REQUIRED if name not in found]
+  - label: Strips every hash, so a level-3 heading counts
+    code: |
+      REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+      def missing_sections(readme: str) -> list[str]:
+          found = set()
+          in_code = False
+          for line in readme.split("\n"):
+              if line.strip().startswith("```"):
+                  in_code = not in_code
+              elif not in_code and line.startswith("##"):
+                  found.add(line.lstrip("#").strip().lower())
+          return [name for name in REQUIRED if name.lower() not in found]
+  - label: Matches by prefix, so "Quickstart guide" answers "Quickstart"
+    code: |
+      REQUIRED = ["Overview", "Quickstart", "Configuration", "Tests"]
+
+
+      def missing_sections(readme: str) -> list[str]:
+          found = []
+          in_code = False
+          for line in readme.split("\n"):
+              if line.strip().startswith("```"):
+                  in_code = not in_code
+              elif not in_code and line.startswith("## "):
+                  found.append(line[3:].strip().lower())
+          return [n for n in REQUIRED if not any(f.startswith(n.lower()) for f in found)]
+explanation: |
+  The function walks the README once, keeping a flag for "inside a code fence". Only a line that starts with `## ` outside a fence adds a heading to the set, and the result is built from `REQUIRED`, so the order never depends on the file. A set makes each lookup constant time, but with four names a list would work just as well. Alternative: a regular expression such as `re.match(r"## (.+?)\s*$", line)` finds headings in one step, but you still need the fence flag, and the plain `startswith` is easier to read.
+hints:
+  - A README can mention the word "tests" in a sentence without having a Tests heading. What exactly makes a line a heading here, and what makes a line part of an example?
+  - 'Go through the lines one at a time. Keep a flag that flips on every line that starts with three backticks. Outside a fence, collect the lower-cased text of lines that start with `## `. Return the names from REQUIRED that are not in the collection.'
+  - |
+    found = set()
+    in_code = False
+    for line in readme.split("\n"):
+        if line.strip().startswith("____"):
+            in_code = not in_code
+        elif not in_code and line.startswith("____"):
+            found.add(line[3:].strip().lower())
+    return [name for name in REQUIRED if name.lower() not in found]

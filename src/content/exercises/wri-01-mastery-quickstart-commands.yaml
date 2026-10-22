@@ -1,0 +1,230 @@
+id: wri-01-mastery-quickstart-commands
+lesson: wri-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Pull the quickstart commands out of a README
+difficulty: 3
+competencies:
+  - wri.readme
+timeoutMs: 5000
+packages: []
+estMin: 12
+prompt: |
+  A teammate wants to test that a README's quickstart really works, so they need its commands as a list. Write `quickstart_commands(readme)`.
+
+  Rules:
+  - The quickstart is the first fenced code block (it starts with a line beginning with three backticks, and ends at the next such line) after a line that is exactly `## Quickstart`, and before the next line that starts with `## `.
+  - Return the commands in that block, one string per line, in order, without surrounding spaces.
+  - Skip blank lines and comment lines (lines that start with `#`).
+  - If a command starts with the prompt `$ ` (a dollar sign and a space), remove the prompt.
+  - Return an empty list when there is no `## Quickstart` section or it has no code block.
+  - Ignore every other code block, in other sections or after the first one.
+
+  Example: a quickstart block containing `# install`, `$ pip install slotkeeper` and `slotkeeper init` returns `["pip install slotkeeper", "slotkeeper init"]`.
+starter: |
+  def quickstart_commands(readme: str) -> list[str]:
+      ...
+visibleTests: |
+  def test_commands_without_comments_or_prompts():
+      readme = "\n".join([
+          "## Quickstart",
+          "```bash",
+          "# install",
+          "$ pip install slotkeeper",
+          "slotkeeper init",
+          "```",
+      ])
+      assert quickstart_commands(readme) == ["pip install slotkeeper", "slotkeeper init"]
+
+  def test_no_quickstart_returns_empty_list():
+      assert quickstart_commands("## Overview\n```bash\necho hi\n```\n") == []
+hiddenTests: |
+  def block(*lines):
+      return "\n".join(["```bash", *lines, "```"])
+
+  def test_blank_lines_are_skipped():
+      readme = "## Quickstart\n" + block("make setup", "", "make run")
+      assert quickstart_commands(readme) == ["make setup", "make run"]
+
+  def test_only_the_first_block_counts():
+      readme = "## Quickstart\n" + block("make setup") + "\nText.\n" + block("make other")
+      assert quickstart_commands(readme) == ["make setup"]
+
+  def test_blocks_in_other_sections_are_ignored():
+      readme = "\n".join([
+          "## Overview",
+          block("not this"),
+          "## Quickstart",
+          block("make setup"),
+          "## Usage",
+          block("not this either"),
+      ])
+      assert quickstart_commands(readme) == ["make setup"]
+
+  def test_block_after_the_next_section_starts_is_ignored():
+      readme = "## Quickstart\nSee below.\n## Usage\n" + block("make run")
+      assert quickstart_commands(readme) == []
+
+  def test_quickstart_without_a_block():
+      assert quickstart_commands("## Quickstart\nJust run it.\n") == []
+
+  def test_empty_readme():
+      assert quickstart_commands("") == []
+
+  def test_surrounding_spaces_are_removed():
+      readme = "## Quickstart\n" + block("   make setup   ", "  $ make run")
+      assert quickstart_commands(readme) == ["make setup", "make run"]
+
+  def test_indented_comment_is_skipped():
+      readme = "## Quickstart\n" + block("  # install", "make setup")
+      assert quickstart_commands(readme) == ["make setup"]
+
+  def test_only_a_leading_prompt_is_removed():
+      readme = "## Quickstart\n" + block("echo $ HOME")
+      assert quickstart_commands(readme) == ["echo $ HOME"]
+
+  def test_language_tag_on_the_fence_is_not_a_command():
+      readme = "## Quickstart\n```sh\nmake setup\n```\n"
+      assert quickstart_commands(readme) == ["make setup"]
+feedback:
+  - test: test_only_the_first_block_counts
+    message: Stop at the closing fence of the first block. Later blocks are not part of the quickstart.
+  - test: test_blocks_in_other_sections_are_ignored
+    message: Only look for a block after the `## Quickstart` heading. A block under another heading is a different section's example.
+  - test: test_block_after_the_next_section_starts_is_ignored
+    message: A line that starts with `## ` ends the section. A block after it belongs to the next section.
+  - test: test_blank_lines_are_skipped
+    message: Skip lines that are empty after you strip them.
+  - test: test_indented_comment_is_skipped
+    message: Strip the line before you check whether it starts with `#`.
+  - test: test_only_a_leading_prompt_is_removed
+    message: Remove `$ ` only at the start of the line, not wherever it appears.
+  - test: test_language_tag_on_the_fence_is_not_a_command
+    message: The opening fence line, including a language tag such as `bash`, is not a command. Start collecting on the next line.
+  - test: test_surrounding_spaces_are_removed
+    message: Strip each command before you remove the prompt, then strip again if needed.
+referenceSolution: |
+  def quickstart_commands(readme: str) -> list[str]:
+      in_section = False
+      in_block = False
+      commands = []
+      for line in readme.split("\n"):
+          stripped = line.strip()
+          if in_block:
+              if stripped.startswith("```"):
+                  return commands
+              if stripped == "" or stripped.startswith("#"):
+                  continue
+              if stripped.startswith("$ "):
+                  stripped = stripped[2:].strip()
+              commands.append(stripped)
+          elif line.startswith("## "):
+              in_section = line.strip().lower() == "## quickstart"
+          elif in_section and stripped.startswith("```"):
+              in_block = True
+      return commands
+wrongSolutions:
+  - label: Collects every code block in the file
+    code: |
+      def quickstart_commands(readme: str) -> list[str]:
+          commands = []
+          in_block = False
+          for line in readme.split("\n"):
+              stripped = line.strip()
+              if stripped.startswith("```"):
+                  in_block = not in_block
+              elif in_block and stripped and not stripped.startswith("#"):
+                  commands.append(stripped[2:] if stripped.startswith("$ ") else stripped)
+          return commands
+  - label: Collects every block inside the Quickstart section, not only the first
+    code: |
+      def quickstart_commands(readme: str) -> list[str]:
+          in_section = False
+          in_block = False
+          commands = []
+          for line in readme.split("\n"):
+              stripped = line.strip()
+              if line.startswith("## "):
+                  in_section = line.strip().lower() == "## quickstart"
+              elif in_section and stripped.startswith("```"):
+                  in_block = not in_block
+              elif in_section and in_block and stripped and not stripped.startswith("#"):
+                  commands.append(stripped[2:] if stripped.startswith("$ ") else stripped)
+          return commands
+  - label: Keeps comment lines and blank lines as commands
+    code: |
+      def quickstart_commands(readme: str) -> list[str]:
+          in_section = False
+          in_block = False
+          commands = []
+          for line in readme.split("\n"):
+              stripped = line.strip()
+              if in_block:
+                  if stripped.startswith("```"):
+                      return commands
+                  commands.append(stripped[2:] if stripped.startswith("$ ") else stripped)
+              elif line.startswith("## "):
+                  in_section = line.strip().lower() == "## quickstart"
+              elif in_section and stripped.startswith("```"):
+                  in_block = True
+          return commands
+  - label: Leaves the "$ " prompt on the commands
+    code: |
+      def quickstart_commands(readme: str) -> list[str]:
+          in_section = False
+          in_block = False
+          commands = []
+          for line in readme.split("\n"):
+              stripped = line.strip()
+              if in_block:
+                  if stripped.startswith("```"):
+                      return commands
+                  if stripped == "" or stripped.startswith("#"):
+                      continue
+                  commands.append(stripped)
+              elif line.startswith("## "):
+                  in_section = line.strip().lower() == "## quickstart"
+              elif in_section and stripped.startswith("```"):
+                  in_block = True
+          return commands
+  - label: Does not end the section at the next heading
+    code: |
+      def quickstart_commands(readme: str) -> list[str]:
+          seen = False
+          in_block = False
+          commands = []
+          for line in readme.split("\n"):
+              stripped = line.strip()
+              if in_block:
+                  if stripped.startswith("```"):
+                      return commands
+                  if stripped == "" or stripped.startswith("#"):
+                      continue
+                  commands.append(stripped[2:] if stripped.startswith("$ ") else stripped)
+              elif line.strip().lower() == "## quickstart":
+                  seen = True
+              elif seen and stripped.startswith("```"):
+                  in_block = True
+          return commands
+explanation: |
+  The loop is a small state machine with two flags: `in_section` (are we under `## Quickstart`?) and `in_block` (are we between the first pair of fences?). A new `## ` heading resets `in_section`, which is how a block under a later heading is ignored, and returning at the first closing fence is how later blocks are ignored. Alternative: split the README into sections first with one pass, then search the Quickstart section for a block with a second pass. That reads more clearly in two steps, but needs more code. Tools that test READMEs in CI do something similar, which is how teams catch commands that no longer work.
+hints:
+  - 'You need to know two things as you read line by line: whether you are under the Quickstart heading, and whether you are inside a code block. How could you remember each?'
+  - 'Use two flags. A line starting with `## ` sets the section flag to whether it is the Quickstart heading. The first fence line in the section turns the block flag on. Inside the block, skip blank and `#` lines, remove a leading `$ `, collect the rest, and return when the closing fence appears.'
+  - |
+    in_section = False
+    in_block = False
+    commands = []
+    for line in readme.split("\n"):
+        stripped = line.strip()
+        if in_block:
+            if stripped.startswith("____"):
+                return commands
+            ...
+        elif line.startswith("____"):
+            in_section = line.strip().lower() == "## quickstart"
+        elif in_section and stripped.startswith("____"):
+            in_block = True
+    return commands

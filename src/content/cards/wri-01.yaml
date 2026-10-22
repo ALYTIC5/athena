@@ -1,0 +1,62 @@
+lesson: wri-01
+cards:
+  - id: wri-01-c-readme-questions
+    type: explain
+    competencies: [wri.readme]
+    front: What questions should a README answer, so a stranger understands the project in about two minutes?
+    back: What is it and who is it for? How do I run it (a quickstart)? How do I use it (one example with its output)? How do I configure it? How do I test and change it? Longer documentation can be linked rather than copied in.
+  - id: wri-01-c-readme-quickstart
+    type: explain
+    competencies: [wri.readme]
+    front: What makes a quickstart good, and how do you check yours?
+    back: It is a short list of exact commands, in order, that can be copied and pasted. You check it by running it in a fresh clone. If you need anything that is not written down, the quickstart is wrong.
+  - id: wri-01-c-readme-config
+    type: basic
+    competencies: [wri.readme, sec.secrets]
+    front: How should a README describe a project's settings, such as an API key?
+    back: List the setting names, what each is for and where to set it (for example a git-ignored .env copied from .env.example). Never write a real value in the README.
+  - id: wri-01-c-readme-too-long
+    type: explain
+    competencies: [wri.readme]
+    front: Why is a README that documents every function a problem?
+    back: A new reader leaves before they find how to run the project. Keep the README to the first two minutes and link to longer documentation for the rest.
+  - id: wri-01-c-pr-three-parts
+    type: explain
+    competencies: [wri.pr-description]
+    front: What three things should a pull request description give the reviewer?
+    back: Why the change is needed (the problem, with a link to the issue), what changed (the approach and anything surprising, not a copy of the diff), and how it was checked (commands run and results, plus what was not checked).
+  - id: wri-01-c-pr-closes
+    type: basic
+    competencies: [wri.pr-description, git.pull-requests]
+    front: What does writing "Closes #42" in a pull request description do?
+    back: It links the pull request to issue 42, and when the pull request is merged into the default branch GitHub closes the issue. The keywords include close, fix and resolve.
+  - id: wri-01-c-pr-title
+    type: basic
+    competencies: [wri.pr-description]
+    front: What does a good pull request title look like?
+    back: A short statement of what the change does, written as a command, such as "Reject overlapping bookings". It names the change, not the files touched. Teams set their own length limit.
+  - id: wri-01-c-pr-tested
+    type: explain
+    competencies: [wri.pr-description]
+    front: What should the "how I checked it" part of a pull request say?
+    back: The exact commands you ran and what you saw, and what you did not check. "Tested" tells the reviewer nothing; "ran pytest, 12 passed; did not test the midnight rollover" tells them where to look.
+  - id: wri-01-c-dn-sections
+    type: explain
+    competencies: [wri.design-note]
+    front: What sections does a one-page design note have?
+    back: Context, goals, non-goals, options (at least two, with trade-offs), the decision with its reason, and risks or open questions. Teams may call it a design doc or RFC and vary the headings.
+  - id: wri-01-c-dn-nongoals
+    type: explain
+    competencies: [wri.design-note]
+    front: Why write non-goals in a design note?
+    back: They name tempting things you are deliberately not solving. That keeps the scope small and stops a reviewer from asking for them later.
+  - id: wri-01-c-dn-decision
+    type: explain
+    competencies: [wri.design-note]
+    front: What makes the decision in a design note believable?
+    back: It names the option, gives the reason in terms of the goals, and says what is lost by choosing it. "We chose B because it is simpler" is weaker than "because it reuses the existing queue, and the cost is a delay of up to a minute".
+  - id: wri-01-c-dn-when
+    type: basic
+    competencies: [wri.design-note]
+    front: When do you write a design note, and why then?
+    back: Before building a change that is costly to undo. Disagreements are cheapest to settle in a page of text, before the code exists.
