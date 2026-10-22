@@ -1,0 +1,187 @@
+id: py-02-make-call-summary
+lesson: py-02
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Summarise a day of call logs
+difficulty: 3
+competencies:
+  - py.collections
+  - py.comprehensions
+timeoutMs: 5000
+packages: []
+prompt: |
+  A voice agent logs every call as a dict with `"caller"` (a string), `"hour"` (0 to 23) and `"reason"` (a string). Write `summarise_calls(calls)` that returns a dict with three keys:
+
+  - `"per_caller"`: a plain dict that maps each caller to how many calls they made.
+  - `"busiest_hour"`: the hour with the most calls. If two hours tie, the earlier hour wins. `None` if there are no calls.
+  - `"top_reasons"`: a list of at most 3 `(reason, count)` tuples, most common first. If reasons tie, the one that comes first alphabetically wins.
+
+  The list you were given must not change.
+
+  Example: calls for `amara` at 9, `bayu` at 9 and `amara` at 14, all about `booking`, give `per_caller` `{"amara": 2, "bayu": 1}`, `busiest_hour` 9 and `top_reasons` `[("booking", 3)]`.
+starter: |
+  def summarise_calls(calls: list[dict]) -> dict:
+      ...
+visibleTests: |
+  def test_summary_of_a_small_day():
+      calls = [
+          {"caller": "amara", "hour": 9, "reason": "booking"},
+          {"caller": "bayu", "hour": 9, "reason": "booking"},
+          {"caller": "amara", "hour": 14, "reason": "booking"},
+      ]
+      assert summarise_calls(calls) == {
+          "per_caller": {"amara": 2, "bayu": 1},
+          "busiest_hour": 9,
+          "top_reasons": [("booking", 3)],
+      }
+
+  def test_no_calls():
+      assert summarise_calls([]) == {"per_caller": {}, "busiest_hour": None, "top_reasons": []}
+hiddenTests: |
+  def call(caller, hour, reason):
+      return {"caller": caller, "hour": hour, "reason": reason}
+
+
+  def test_tied_hours_pick_the_earlier_one():
+      calls = [call("a", 15, "x"), call("b", 15, "x"), call("c", 8, "x"), call("d", 8, "x")]
+      assert summarise_calls(calls)["busiest_hour"] == 8
+
+  def test_tied_reasons_are_alphabetical():
+      calls = [call("a", 1, "cancel"), call("b", 1, "billing"), call("c", 1, "booking")]
+      assert summarise_calls(calls)["top_reasons"] == [("billing", 1), ("booking", 1), ("cancel", 1)]
+
+  def test_only_the_top_three_reasons():
+      calls = (
+          [call("a", 1, "booking")] * 4
+          + [call("b", 1, "billing")] * 3
+          + [call("c", 1, "cancel")] * 2
+          + [call("d", 1, "other")]
+      )
+      assert summarise_calls(calls)["top_reasons"] == [("booking", 4), ("billing", 3), ("cancel", 2)]
+
+  def test_fewer_than_three_reasons():
+      assert summarise_calls([call("a", 1, "billing")])["top_reasons"] == [("billing", 1)]
+
+  def test_per_caller_is_a_plain_dict():
+      result = summarise_calls([call("a", 1, "x")])
+      assert type(result["per_caller"]) is dict
+
+  def test_input_is_not_changed():
+      calls = [call("a", 20, "x"), call("b", 3, "y"), call("a", 11, "x")]
+      snapshot = [dict(c) for c in calls]
+      summarise_calls(calls)
+      assert calls == snapshot
+
+  def test_busiest_hour_counts_calls_not_callers():
+      calls = [call("a", 10, "x"), call("a", 10, "x"), call("a", 10, "x"), call("b", 11, "x"), call("c", 11, "x")]
+      assert summarise_calls(calls)["busiest_hour"] == 10
+feedback:
+  - test: test_tied_hours_pick_the_earlier_one
+    message: When two hours have the same count, the earlier hour must win. A plain max over a counter returns whichever it saw first. Sort or compare on (-count, hour).
+  - test: test_tied_reasons_are_alphabetical
+    message: Reasons with the same count must be in alphabetical order. most_common keeps the order the reasons first appeared in, so sort on (-count, reason) instead.
+  - test: test_only_the_top_three_reasons
+    message: Return at most three reasons, highest count first.
+  - test: test_no_calls
+    message: With no calls, busiest_hour is None and the other two are empty. Check for an empty counter before you pick a maximum.
+  - test: test_input_is_not_changed
+    message: Your function changed the list it was given, probably by sorting it in place. Sort a copy, or sort the counts instead.
+  - test: test_per_caller_is_a_plain_dict
+    message: Return a plain dict for per_caller, for example dict(counter).
+  - test: test_busiest_hour_counts_calls_not_callers
+    message: Count calls per hour, not distinct callers per hour.
+hints:
+  - What are the three questions, and which of them is really "count things and rank them"? Could one tool do the counting for all three?
+  - 'Use Counter for callers, hours and reasons. For the two rankings, sort on a key that puts the highest count first and breaks ties with the value itself, as in (-count, value).'
+  - |
+    from collections import Counter
+
+    per_caller = Counter(c["caller"] for c in calls)
+    by_hour = Counter(____)
+    busiest = min(by_hour, key=lambda h: (-by_hour[h], ____)) if by_hour else None
+    reasons = Counter(c["reason"] for c in calls)
+    top = sorted(reasons.items(), key=lambda item: (____, item[0]))[:3]
+referenceSolution: |
+  from collections import Counter
+
+
+  def summarise_calls(calls: list[dict]) -> dict:
+      per_caller = Counter(c["caller"] for c in calls)
+      by_hour = Counter(c["hour"] for c in calls)
+      busiest_hour = min(by_hour, key=lambda h: (-by_hour[h], h)) if by_hour else None
+      reasons = Counter(c["reason"] for c in calls)
+      top_reasons = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))[:3]
+      return {
+          "per_caller": dict(per_caller),
+          "busiest_hour": busiest_hour,
+          "top_reasons": top_reasons,
+      }
+wrongSolutions:
+  - label: Uses most_common, so tied reasons keep first-seen order instead of alphabetical order
+    code: |
+      from collections import Counter
+
+
+      def summarise_calls(calls: list[dict]) -> dict:
+          per_caller = Counter(c["caller"] for c in calls)
+          by_hour = Counter(c["hour"] for c in calls)
+          busiest_hour = min(by_hour, key=lambda h: (-by_hour[h], h)) if by_hour else None
+          top_reasons = Counter(c["reason"] for c in calls).most_common(3)
+          return {
+              "per_caller": dict(per_caller),
+              "busiest_hour": busiest_hour,
+              "top_reasons": top_reasons,
+          }
+  - label: Picks the busiest hour with max, so a tie goes to the hour seen first
+    code: |
+      from collections import Counter
+
+
+      def summarise_calls(calls: list[dict]) -> dict:
+          per_caller = Counter(c["caller"] for c in calls)
+          by_hour = Counter(c["hour"] for c in calls)
+          busiest_hour = max(by_hour, key=by_hour.get) if by_hour else None
+          reasons = Counter(c["reason"] for c in calls)
+          top_reasons = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))[:3]
+          return {
+              "per_caller": dict(per_caller),
+              "busiest_hour": busiest_hour,
+              "top_reasons": top_reasons,
+          }
+  - label: Crashes on an empty day by reading the first item of an empty list
+    code: |
+      from collections import Counter
+
+
+      def summarise_calls(calls: list[dict]) -> dict:
+          per_caller = Counter(c["caller"] for c in calls)
+          by_hour = Counter(c["hour"] for c in calls)
+          busiest_hour = sorted(by_hour.items(), key=lambda item: (-item[1], item[0]))[0][0]
+          reasons = Counter(c["reason"] for c in calls)
+          top_reasons = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))[:3]
+          return {
+              "per_caller": dict(per_caller),
+              "busiest_hour": busiest_hour,
+              "top_reasons": top_reasons,
+          }
+  - label: Sorts the caller's list in place, so the input changes
+    code: |
+      from collections import Counter
+
+
+      def summarise_calls(calls: list[dict]) -> dict:
+          calls.sort(key=lambda c: c["hour"])
+          per_caller = Counter(c["caller"] for c in calls)
+          by_hour = Counter(c["hour"] for c in calls)
+          busiest_hour = min(by_hour, key=lambda h: (-by_hour[h], h)) if by_hour else None
+          reasons = Counter(c["reason"] for c in calls)
+          top_reasons = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))[:3]
+          return {
+              "per_caller": dict(per_caller),
+              "busiest_hour": busiest_hour,
+              "top_reasons": top_reasons,
+          }
+explanation: |
+  One pass per question: a `Counter` for callers, one for hours and one for reasons. Each count is linear in the number of calls. Ranking uses `sorted` with a key that returns a tuple: a negative count puts the highest count first, and the value itself breaks ties. That is why the answer does not depend on the order of the log. For the busiest hour, `min` with the same key avoids sorting everything when you only need one winner. Alternative: `most_common` is shorter, but ties keep first-seen order, which is not what the rules ask for. Another alternative is a single loop with three `defaultdict(int)` counters; it does the same work with more code.

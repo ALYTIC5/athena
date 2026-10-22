@@ -1,0 +1,91 @@
+id: py-02-faded-group-by-caller
+lesson: py-02
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Group the reasons for calling by caller
+difficulty: 2
+competencies:
+  - py.collections
+timeoutMs: 5000
+packages: []
+prompt: |
+  `group_by_caller(calls)` takes call records (dicts with `"caller"` and `"reason"`) and returns a plain dict that maps each caller to the list of their reasons, in the order the calls came in.
+  Fill in the two blanks: the factory that makes a new empty list for a caller seen for the first time, and the method that adds a reason to it.
+starter: |
+  from collections import defaultdict
+
+
+  def group_by_caller(calls):
+      groups = defaultdict(____)
+      for call in calls:
+          groups[call["caller"]].____(call["reason"])
+      return dict(groups)
+visibleTests: |
+  def test_groups_reasons_by_caller():
+      calls = [
+          {"caller": "amara", "reason": "booking"},
+          {"caller": "bayu", "reason": "billing"},
+          {"caller": "amara", "reason": "cancel"},
+      ]
+      assert group_by_caller(calls) == {"amara": ["booking", "cancel"], "bayu": ["billing"]}
+
+  def test_no_calls():
+      assert group_by_caller([]) == {}
+hiddenTests: |
+  def test_keeps_repeated_reasons_and_order():
+      calls = [
+          {"caller": "chen", "reason": "booking"},
+          {"caller": "chen", "reason": "booking"},
+          {"caller": "chen", "reason": "billing"},
+      ]
+      assert group_by_caller(calls) == {"chen": ["booking", "booking", "billing"]}
+
+  def test_returns_a_plain_dict():
+      assert type(group_by_caller([{"caller": "mei", "reason": "booking"}])) is dict
+
+  def test_callers_do_not_share_a_list():
+      result = group_by_caller([
+          {"caller": "a", "reason": "x"},
+          {"caller": "b", "reason": "y"},
+      ])
+      assert result["a"] is not result["b"]
+feedback:
+  - test: test_groups_reasons_by_caller
+    message: Each caller should map to a list of all their reasons. Check that the factory builds a list and that you add to it instead of replacing it.
+  - test: test_returns_a_plain_dict
+    message: Return a plain dict, as the starter does with `dict(groups)`, so a missing caller raises KeyError instead of quietly creating an empty list.
+hints:
+  - When a caller is seen for the first time, what should their value start as?
+  - The factory is a callable that returns an empty list, and you grow a list with a method that adds one item at the end.
+  - defaultdict(____)   and   groups[...].____(call["reason"])   where the first blank is the type `list` and the second is `append`
+referenceSolution: |
+  from collections import defaultdict
+
+
+  def group_by_caller(calls):
+      groups = defaultdict(list)
+      for call in calls:
+          groups[call["caller"]].append(call["reason"])
+      return dict(groups)
+wrongSolutions:
+  - label: Replaces the list on every call instead of adding to it
+    code: |
+      def group_by_caller(calls):
+          groups = {}
+          for call in calls:
+              groups[call["caller"]] = [call["reason"]]
+          return groups
+  - label: Returns the defaultdict itself, which makes missing callers appear
+    code: |
+      from collections import defaultdict
+
+
+      def group_by_caller(calls):
+          groups = defaultdict(list)
+          for call in calls:
+              groups[call["caller"]].append(call["reason"])
+          return groups
+explanation: |
+  `defaultdict(list)` calls `list()` the first time a missing key is read, so `groups[caller]` is an empty list that you can append to straight away. A plain dict would raise `KeyError` for a new caller. Alternative: `groups.setdefault(caller, []).append(reason)` works on a plain dict, but it builds a new empty list on every call even when the key exists. Converting back with `dict(groups)` matters because a `defaultdict` quietly creates an entry whenever you look up a missing key.

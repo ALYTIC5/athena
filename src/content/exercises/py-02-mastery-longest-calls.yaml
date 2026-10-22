@@ -1,0 +1,103 @@
+id: py-02-mastery-longest-calls
+lesson: py-02
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Pick the longest calls without reordering the log
+difficulty: 2
+competencies:
+  - py.collections
+  - py.mutability
+timeoutMs: 5000
+packages: []
+prompt: |
+  Each call is a dict with `"id"` (a string) and `"seconds"` (a number). Write `longest_calls(calls, n)` that returns a new list with the `n` longest calls (the same call dicts, not copies), longest first. If two calls last the same time, the one with the smaller id (in alphabetical order) comes first.
+
+  - If `n` is larger than the number of calls, return all of them in that order. If `n` is 0, return an empty list.
+  - The list you were given must keep its original order.
+starter: |
+  def longest_calls(calls: list[dict], n: int) -> list[dict]:
+      ...
+visibleTests: |
+  def test_longest_first():
+      calls = [
+          {"id": "c1", "seconds": 30},
+          {"id": "c2", "seconds": 90},
+          {"id": "c3", "seconds": 60},
+      ]
+      assert [c["id"] for c in longest_calls(calls, 2)] == ["c2", "c3"]
+
+  def test_input_order_is_kept():
+      calls = [{"id": "c1", "seconds": 30}, {"id": "c2", "seconds": 90}]
+      longest_calls(calls, 1)
+      assert [c["id"] for c in calls] == ["c1", "c2"]
+hiddenTests: |
+  def call(call_id, seconds):
+      return {"id": call_id, "seconds": seconds}
+
+
+  def test_ties_go_to_the_smaller_id():
+      calls = [call("c9", 60), call("c2", 60), call("c5", 60)]
+      assert [c["id"] for c in longest_calls(calls, 3)] == ["c2", "c5", "c9"]
+
+  def test_n_larger_than_the_log():
+      calls = [call("a", 5), call("b", 8)]
+      assert [c["id"] for c in longest_calls(calls, 10)] == ["b", "a"]
+
+  def test_n_is_zero():
+      assert longest_calls([call("a", 5)], 0) == []
+
+  def test_empty_log():
+      assert longest_calls([], 3) == []
+
+  def test_returns_the_same_call_dicts():
+      first = call("a", 5)
+      assert longest_calls([first], 1)[0] is first
+
+  def test_returns_a_new_list():
+      calls = [call("a", 5)]
+      assert longest_calls(calls, 1) is not calls
+
+  def test_mixed_ties_and_lengths():
+      calls = [call("d", 10), call("b", 30), call("a", 30), call("c", 20)]
+      assert [c["id"] for c in longest_calls(calls, 3)] == ["a", "b", "c"]
+feedback:
+  - test: test_input_order_is_kept
+    message: Your function reordered the list it was given. `list.sort` sorts in place; `sorted` builds a new list.
+  - test: test_ties_go_to_the_smaller_id
+    message: Calls with the same length must be ordered by id. A sort is stable, so equal keys keep their input order. Put the id in the key as a second part.
+  - test: test_longest_first
+    message: The longest call must come first. Check the direction of your sort.
+  - test: test_returns_a_new_list
+    message: Return a new list, not the list you were given. Sorting with `sorted` and slicing both build new lists.
+  - test: test_returns_the_same_call_dicts
+    message: Return the call dicts themselves, not copies or new dicts.
+  - test: test_mixed_ties_and_lengths
+    message: Sort on both values at once, with a key that returns a tuple such as (-seconds, id).
+hints:
+  - Two things decide the order. What are they, and which direction does each go?
+  - 'sorted accepts a key function, and the key can return a tuple. A negative number turns "largest first" into "smallest first", so the tuple can sort both parts the same way. Use sorted, not sort, and cut the result with a slice.'
+  - |
+    ordered = sorted(calls, key=lambda c: (____, c["id"]))
+    return ordered[:____]
+referenceSolution: |
+  def longest_calls(calls: list[dict], n: int) -> list[dict]:
+      ordered = sorted(calls, key=lambda c: (-c["seconds"], c["id"]))
+      return ordered[:n]
+wrongSolutions:
+  - label: Sorts the caller's list in place
+    code: |
+      def longest_calls(calls: list[dict], n: int) -> list[dict]:
+          calls.sort(key=lambda c: (-c["seconds"], c["id"]))
+          return calls[:n]
+  - label: Sorts only by length with reverse=True, so tied calls keep input order
+    code: |
+      def longest_calls(calls: list[dict], n: int) -> list[dict]:
+          return sorted(calls, key=lambda c: c["seconds"], reverse=True)[:n]
+  - label: Sorts shortest first
+    code: |
+      def longest_calls(calls: list[dict], n: int) -> list[dict]:
+          return sorted(calls, key=lambda c: (c["seconds"], c["id"]))[:n]
+explanation: |
+  `sorted(calls, key=...)` returns a new list and leaves `calls` alone, which is the lesson from py-01 applied to sorting. The key returns a tuple, and Python compares tuples one part at a time: first `-seconds` (so longer calls come first), then `id` (so ties go to the smaller id). Slicing with `[:n]` copes with an `n` larger than the list and with 0. Alternative: `heapq.nsmallest(n, calls, key=...)` does less work when `n` is much smaller than the list, but sorting everything is simpler and fine for a day of calls.

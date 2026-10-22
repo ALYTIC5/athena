@@ -1,0 +1,88 @@
+id: py-02-faded-allowed-callers
+lesson: py-02
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Remove blocked callers without a slow search
+difficulty: 2
+competencies:
+  - py.complexity
+  - py.collections
+timeoutMs: 8000
+estMin: 5
+packages: []
+prompt: |
+  `allowed(callers, blocked)` returns the callers that are not in the `blocked` list, in their original order. Both lists can be long, so test membership against a collection that answers "is it in here?" quickly.
+  The last visible test counts how many times Python compares two items with `==`, so scanning the blocked list for every caller fails it. Fill in the blanks: the collection to build from `blocked` once, and the operator that keeps a caller only when it is missing from that collection.
+starter: |
+  def allowed(callers, blocked):
+      blocked_set = ____(blocked)
+      return [c for c in callers if c ____ blocked_set]
+visibleTests: |
+  class Tracked:
+      comparisons = 0
+
+      def __init__(self, value):
+          self.value = value
+
+      def __hash__(self):
+          return hash(self.value)
+
+      def __eq__(self, other):
+          Tracked.comparisons += 1
+          return self.value == other.value
+
+
+  def test_removes_blocked_callers_and_keeps_order():
+      assert allowed(["amara", "bayu", "chen", "bayu"], ["bayu"]) == ["amara", "chen"]
+
+  def test_nobody_blocked():
+      assert allowed(["a", "b"], []) == ["a", "b"]
+
+  def test_work_does_not_grow_with_every_pair():
+      callers = [Tracked(n) for n in range(400)]
+      blocked = [Tracked(n) for n in range(200, 600)]
+      Tracked.comparisons = 0
+      result = allowed(callers, blocked)
+      assert [t.value for t in result] == list(range(200))
+      assert Tracked.comparisons < 10 * (len(callers) + len(blocked))
+hiddenTests: |
+  def test_everyone_blocked():
+      assert allowed(["a", "b"], ["b", "a"]) == []
+
+  def test_no_callers():
+      assert allowed([], ["a"]) == []
+
+  def test_repeats_are_kept():
+      assert allowed(["a", "a", "b"], ["b"]) == ["a", "a"]
+
+  def test_inputs_are_not_changed():
+      callers, blocked = ["a", "b"], ["b"]
+      allowed(callers, blocked)
+      assert callers == ["a", "b"] and blocked == ["b"]
+feedback:
+  - test: test_removes_blocked_callers_and_keeps_order
+    message: Keep a caller only when it is not in the blocked collection. Check the operator you chose.
+  - test: test_work_does_not_grow_with_every_pair
+    message: Searching a list for every caller compares far too many items. Build a set from the blocked list once, before the comprehension.
+hints:
+  - Each caller is checked against the blocked ids. Which collection makes each check fast?
+  - Build a set from the blocked list once, then keep each caller that is not in that set.
+  - blocked_set = ____(blocked)   and   c ____ blocked_set   where the operator is two words
+referenceSolution: |
+  def allowed(callers, blocked):
+      blocked_set = set(blocked)
+      return [c for c in callers if c not in blocked_set]
+wrongSolutions:
+  - label: Searches the blocked list for every caller, so the work grows with the product of the lengths
+    code: |
+      def allowed(callers, blocked):
+          return [c for c in callers if c not in blocked]
+  - label: Keeps the blocked callers instead of removing them
+    code: |
+      def allowed(callers, blocked):
+          blocked_set = set(blocked)
+          return [c for c in callers if c in blocked_set]
+explanation: |
+  Building `set(blocked)` once costs about one step per blocked caller. Each membership test in the comprehension then costs about one step, so the total is about the sum of the two lengths. Testing against the list itself costs up to the length of `blocked` for every caller, which is the product. Alternative: write it as a loop that appends each allowed caller, with the same cost. The set has no order, but that does not matter here because you only look things up in it, and the result follows the order of `callers`.
