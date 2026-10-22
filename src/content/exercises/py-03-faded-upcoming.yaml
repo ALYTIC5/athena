@@ -1,0 +1,99 @@
+id: py-03-faded-upcoming
+lesson: py-03
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Turn a filter into a generator
+difficulty: 1
+competencies:
+  - py.iterators-generators
+timeoutMs: 5000
+estMin: 5
+packages: []
+prompt: |
+  `upcoming(bookings, today)` should produce, one at a time, each booking (a dict with a `"date"` string) whose date is on or after `today`. Dates are in the form `"2026-11-02"`, so comparing the strings compares the dates. It must be a generator: it must not read more bookings than it needs.
+  Fill in the blank with the keyword that hands one booking to the caller and pauses.
+starter: |
+  def upcoming(bookings, today):
+      for b in bookings:
+          if b["date"] >= today:
+              ____ b
+visibleTests: |
+  def test_yields_only_upcoming_bookings():
+      bookings = [
+          {"id": "b1", "date": "2026-11-01"},
+          {"id": "b2", "date": "2026-11-03"},
+          {"id": "b3", "date": "2026-11-05"},
+      ]
+      assert [b["id"] for b in upcoming(bookings, "2026-11-02")] == ["b2", "b3"]
+
+  def test_nothing_upcoming():
+      assert list(upcoming([{"id": "b1", "date": "2026-10-01"}], "2026-11-02")) == []
+hiddenTests: |
+  class Source:
+      def __init__(self, items):
+          self.it = iter(items)
+          self.pulled = 0
+
+      def __iter__(self):
+          return self
+
+      def __next__(self):
+          value = next(self.it)
+          self.pulled += 1
+          return value
+
+
+  def test_reads_only_as_far_as_needed():
+      source = Source([
+          {"id": "b1", "date": "2026-11-03"},
+          {"id": "b2", "date": "2026-11-04"},
+          {"id": "b3", "date": "2026-11-05"},
+      ])
+      gen = upcoming(source, "2026-11-01")
+      assert next(gen)["id"] == "b1"
+      assert source.pulled == 1
+
+  def test_returns_an_iterator_not_a_list():
+      gen = upcoming([], "2026-11-01")
+      assert iter(gen) is gen
+
+  def test_date_equal_to_today_is_included():
+      assert [b["id"] for b in upcoming([{"id": "b1", "date": "2026-11-02"}], "2026-11-02")] == ["b1"]
+
+  def test_empty_input():
+      assert list(upcoming([], "2026-11-02")) == []
+feedback:
+  - test: test_reads_only_as_far_as_needed
+    message: Your function read more bookings than the first request needed. Produce each booking with `yield` as soon as you find it, instead of collecting a list first.
+  - test: test_returns_an_iterator_not_a_list
+    message: The result must be a generator, which you get by using `yield` inside the function. A returned list is not an iterator.
+  - test: test_yields_only_upcoming_bookings
+    message: The function should produce every upcoming booking, not only the first one. `return` ends the function at the first match, but `yield` pauses it and carries on.
+hints:
+  - What must happen each time a booking is found, so that the caller gets it but the loop can carry on afterwards?
+  - Use the keyword that turns a function into a generator. It hands over a value and pauses, and the loop resumes when the caller asks for the next item.
+  - ____ b   where the blank is a single keyword
+referenceSolution: |
+  def upcoming(bookings, today):
+      for b in bookings:
+          if b["date"] >= today:
+              yield b
+wrongSolutions:
+  - label: Uses return, so only the first upcoming booking comes back (and as a dict, not an iterator)
+    code: |
+      def upcoming(bookings, today):
+          for b in bookings:
+              if b["date"] >= today:
+                  return b
+  - label: Builds a whole list first, so nothing is lazy
+    code: |
+      def upcoming(bookings, today):
+          result = []
+          for b in bookings:
+              if b["date"] >= today:
+                  result.append(b)
+          return result
+explanation: |
+  A function that contains `yield` is a generator function. Calling it runs none of the body. Each `next` runs the body up to the next `yield`, hands back that value and pauses, keeping the loop position and local names. So the caller can stop after the first booking and the rest of the input is never read. Alternative: the generator expression `(b for b in bookings if b["date"] >= today)` does the same in one line, and a function with `yield` is the better choice when the body needs more than one step.

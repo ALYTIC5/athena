@@ -1,0 +1,613 @@
+lesson: py-03
+items:
+  # ---- Chunk 1: scope and closures (objective 1) ----
+  - id: py-03-q-legb-order
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: Inside a function, Python needs the value of a name. In which order does it look?
+    options:
+      - text: Local, then enclosing functions, then global, then built-in
+        correct: true
+        why: This is the LEGB rule, and Python stops at the first place that has the name.
+      - text: Global, then local, then enclosing functions, then built-in
+        correct: false
+        why: The function's own local names are checked first, so a local name hides a global one.
+      - text: Built-in, then global, then enclosing functions, then local
+        correct: false
+        why: This is the reverse of the real order. Built-in names such as len are the last place Python looks.
+      - text: Enclosing functions, then local, then built-in, then global
+        correct: false
+        why: The local scope always comes first, and the global scope comes before the built-ins.
+  - id: py-03-q-unbound-local
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: 'What happens when add(5) is called?'
+    code: |
+      total = 0
+
+      def add(n):
+          total += n
+          return total
+    options:
+      - text: UnboundLocalError, because assigning to total makes it local to add
+        correct: true
+        why: Any assignment inside a function makes that name local for the whole function, so total is read before it has a value.
+      - text: It returns 5, because Python finds the global total
+        correct: false
+        why: Reading a global works, but += also assigns, so total becomes a local name in add.
+      - text: It changes the global total to 5 and returns 5
+        correct: false
+        why: Changing a global from a function needs a global declaration. Without one the name is local.
+      - text: NameError, because total is not defined anywhere
+        correct: false
+        why: The global total exists. The error is about the local name, which has no value yet.
+  - id: py-03-q-predict-loop-closures
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [py.scope-closures]
+    code: |
+      def make_handlers():
+          handlers = []
+          for code in [1, 2, 3]:
+              def handler():
+                  return code
+              handlers.append(handler)
+          return handlers
+
+      print([h() for h in make_handlers()])
+    investigate:
+      - Why do all three handlers give the same number?
+      - How could you make each handler keep its own code?
+  - id: py-03-q-nonlocal
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: What does nonlocal count do inside an inner function?
+    options:
+      - text: It lets the inner function rebind the count of the enclosing function
+        correct: true
+        why: Without it, assigning to count would create a new local name in the inner function.
+      - text: It makes count a global variable
+        correct: false
+        why: That is what global does. nonlocal refers to the enclosing function, not the module.
+      - text: It makes count a read-only constant
+        correct: false
+        why: Python has no such declaration. nonlocal is about which scope a name belongs to.
+      - text: It copies count into the inner function
+        correct: false
+        why: No copy is made. The inner function shares the enclosing variable.
+  - id: py-03-q-closure-remembers
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: A function returns an inner function that uses one of its parameters. The outer function has finished. What happens when the inner function is called?
+    options:
+      - text: It still works, because it keeps a reference to the enclosing variable
+        correct: true
+        why: This is a closure. The enclosing variable stays alive as long as the inner function does.
+      - text: It raises NameError, because the outer function has ended
+        correct: false
+        why: The variable lives on inside the closure, so the name is still found.
+      - text: It uses the value the parameter had in the first call to the outer function
+        correct: false
+        why: Each call to the outer function makes its own variable, and the inner function uses the one from its own call.
+      - text: It looks the name up in the global scope instead
+        correct: false
+        why: The enclosing scope is checked before the global scope, and the name is found there.
+  - id: py-03-q-late-binding-fix
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: 'fs = [lambda: i for i in range(3)] gives [2, 2, 2] when you call each function. Which change gives [0, 1, 2]?'
+    options:
+      - text: 'Write lambda i=i: i, so each function stores its own i'
+        correct: true
+        why: A default value is evaluated when the lambda is created, so each function keeps its own value.
+      - text: Use range(2, -1, -1) so the list is filled backwards
+        correct: false
+        why: The order of the loop does not change when the lambdas read i. They still read the last value.
+      - text: Call each function twice
+        correct: false
+        why: Calling more often does not change the variable the lambdas share.
+      - text: Write global i inside the lambda
+        correct: false
+        why: A lambda cannot contain a statement, and a global would still be one shared variable.
+  - id: py-03-q-shadow-builtin
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: 'A script sets list = [1, 2] near the top. Later, list("ab") raises TypeError. Why?'
+    options:
+      - text: The global name list now hides the built-in list, and a list is not callable
+        correct: true
+        why: The global scope is searched before the built-ins, so the built-in is hidden by the new name.
+      - text: list can only be called with numbers
+        correct: false
+        why: list accepts any iterable, including a string.
+      - text: Built-in names can only be used once per program
+        correct: false
+        why: You can use a built-in as often as you like until you rebind its name.
+      - text: A string cannot be turned into a list
+        correct: false
+        why: list("ab") gives ['a', 'b'] when list is the built-in.
+  - id: py-03-q-predict-lambda-default
+    pools: [mastery]
+    objective: 1
+    type: predict
+    competencies: [py.scope-closures]
+    code: |
+      fs = [lambda n=n: n * 10 for n in range(3)]
+      print([f() for f in fs], fs[1](5))
+    investigate:
+      - Why does fs[1](5) not give 10?
+      - Which value does each function keep as its default?
+  - id: py-03-q-bug-closure
+    pools: [mastery]
+    objective: 1
+    type: bug
+    competencies: [py.scope-closures]
+    code: |
+      def make_greeters(names):
+          greeters = []
+          for name in names:
+              def greet():
+                  return "Hello " + name
+              greeters.append(greet)
+          return greeters
+    buggyLine: 4
+    explanation: Each greet reads name when it is called, and by then the loop has finished, so every greeter says hello to the last name. Give each function its own value, for example def greet(name=name), or build it in a helper function.
+  - id: py-03-q-global-read
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.scope-closures]
+    stem: 'RATE = 0.2 is set at module level. A function only reads RATE and never assigns to it. What happens?'
+    options:
+      - text: It works, because the global name is found after the local scope
+        correct: true
+        why: Reading follows the LEGB order, so no declaration is needed when you only read.
+      - text: It raises NameError, because RATE needs a global declaration to be read
+        correct: false
+        why: A global declaration is only needed to assign. Reading finds the name by the normal lookup.
+      - text: It raises UnboundLocalError, because RATE is not local
+        correct: false
+        why: That error appears when a name is assigned in the function and read first. Here it is never assigned.
+      - text: It works only if RATE is a number
+        correct: false
+        why: The type of the value does not matter. Any global name can be read.
+
+  # ---- Chunk 2: flexible arguments and decorators (objectives 2 and 3) ----
+  - id: py-03-q-args-type
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [py.args-kwargs]
+    stem: 'def f(*args): ... is called as f(1, "a", 3). What is args inside the function?'
+    options:
+      - text: The tuple (1, "a", 3)
+        correct: true
+        why: Extra positional arguments are collected into a tuple.
+      - text: The list [1, "a", 3]
+        correct: false
+        why: It is a tuple, which cannot be changed. Convert it with list(args) if you need a list.
+      - text: 'The dict {0: 1, 1: "a", 2: 3}'
+        correct: false
+        why: A dict is what **kwargs collects, and it uses names as keys, not positions.
+      - text: Only the first argument, 1
+        correct: false
+        why: args holds all the extra positional arguments, not just the first.
+  - id: py-03-q-keyword-only
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [py.args-kwargs]
+    stem: 'def book(name, *, slot): ... What happens with book("amara", "09:00")?'
+    options:
+      - text: A TypeError, because slot must be given by keyword
+        correct: true
+        why: Parameters after a bare * can only be passed by name, as in book("amara", slot="09:00").
+      - text: It works, and slot is "09:00"
+        correct: false
+        why: The bare * means everything after it is keyword-only, so a positional value is not accepted.
+      - text: It works, and slot is None
+        correct: false
+        why: There is no default for slot, and the extra positional value is an error.
+      - text: A SyntaxError, because * cannot stand alone
+        correct: false
+        why: A bare * is valid. It marks where keyword-only parameters begin.
+  - id: py-03-q-predict-show
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [py.args-kwargs]
+    code: |
+      def show(first, *args, sep="-", **kwargs):
+          print(first, args, sep, kwargs)
+
+      show(1, 2, 3, sep="+", a=4)
+    investigate:
+      - Which arguments end up in args, and which in kwargs?
+      - Why can sep not be given positionally?
+  - id: py-03-q-kwargs-type
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.args-kwargs]
+    stem: 'def f(**kwargs): ... is called as f(a=1, b=2). What is kwargs?'
+    options:
+      - text: 'A dict, {"a": 1, "b": 2}'
+        correct: true
+        why: Extra keyword arguments are collected into a dict, with the names as keys.
+      - text: A tuple, (1, 2)
+        correct: false
+        why: That is what *args does for positional arguments, and it would lose the names.
+      - text: A tuple of pairs, (("a", 1), ("b", 2))
+        correct: false
+        why: It is a real dict, so you can use kwargs["a"] and kwargs.items().
+      - text: A list of names, ["a", "b"]
+        correct: false
+        why: The values are collected too, not only the names.
+  - id: py-03-q-unpack-call
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [py.args-kwargs]
+    stem: 'def f(a, b, c=0): return a + b + c. What does f(*[1, 2], **{"c": 3}) return?'
+    options:
+      - text: '6'
+        correct: true
+        why: '* spreads the list into positional arguments (a=1, b=2) and ** spreads the dict into keyword arguments (c=3).'
+      - text: '3'
+        correct: false
+        why: The keyword argument c=3 is passed too, so the total is 1 + 2 + 3.
+      - text: A TypeError, because a list cannot be passed to a function
+        correct: false
+        why: The * in front of the list unpacks it. Without the star it would be one argument.
+      - text: A TypeError, because c is given twice
+        correct: false
+        why: c is only given once, through the dict. The list holds just a and b.
+  - id: py-03-q-decorator-equivalent
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.decorators]
+    stem: 'A function is defined with @shout on the line above def greet(name). What does that line do?'
+    options:
+      - text: It is the same as writing greet = shout(greet) after the def
+        correct: true
+        why: The decorator is called with the function and its result replaces the name greet.
+      - text: It calls greet once when it is defined
+        correct: false
+        why: The decorator is called, but the decorated function is not called until you call it.
+      - text: It copies greet into a new function called shout
+        correct: false
+        why: shout is the decorator and already exists. The name greet is rebound to what shout returns.
+      - text: It marks greet as read-only
+        correct: false
+        why: A decorator can do anything a function can do, but it does not mark a function read-only.
+  - id: py-03-q-wraps-why
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.decorators]
+    stem: What does @functools.wraps(func) on a wrapper function do?
+    options:
+      - text: It copies the name and docstring of func onto the wrapper
+        correct: true
+        why: Without it, the decorated function would report the wrapper's name, which makes tracebacks and help text confusing.
+      - text: It makes the wrapper run faster
+        correct: false
+        why: It adds a little work when the decorator is applied. It does not change speed.
+      - text: It calls func once before the wrapper
+        correct: false
+        why: wraps only copies information. The wrapper decides when func is called.
+      - text: It stops the wrapper from receiving keyword arguments
+        correct: false
+        why: It has no effect on arguments. Use *args and **kwargs in the wrapper to accept all of them.
+  - id: py-03-q-bug-wrapper-return
+    pools: [mastery]
+    objective: 3
+    type: bug
+    competencies: [py.decorators, py.args-kwargs]
+    code: |
+      import functools
+
+      def log_calls(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              print("calling", func.__name__)
+              func(*args, **kwargs)
+          return wrapper
+    buggyLine: 8
+    explanation: The wrapper calls func but throws the result away, so every decorated function returns None. Write return func(*args, **kwargs).
+  - id: py-03-q-decorator-factory
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.decorators]
+    stem: 'A function is decorated with @timed(clock). What must timed(clock) return?'
+    options:
+      - text: A decorator, which is a function that takes a function and returns one
+        correct: true
+        why: Python evaluates timed(clock) first, then applies the result as the decorator.
+      - text: The decorated function itself
+        correct: false
+        why: The function does not exist yet when timed(clock) runs. It is passed to the returned decorator.
+      - text: The current time
+        correct: false
+        why: That would be a number, and a number cannot be applied to a function.
+      - text: None, because the clock is only a setting
+        correct: false
+        why: A decorator that takes a setting is a function that returns the real decorator, so None would break it.
+  - id: py-03-q-first-class
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.decorators, py.scope-closures]
+    stem: Why can you pass a function as an argument or return one from another function?
+    options:
+      - text: A function is an object, like a number or a list
+        correct: true
+        why: Functions are first-class objects. They can be stored in variables, collections and arguments, and returned.
+      - text: Only functions defined with lambda can be passed
+        correct: false
+        why: Functions defined with def can be passed too. Lambda is only a short way to write one.
+      - text: Python copies the function body each time
+        correct: false
+        why: Passing a function passes a reference to the same object. Nothing is copied.
+      - text: Only built-in functions can be passed
+        correct: false
+        why: Any function can be passed, including your own.
+  - id: py-03-q-predict-decorator
+    pools: [mastery]
+    objective: 3
+    type: predict
+    competencies: [py.decorators, py.args-kwargs]
+    code: |
+      import functools
+
+      def shout(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              return func(*args, **kwargs).upper()
+          return wrapper
+
+      @shout
+      def greet(name):
+          return "hi " + name
+
+      print(greet("amara"), greet.__name__)
+    investigate:
+      - What would greet.__name__ print without functools.wraps?
+      - Which function does the call greet("amara") run first?
+
+  # ---- Chunk 3: iterators and generators (objective 4) ----
+  - id: py-03-q-generator-call
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: 'def numbers(): yield 1 ... print("start") is in the body before the first yield. What does g = numbers() do?'
+    options:
+      - text: It returns a generator and runs none of the body yet
+        correct: true
+        why: The body starts running at the first next(g), up to the first yield.
+      - text: It prints start and then returns the generator
+        correct: false
+        why: Calling a generator function does not run its body. Nothing is printed until you ask for the first item.
+      - text: It runs the whole body and returns a list
+        correct: false
+        why: A generator function never returns a list by itself. It produces items one at a time.
+      - text: It raises an error, because the function has no return
+        correct: false
+        why: A generator function does not need return. yield is enough.
+  - id: py-03-q-generator-memory
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: A file has ten million call records. Why can a generator that yields one record at a time handle it with little memory?
+    options:
+      - text: It holds one record at a time instead of all of them
+        correct: true
+        why: Each record is produced when asked for and can be discarded after use, so memory use stays small.
+      - text: It compresses the records
+        correct: false
+        why: A generator does not compress anything. It avoids building the whole collection.
+      - text: It stores the records on disk automatically
+        correct: false
+        why: A generator does not use disk. It produces items on demand.
+      - text: It reads the records faster than a list can
+        correct: false
+        why: The saving is in memory, not in total reading time.
+  - id: py-03-q-predict-lazy
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [py.iterators-generators]
+    code: |
+      def count_up(n):
+          print("start")
+          for i in range(n):
+              yield i
+
+      gen = count_up(2)
+      print("created")
+      print(next(gen))
+    investigate:
+      - Why does start print after created?
+      - What would the next call to next(gen) print?
+  - id: py-03-q-parsons-batches
+    pools: [check]
+    chunk: 3
+    type: parsons
+    competencies: [py.iterators-generators]
+    lines:
+      - 'def batches(records, size):'
+      - '    batch = []'
+      - '    for record in records:'
+      - '        batch.append(record)'
+      - '        if len(batch) == size:'
+      - '            yield batch'
+      - '            batch = []'
+      - '    if batch:'
+      - '        yield batch'
+    distractors:
+      - '            batch.clear()'
+  - id: py-03-q-one-shot
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: 'gen = (n for n in range(3)). After a = list(gen), what does b = list(gen) give?'
+    options:
+      - text: An empty list, because the generator is already used up
+        correct: true
+        why: A generator can be consumed only once. To go through the items again, create a new generator.
+      - text: The same list as a, [0, 1, 2]
+        correct: false
+        why: Lists can be read again and again, but a generator cannot.
+      - text: A StopIteration error
+        correct: false
+        why: list() catches StopIteration and simply ends, so you get an empty list.
+      - text: A list of None values
+        correct: false
+        why: Nothing is produced after the end, so the list is empty.
+  - id: py-03-q-for-protocol
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: What does a for loop do with the object after the word in?
+    options:
+      - text: It gets an iterator with iter(), then calls next() until StopIteration
+        correct: true
+        why: This is the iterator protocol. It is why lists, files and generators can all be used in a for loop.
+      - text: It copies all the items into a list first
+        correct: false
+        why: A for loop reads one item at a time. That is why it works on endless generators too.
+      - text: It calls len() and then uses an index
+        correct: false
+        why: Many iterables have no length and no index, such as generators.
+      - text: It only works on lists and tuples
+        correct: false
+        why: Any iterable works, including dicts, sets, strings, files and generators.
+  - id: py-03-q-iterable-vs-iterator
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: Which statement about a list and a generator is correct?
+    options:
+      - text: A list is an iterable that can be looped over again, and a generator is an iterator that is used up once
+        correct: true
+        why: Each for loop over a list starts a fresh iterator, but a generator is its own iterator.
+      - text: A list is an iterator, and a generator is an iterable
+        correct: false
+        why: This swaps the two ideas. A generator is itself an iterator.
+      - text: Both can be looped over any number of times
+        correct: false
+        why: A generator is used up after one pass.
+      - text: Neither can be used in a for loop
+        correct: false
+        why: Both can. A for loop accepts any iterable.
+  - id: py-03-q-islice
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: A generator produces an endless stream of readings. How do you take the first five?
+    options:
+      - text: list(itertools.islice(readings, 5))
+        correct: true
+        why: islice takes a slice of an iterator lazily, so it stops after five items.
+      - text: list(readings)[:5]
+        correct: false
+        why: list(readings) tries to collect the whole endless stream first and never finishes.
+      - text: readings[:5]
+        correct: false
+        why: A generator cannot be sliced with square brackets. Use itertools.islice.
+      - text: len(readings) == 5
+        correct: false
+        why: A generator has no length, and a comparison would not take items.
+  - id: py-03-q-yield-vs-return
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [py.iterators-generators]
+    stem: What is the difference between yield and return in a function?
+    options:
+      - text: yield hands back a value and pauses, and return ends the function
+        correct: true
+        why: A generator can yield many values. After a return, nothing more is produced.
+      - text: yield ends the function, and return pauses it
+        correct: false
+        why: This swaps them. return is the one that ends the function.
+      - text: They are the same, but yield is faster
+        correct: false
+        why: They behave differently. yield keeps the local state between items.
+      - text: yield can only be used with numbers
+        correct: false
+        why: A generator can yield any object.
+  - id: py-03-q-order-next
+    pools: [mastery]
+    objective: 4
+    type: order
+    competencies: [py.iterators-generators]
+    stem: Put these events in the order they happen the first time you use a generator function.
+    steps:
+      - You call the generator function and get a generator object
+      - You call next on the generator, and the body starts
+      - The body runs until it reaches the first yield
+      - The yielded value is returned to you, and the function pauses
+  - id: py-03-q-predict-gen-state
+    pools: [mastery]
+    objective: 4
+    type: predict
+    competencies: [py.iterators-generators]
+    code: |
+      def countdown(n):
+          while n > 0:
+              yield n
+              n -= 1
+
+      gen = countdown(3)
+      print(next(gen), next(gen), list(gen))
+    investigate:
+      - Why does the list contain only one item?
+      - Where is the value of n kept between the calls to next?
+  - id: py-03-q-bug-generator
+    pools: [mastery]
+    objective: 4
+    type: bug
+    competencies: [py.iterators-generators, py.scope-closures]
+    code: |
+      def batches(records, size):
+          batch = []
+          for record in records:
+              batch.append(record)
+              if len(batch) == size:
+                  yield batch
+                  batch.clear()
+          if batch:
+              yield batch
+    buggyLine: 7
+    explanation: The generator yields the same list object each time and then empties it with clear(), so a caller that collects the batches, for example with list(batches(...)), ends up with several references to one empty list. Start a new list with batch = [] instead.

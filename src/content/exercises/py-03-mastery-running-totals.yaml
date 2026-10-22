@@ -1,0 +1,121 @@
+id: py-03-mastery-running-totals
+lesson: py-03
+runtime: python
+kind: make
+pools:
+  - mastery
+title: A lazy running total of call minutes
+difficulty: 3
+competencies:
+  - py.iterators-generators
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write a generator function `running_totals(numbers)`. It takes any iterable of numbers (a list, a generator, or any other source) and produces the running total after each number, one at a time.
+
+  - `running_totals([2, 3, 5])` produces `2`, `5`, `10`.
+  - It must be lazy: it reads one number from `numbers` only when the caller asks for the next total. It must not read ahead or build a list first.
+  - An empty input produces nothing.
+starter: |
+  def running_totals(numbers):
+      ...
+visibleTests: |
+  def test_running_totals():
+      assert list(running_totals([2, 3, 5])) == [2, 5, 10]
+
+  def test_empty_input_produces_nothing():
+      assert list(running_totals([])) == []
+hiddenTests: |
+  class Source:
+      def __init__(self, items):
+          self.it = iter(items)
+          self.pulled = 0
+
+      def __iter__(self):
+          return self
+
+      def __next__(self):
+          value = next(self.it)
+          self.pulled += 1
+          return value
+
+
+  def test_is_a_generator():
+      gen = running_totals([1, 2])
+      assert iter(gen) is gen
+
+  def test_reads_one_number_per_total():
+      source = Source([1, 2, 3, 4])
+      gen = running_totals(source)
+      assert next(gen) == 1
+      assert source.pulled == 1
+      assert next(gen) == 3
+      assert source.pulled == 2
+
+  def test_accepts_a_generator_as_input():
+      assert list(running_totals(n * 2 for n in range(4))) == [0, 2, 6, 12]
+
+  def test_negative_numbers_and_floats():
+      assert list(running_totals([5, -2, 0.5])) == [5, 3, 3.5]
+
+  def test_single_number():
+      assert list(running_totals([7])) == [7]
+
+  def test_stops_when_the_input_ends():
+      gen = running_totals([1])
+      assert next(gen) == 1
+      try:
+          next(gen)
+      except StopIteration:
+          return
+      raise AssertionError("expected the generator to be finished")
+feedback:
+  - test: test_reads_one_number_per_total
+    message: Your function read more numbers than it needed. Do not turn the input into a list first. Loop over `numbers` and yield after each number.
+  - test: test_is_a_generator
+    message: The result must be a generator. A function that uses `yield` returns one, and a function that returns a list does not.
+  - test: test_running_totals
+    message: Each value should be the sum of all numbers so far. Keep a total outside the loop and add to it on each pass.
+  - test: test_negative_numbers_and_floats
+    message: Add each number to the total as it comes, whatever its type or sign.
+hints:
+  - What must the function remember between one item and the next, and where can it keep that?
+  - Keep a running total in a local variable before the loop. In the loop, add the next number to it and yield the new total. Local variables survive between yields.
+  - |
+    total = 0
+    for n in numbers:
+        total ____ n
+        ____ total
+referenceSolution: |
+  def running_totals(numbers):
+      total = 0
+      for n in numbers:
+          total += n
+          yield total
+wrongSolutions:
+  - label: Returns a finished list, so nothing is lazy
+    code: |
+      def running_totals(numbers):
+          totals = []
+          total = 0
+          for n in numbers:
+              total += n
+              totals.append(total)
+          return totals
+  - label: Reads the whole input into a list before it yields anything
+    code: |
+      def running_totals(numbers):
+          values = list(numbers)
+          total = 0
+          for n in values:
+              total += n
+              yield total
+  - label: Resets the total on every pass, so it yields the numbers themselves
+    code: |
+      def running_totals(numbers):
+          for n in numbers:
+              total = 0
+              total += n
+              yield total
+explanation: |
+  The local variable `total` lives as long as the generator does, so the function can add to it on each pass and `yield` the new value. Because the body pauses at each `yield`, it pulls one number from the input per total, which means it works for a very long file or an endless stream without holding it all in memory. Alternative: `itertools.accumulate(numbers)` does exactly this in the standard library. Writing it by hand shows how a generator keeps state between items.

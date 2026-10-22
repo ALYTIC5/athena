@@ -1,0 +1,151 @@
+id: py-03-faded-timed
+lesson: py-03
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: A timing decorator that takes its clock as an argument
+difficulty: 2
+competencies:
+  - py.decorators
+  - py.args-kwargs
+timeoutMs: 5000
+estMin: 6
+packages: []
+prompt: |
+  `timed(clock)` is a decorator that needs a setting, so it is written as a function that returns the real decorator. `clock` is a function that returns the current time. Tests pass a fake clock, so the result never depends on the real time.
+  The decorated function must return a tuple `(result, elapsed)`, where `elapsed` is the clock reading after the call minus the reading before it. It must accept any positional and keyword arguments and keep the name of the original function.
+  Fill in the two blanks.
+starter: |
+  import functools
+
+
+  def timed(clock):
+      def decorator(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              start = clock()
+              result = ____(*args, **kwargs)
+              return result, clock() - ____
+          return wrapper
+      return decorator
+visibleTests: |
+  def fake_clock(*times):
+      readings = iter(times)
+      return lambda: next(readings)
+
+
+  def test_returns_result_and_elapsed_time():
+      @timed(fake_clock(10.0, 12.5))
+      def add(a, b):
+          return a + b
+
+      assert add(1, 2) == (3, 2.5)
+
+  def test_keyword_arguments_are_passed_on():
+      @timed(fake_clock(0, 1))
+      def greet(name, *, punctuation="."):
+          return "Hi " + name + punctuation
+
+      assert greet("amara", punctuation="!") == ("Hi amara!", 1)
+
+  def test_name_is_kept():
+      @timed(fake_clock(0, 1))
+      def add(a, b):
+          return a + b
+
+      assert add.__name__ == "add"
+hiddenTests: |
+  def fake_clock(*times):
+      readings = iter(times)
+      return lambda: next(readings)
+
+
+  def test_each_call_is_timed_separately():
+      @timed(fake_clock(0, 1, 5, 9))
+      def double(x):
+          return x * 2
+
+      assert double(2) == (4, 1)
+      assert double(3) == (6, 4)
+
+  def test_docstring_is_kept():
+      @timed(fake_clock(0, 1))
+      def book():
+          """Book a slot."""
+
+      assert book.__doc__ == "Book a slot."
+
+  def test_no_arguments():
+      @timed(fake_clock(2, 5))
+      def ping():
+          return "pong"
+
+      assert ping() == ("pong", 3)
+feedback:
+  - test: test_returns_result_and_elapsed_time
+    message: Return a tuple of the function's result and the elapsed time. Elapsed is the later clock reading minus the earlier one, so subtract `start` from the new reading.
+  - test: test_keyword_arguments_are_passed_on
+    message: The wrapper must pass both `*args` and `**kwargs` on to the original function.
+  - test: test_name_is_kept
+    message: Keep `@functools.wraps(func)` above the wrapper, so the decorated function keeps its name and docstring.
+  - test: test_each_call_is_timed_separately
+    message: Read the clock once before and once after each call, inside the wrapper, so every call has its own start.
+hints:
+  - Inside wrapper, which function must be called, and which earlier value is subtracted from the new clock reading?
+  - Call the original function `func` with everything the wrapper received, then subtract the reading you stored in `start`.
+  - result = ____(*args, **kwargs)   and   return result, clock() - ____   where the blanks are the original function and the stored start time
+referenceSolution: |
+  import functools
+
+
+  def timed(clock):
+      def decorator(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              start = clock()
+              result = func(*args, **kwargs)
+              return result, clock() - start
+          return wrapper
+      return decorator
+wrongSolutions:
+  - label: Forgets keyword arguments when calling the original function
+    code: |
+      import functools
+
+
+      def timed(clock):
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  start = clock()
+                  result = func(*args)
+                  return result, clock() - start
+              return wrapper
+          return decorator
+  - label: Subtracts in the wrong order, so the elapsed time is negative
+    code: |
+      import functools
+
+
+      def timed(clock):
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  start = clock()
+                  result = func(*args, **kwargs)
+                  return result, start - clock()
+              return wrapper
+          return decorator
+  - label: Leaves out functools.wraps, so the decorated function loses its name
+    code: |
+      def timed(clock):
+          def decorator(func):
+              def wrapper(*args, **kwargs):
+                  start = clock()
+                  result = func(*args, **kwargs)
+                  return result, clock() - start
+              return wrapper
+          return decorator
+explanation: |
+  `timed(clock)` runs once and returns `decorator`. `decorator(func)` runs once and returns `wrapper`, and `wrapper` runs on every call. Using `*args` and `**kwargs` lets the wrapper pass on whatever the original function accepts, and `functools.wraps` copies the name and docstring so tools and tracebacks show the real function. The clock is a parameter so tests can control it: a fake clock makes the result exact. Alternative: a class with `__init__(self, func)` and `__call__` can also act as a decorator, but a function is the usual choice for something this small.

@@ -1,0 +1,237 @@
+id: py-03-make-remember
+lesson: py-03
+runtime: python
+kind: make
+pools:
+  - lesson
+title: A decorator that remembers results per argument tuple
+difficulty: 3
+competencies:
+  - py.decorators
+  - py.args-kwargs
+  - py.scope-closures
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write a decorator `remember` that makes a function remember its results. The first time the function is called with a particular set of positional arguments, call it and store the result. When it is called again with the same arguments, return the stored result without calling the function.
+
+  - Use the argument tuple as the key. You can assume all arguments are hashable and that the function is only called with positional arguments.
+  - A result of `None`, `0`, `""` or an empty list must be remembered too.
+  - Each decorated function has its own memory. Two different functions called with the same arguments must not share results.
+  - If the function raises an exception, nothing is stored, so the next call with the same arguments tries again.
+  - The decorated function must keep the original function's name and docstring.
+
+  Example: if `slow_square(4)` is called twice, the original function runs once, and both calls return 16.
+starter: |
+  def remember(func):
+      ...
+visibleTests: |
+  def test_calls_the_function_once_per_argument_tuple():
+      calls = []
+
+      @remember
+      def square(n):
+          calls.append(n)
+          return n * n
+
+      assert square(4) == 16
+      assert square(4) == 16
+      assert calls == [4]
+
+  def test_different_arguments_are_separate():
+      calls = []
+
+      @remember
+      def add(a, b):
+          calls.append((a, b))
+          return a + b
+
+      assert add(1, 2) == 3
+      assert add(2, 1) == 3
+      assert add(1, 2) == 3
+      assert calls == [(1, 2), (2, 1)]
+hiddenTests: |
+  def test_falsy_results_are_remembered():
+      calls = []
+
+      @remember
+      def nothing(n):
+          calls.append(n)
+          return None
+
+      nothing(1)
+      nothing(1)
+      assert calls == [1]
+
+  def test_zero_result_is_remembered():
+      calls = []
+
+      @remember
+      def zero(n):
+          calls.append(n)
+          return 0
+
+      assert zero(5) == 0
+      assert zero(5) == 0
+      assert calls == [5]
+
+  def test_each_function_has_its_own_memory():
+      @remember
+      def double(n):
+          return n * 2
+
+      @remember
+      def triple(n):
+          return n * 3
+
+      assert double(2) == 4
+      assert triple(2) == 6
+
+  def test_second_argument_matters():
+      @remember
+      def power(base, exponent):
+          return base ** exponent
+
+      assert power(2, 3) == 8
+      assert power(2, 4) == 16
+
+  def test_name_and_docstring_are_kept():
+      @remember
+      def lookup(key):
+          """Find a booking."""
+          return key
+
+      assert lookup.__name__ == "lookup"
+      assert lookup.__doc__ == "Find a booking."
+
+  def test_exception_is_not_stored():
+      attempts = []
+
+      @remember
+      def flaky(n):
+          attempts.append(n)
+          if len(attempts) == 1:
+              raise ValueError("first call fails")
+          return n
+
+      try:
+          flaky(7)
+      except ValueError:
+          pass
+      assert flaky(7) == 7
+      assert attempts == [7, 7]
+
+  def test_no_arguments():
+      calls = []
+
+      @remember
+      def config():
+          calls.append(1)
+          return "ok"
+
+      assert config() == "ok"
+      assert config() == "ok"
+      assert calls == [1]
+feedback:
+  - test: test_falsy_results_are_remembered
+    message: A stored result of None, 0 or an empty value is still a result. Test whether the argument tuple is a key in the memory, not whether the stored value is truthy.
+  - test: test_each_function_has_its_own_memory
+    message: Create the memory inside `remember`, so each decorated function gets its own. A memory shared by all functions mixes up their results.
+  - test: test_second_argument_matters
+    message: The whole argument tuple is the key, not just the first argument.
+  - test: test_name_and_docstring_are_kept
+    message: Use functools.wraps on the wrapper so the decorated function keeps its name and docstring.
+  - test: test_exception_is_not_stored
+    message: Store the result only after the function has returned. If it raises, nothing should be stored.
+  - test: test_calls_the_function_once_per_argument_tuple
+    message: The second call with the same arguments should return the stored result without calling the function again.
+hints:
+  - Where should the memory live so that each decorated function has its own, and how will you tell whether you have seen these arguments before?
+  - 'Create a dict inside remember. In the wrapper, take `*args`. If `args` is not a key in the dict, call the function and store the result under `args`. Return the stored value. Use functools.wraps on the wrapper.'
+  - |
+    import functools
+
+    def remember(func):
+        memory = {}
+
+        @functools.wraps(func)
+        def wrapper(*args):
+            if args not in ____:
+                memory[args] = ____(*args)
+            return memory[____]
+
+        return wrapper
+referenceSolution: |
+  import functools
+
+
+  def remember(func):
+      memory = {}
+
+      @functools.wraps(func)
+      def wrapper(*args):
+          if args not in memory:
+              memory[args] = func(*args)
+          return memory[args]
+
+      return wrapper
+wrongSolutions:
+  - label: Tests whether the stored value is truthy, so None and 0 are recomputed
+    code: |
+      import functools
+
+
+      def remember(func):
+          memory = {}
+
+          @functools.wraps(func)
+          def wrapper(*args):
+              if not memory.get(args):
+                  memory[args] = func(*args)
+              return memory[args]
+
+          return wrapper
+  - label: Uses only the first argument as the key
+    code: |
+      import functools
+
+
+      def remember(func):
+          memory = {}
+
+          @functools.wraps(func)
+          def wrapper(*args):
+              key = args[0] if args else None
+              if key not in memory:
+                  memory[key] = func(*args)
+              return memory[key]
+
+          return wrapper
+  - label: Shares one memory between every decorated function
+    code: |
+      import functools
+
+      memory = {}
+
+
+      def remember(func):
+          @functools.wraps(func)
+          def wrapper(*args):
+              if args not in memory:
+                  memory[args] = func(*args)
+              return memory[args]
+
+          return wrapper
+  - label: Leaves out functools.wraps, so the name and docstring are lost
+    code: |
+      def remember(func):
+          memory = {}
+
+          def wrapper(*args):
+              if args not in memory:
+                  memory[args] = func(*args)
+              return memory[args]
+
+          return wrapper
+explanation: |
+  `remember` runs once for each decorated function, so the `memory` dict inside it belongs to that function alone: the wrapper is a closure over it. The wrapper uses `*args` to accept any positional arguments, and the tuple `args` is the dict key. `args not in memory` is the right test, because testing the stored value would treat `None` or `0` as "missing". The result is stored only after `func` returns, so an exception leaves the memory unchanged. Alternative: the standard library provides `functools.cache` and `functools.lru_cache`, which do this and also handle keyword arguments; writing it yourself shows what they do. A cache that never forgets can use a lot of memory, which is why `lru_cache` can limit its size.

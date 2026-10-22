@@ -1,0 +1,225 @@
+---
+title: Functions in depth
+description: How Python looks up names, closures and the late-binding trap, flexible arguments, decorators with functools.wraps, and generators.
+sidebar:
+  order: 50
+lessonId: py-03
+week: 5
+track: py
+durationMin: 165
+anatomy: full
+competencies: [py.scope-closures, py.args-kwargs, py.decorators, py.iterators-generators]
+prerequisites: [py-02]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting, and the code you will read at work is full of these ideas.
+  Web frameworks register handlers with decorators, SDKs take flexible arguments, and data pipelines stream records
+  through generators instead of loading a whole file. They also appear in interviews as "what does this print?" and
+  "what does yield do?" questions.
+objectives:
+  - Explain Python's LEGB name lookup and predict what a closure created in a loop does
+  - Use *args, **kwargs and keyword-only arguments in definitions and calls
+  - Write a decorator that keeps the original function's name with functools.wraps
+  - Write a generator and explain why it saves memory
+sources:
+  - title: "Python tutorial: Python scopes and namespaces"
+    url: https://docs.python.org/3/tutorial/classes.html#python-scopes-and-namespaces
+  - title: "Python tutorial: more on defining functions"
+    url: https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions
+  - title: "Python FAQ: why do lambdas defined in a loop with different values all return the same result?"
+    url: https://docs.python.org/3/faq/programming.html#why-do-lambdas-defined-in-a-loop-with-different-values-all-return-the-same-result
+  - title: "Python reference: function definitions (decorators)"
+    url: https://docs.python.org/3/reference/compound_stmts.html#function-definitions
+  - title: "functools.wraps"
+    url: https://docs.python.org/3/library/functools.html#functools.wraps
+  - title: "Python tutorial: iterators"
+    url: https://docs.python.org/3/tutorial/classes.html#iterators
+  - title: "Python tutorial: generators"
+    url: https://docs.python.org/3/tutorial/classes.html#generators
+  - title: "itertools: functions creating iterators"
+    url: https://docs.python.org/3/library/itertools.html
+---
+
+<WarmUp lesson="py-03" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting, and the code you will read at work is full of these ideas. Web frameworks register handlers with decorators, SDKs take flexible arguments, and data pipelines stream records through generators instead of loading a whole file. They also appear in interviews as "what does this print?" and "what does yield do?" questions.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Explain Python's LEGB name lookup and predict what a closure created in a loop does.
+2. Use `*args`, `**kwargs` and keyword-only arguments in definitions and calls.
+3. Write a decorator that keeps the original function's name with `functools.wraps`.
+4. Write a generator and explain why it saves memory.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know names, mutability and default arguments from py-01, and dicts, tuples and comprehensions from py-02. You can write a function with `def` and call it. The rest is explained where it appears.
+
+</Callout>
+
+<Chunk n={1} title="Scope and closures">
+
+A **scope** is the part of a program where a name can be used. Inside a function, Python looks a name up in this order, called the **LEGB rule**: Local (the function itself), Enclosing (any functions around it), Global (the module) and Built-in (such as `len`). It stops at the first match. Assigning to a name inside a function makes it local for the whole function, unless you declare it `global` or `nonlocal`.
+
+A **closure** is an inner function that keeps using names from its enclosing function after that function has returned. It remembers the variable, not the value the variable had when the function was created. This is **late binding**, and it is why functions made in a loop all see the loop variable's last value.
+
+**Worked example.** A counter that remembers its count, then the loop trap and its fix.
+
+```python
+def make_counter():
+    count = 0
+    def next_id():
+        nonlocal count       # rebind the enclosing count, not a new local one
+        count += 1
+        return count
+    return next_id
+
+ids = make_counter()
+print(ids(), ids())          # 1 2: the count survives between calls
+```
+
+```python
+late = [lambda: name for name in ["amara", "bayu"]]
+print([f() for f in late])   # ['bayu', 'bayu']: both read `name` when called, after the loop
+fixed = [lambda name=name: name for name in ["amara", "bayu"]]
+print([f() for f in fixed])  # ['amara', 'bayu']: a default is stored when the lambda is created
+```
+
+Without `nonlocal`, `count += 1` would make `count` local to `next_id` and fail:
+
+```python nocheck="raises UnboundLocalError on purpose"
+total = 0
+def add(n):
+    total += n    # UnboundLocalError: total is local here, because it is assigned
+```
+
+<Predict lesson="py-03" item="py-03-q-predict-loop-closures" />
+
+<Exercise id="py-03-faded-prefixer" />
+
+<Quiz lesson="py-03" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A closure copies the variable's value." It keeps the variable, so later changes are seen, and loop variables are all seen at their last value.
+- "I can change a global inside a function just by assigning to it." Assigning creates a new local name unless you write `global`.
+- "`nonlocal` and `global` mean the same." `nonlocal` refers to an enclosing function's variable, and `global` to the module's.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Flexible arguments and decorators">
+
+`*args` collects extra positional arguments into a tuple, and `**kwargs` collects extra keyword arguments into a dict. Parameters after a bare `*` are **keyword-only**: callers must name them. In a call, `f(*items, **options)` does the reverse and spreads a sequence and a dict into arguments.
+
+Functions are objects, so you can pass them to other functions and return them. A **decorator** is a function that takes a function and returns a function, usually a wrapper that adds behaviour. Writing `@deco` above `def f` means `f = deco(f)`. The wrapper takes `*args, **kwargs` so it accepts any call, returns the original's result, and `@functools.wraps(func)` copies the original's name and docstring onto it. A decorator with a setting is a function that returns the decorator, used as `@timed(clock)`.
+
+**Worked example.** A decorator that logs every call.
+
+```python
+import functools
+
+def log_calls(func):
+    @functools.wraps(func)                 # keep the original name and docstring
+    def wrapper(*args, **kwargs):          # accept any call
+        print("calling", func.__name__, args, kwargs)
+        return func(*args, **kwargs)       # pass everything on, and return the result
+    return wrapper
+
+@log_calls                                 # same as: book = log_calls(book)
+def book(name, *, slot):                   # slot is keyword-only
+    return name + " at " + slot
+
+print(book("amara", slot="09:00"))         # calling book ('amara',) {'slot': '09:00'} / amara at 09:00
+print(book.__name__)                       # book: wraps kept the name
+```
+
+<Predict lesson="py-03" item="py-03-q-predict-show" />
+
+<Exercise id="py-03-faded-timed" />
+
+<Quiz lesson="py-03" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "A decorator changes the function it decorates." It replaces the name with whatever the decorator returns, usually a new wrapper function.
+- "A wrapper does not need to return anything." If it drops the result, every decorated function returns `None`.
+- "`*args` is a list." It is a tuple.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Iterators and generators">
+
+A `for` loop works on any **iterable**. It asks the object for an **iterator** with `iter()`, then calls `next()` on it until it raises `StopIteration`. A list gives a fresh iterator each time. A generator is its own iterator, so it can be used only once.
+
+A **generator function** is a function that contains `yield`. Calling it runs none of the body and returns a generator. Each `next()` runs the body up to the next `yield`, hands that value over and pauses with all local variables kept. A generator makes items on demand, so it can handle a file of ten million records without holding them all in memory.
+
+`itertools` has tools for iterators, such as `islice` (take the first few items lazily) and `chain` (join iterators). From Python 3.12, `itertools.batched` groups items into tuples.
+
+**Worked example.** A generator that reads call records one at a time.
+
+```python
+def read_calls(lines):
+    for line in lines:
+        caller, hour = line.split(",")
+        yield caller, int(hour)       # hand one record over, then pause here
+
+gen = read_calls(["amara,9", "bayu,14", "chen,10"])
+print(next(gen))                      # ('amara', 9): the body ran up to the first yield
+print(list(gen))                      # [('bayu', 14), ('chen', 10)]: the rest
+print(list(gen))                      # []: a generator is used up after one pass
+```
+
+<Predict lesson="py-03" item="py-03-q-predict-lazy" />
+
+<Exercise id="py-03-faded-upcoming" />
+
+<Quiz lesson="py-03" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "Calling a generator function runs it." It returns a generator. Nothing runs until the first `next()`.
+- "A generator is a list that is made later." It has no length, no indexing and no second pass.
+- "`return` and `yield` both end the function." `return` ends it. `yield` pauses it.
+
+</Callout>
+
+</Chunk>
+
+## Build a generator that yields batches
+
+Put the lines in order. One line is a distractor that makes the batches share one list.
+
+<Parsons lesson="py-03" item="py-03-q-parsons-batches" />
+
+<SessionBreak />
+
+## Find the bug
+
+Each reminder function in this list should name its own guest. The failing test shows what goes wrong.
+
+<Exercise id="py-03-debug-reminders" />
+
+## Write it yourself
+
+<Exercise id="py-03-make-remember" />
+
+<ExplainBack lesson="py-03" exercise="py-03-make-remember" />
+
+## Mastery check
+
+<MasteryCheck lesson="py-03" count={8} />
+
+<InterviewCorner lesson="py-03" />
+
+## Further reading
+
+- [Python tutorial: Python scopes and namespaces](https://docs.python.org/3/tutorial/classes.html#python-scopes-and-namespaces)
+- [functools.wraps](https://docs.python.org/3/library/functools.html#functools.wraps)
+- [Python tutorial: generators](https://docs.python.org/3/tutorial/classes.html#generators)
