@@ -20,7 +20,7 @@ prompt: |
   4. `"no-why"`: the body has no line that is exactly `## Why` (ignoring case and surrounding spaces).
   5. `"no-testing"`: the body has no line that is exactly `## Testing` (ignoring case and surrounding spaces).
 
-  A heading line inside a fenced code block (between two lines that start with three backticks) does not count. Return an empty list when nothing is broken.
+  A heading line inside a fenced code block (between two lines that start with three backticks, spaces before them allowed) does not count. Return an empty list when nothing is broken.
 
   Example: `pr_problems("Fix it.", "## Why\nDouble bookings.")` returns `["title-ends-with-period", "no-testing"]`.
 starter: |

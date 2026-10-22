@@ -56,13 +56,13 @@ items:
     objective: 1
     type: order
     competencies: [wri.readme]
-    stem: Put the README sections in the order a new reader needs them.
+    stem: Put the README sections in the order this lesson teaches them.
     steps:
       - Overview (what it is and who it is for)
       - Quickstart (commands to run it)
       - Usage (one example with its output)
       - Configuration (settings by name)
-      - Tests and contributing
+      - Tests (and contributing)
   - id: wri-01-q-readme-too-long
     pools: [mastery]
     objective: 1
@@ -265,7 +265,7 @@ items:
     objective: 3
     type: single
     competencies: [wri.design-note]
-    stem: 'A reminder service has two goals: no reminder is sent more than an hour late, and no new service to run. Which decision statement is strongest?'
+    stem: 'A reminder service has two goals: no reminder is sent more than two hours late, and no new service to run. Which decision statement is strongest?'
     options:
       - text: 'We chose a scheduled job that runs every hour. It reuses the existing worker and needs no new service. The cost is that a reminder can be up to an hour late.'
         correct: true

@@ -3,7 +3,7 @@ lesson: wri-01
 runtime: python
 kind: make
 pools:
-  - lesson
+  - mastery
 title: Find the questions a README does not answer
 difficulty: 2
 competencies:
@@ -15,7 +15,7 @@ prompt: |
   A README answers several questions, each under its own heading. This exercise checks four of them (the lesson also teaches Usage). Write `missing_sections(readme)`. It takes the text of a README and returns the names from `REQUIRED` that have no heading, in the order of `REQUIRED`.
 
   Rules:
-  - A heading is a line that starts with `## ` (two hashes and a space) at the very start of the line. The heading text is what follows, without surrounding spaces.
+  - A heading is a line that starts with `## ` (two hashes and a space) at the very start of the line. A fence line may have spaces before the three backticks. The heading text is what follows, without surrounding spaces.
   - Compare the text with a name ignoring upper and lower case. `## quickstart` counts as `Quickstart`, but `## Quickstart guide` does not.
   - Lines inside a fenced code block (between two lines that start with three backticks) are not headings, even if they start with `## `.
   - `### Tests` is a level-3 heading, so it does not count.

@@ -45,7 +45,7 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01). You can read the short Python functions from start-00; the exercises use loops, sets and string methods, and each has a three-step hint ladder. Markdown is the plain-text format that READMEs use: `#` starts a heading, and three backticks start and end a code block. All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
+You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01). The mastery exercises use a little Python: a loop, `startswith`, `strip`, `lower` and a true/false flag. Each has a three-step hint ladder that shows them. Markdown is the plain-text format that READMEs use. `#` starts a heading (`##` makes a level-2 heading), and three backticks start and end a code block. All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
 
 </Callout>
 
@@ -59,12 +59,16 @@ A **README** is the file a reader opens first, and GitHub shows it on the reposi
 4. How do I configure it? List setting names and what they do. Never write a real key (see sec-01).
 5. How do I test it and change it?
 
+As headings these become Overview, Quickstart, Usage, Configuration and Tests, and the exercises and checklist use these names.
+
 Long reference material does not belong in front of these answers. Link to it instead. The two minutes are a target, not a rule, and teams add sections such as a licence or a status note.
 
 **Worked example.** The start of a README for an invented booking service. Each comment says which question the line answers.
 
 ````markdown
 # Slotkeeper
+
+## Overview
 
 Slotkeeper reserves appointment slots for small salons and sends a     <!-- 1: what, who -->
 reminder the day before. It is for developers who run their own booking page.
@@ -117,7 +121,7 @@ A **pull request** asks a teammate to review and merge a change. The reviewer ca
 - **What changed:** the approach in a few sentences, and anything surprising. Do not retell the diff.
 - **Testing (how it was checked):** the exact commands and results, and what you did not check.
 
-The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", and keep it under about 70 characters; both are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch. A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
+The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", keep it under about 70 characters and leave off the full stop; these are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch (the branch the repository treats as its main line, usually `main`). A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
 
 **Worked example.** Compare two descriptions of the same change.
 
@@ -164,7 +168,7 @@ Now complete the sentence yourself: for a change that adds a daily reminder mess
 
 <Chunk n={3} title="A design note settles the choice before the code">
 
-A **design note** is a short document that proposes how to build something, written before you build it. Teams also call it a design doc or an RFC (request for comments). Python's own proposals, called PEPs (Python Enhancement Proposals), have sections for motivation and rejected ideas, which is the same idea. Disagreements are cheapest to settle in a page of text.
+A **design note** is a short document that proposes how to build something, written before you build it. Teams also call it a design doc or an RFC (request for comments). Python's own proposals, called [PEPs](https://peps.python.org/pep-0012/) (Python Enhancement Proposals), have sections for motivation and rejected ideas, which is the same idea. Disagreements are cheapest to settle in a page of text.
 
 Keep it to one page, with these parts:
 
@@ -210,10 +214,6 @@ It says option B was chosen because it meets the goal that messages are never lo
 </Callout>
 
 </Chunk>
-
-## Write it yourself
-
-<Exercise id="wri-01-make-readme-gaps" />
 
 ## Practise on your own work
 

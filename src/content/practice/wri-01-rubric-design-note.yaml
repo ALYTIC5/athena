@@ -4,7 +4,7 @@ kind: rubric
 competencies:
   - wri.design-note
 title: Rate your design note for the booking reminder service
-estMin: 5
+estMin: 8
 criteria:
   - name: Context and goals
     levels:
