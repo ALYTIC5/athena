@@ -19,6 +19,7 @@ prompt: |
   - Each decorated function has its own count.
   - The decorated function keeps the original name and docstring.
   - A call that raises an exception still counts as a call.
+  - While a call is running, `calls` already includes that call, so a function that reads its own `.calls` sees 1 during its first call.
 
   Example: after `ping()` has been called twice, `ping.calls` is 2.
 starter: |
@@ -113,7 +114,7 @@ feedback:
   - test: test_counts_calls
     message: The count starts at 0 on the wrapper, and goes up by one each time it is called.
 hints:
-  - Where can the count live so that each decorated function has its own, and so that outside code can read it as ping.calls?
+  - 'A function is an object, so it can carry attributes. Where can the count live so that each decorated function has its own, and so that outside code can read it as ping.calls?'
   - 'A function is an object, so it can have attributes. Set wrapper.calls = 0 after defining the wrapper. Inside the wrapper, add one to wrapper.calls, then call func with *args and **kwargs and return its result. Use functools.wraps.'
   - |
     import functools

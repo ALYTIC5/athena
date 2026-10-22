@@ -35,7 +35,7 @@ items:
           total += n
           return total
     options:
-      - text: UnboundLocalError, because assigning to total makes it local to add
+      - text: 'UnboundLocalError, because total becomes local to add'
         correct: true
         why: Any assignment inside a function makes that name local for the whole function, so total is read before it has a value.
       - text: It returns 5, because Python finds the global total
@@ -184,9 +184,9 @@ items:
       - text: It raises UnboundLocalError, because RATE is not local
         correct: false
         why: That error appears when a name is assigned in the function and read first. Here it is never assigned.
-      - text: It works only if RATE is a number
+      - text: 'It works, but Python copies RATE when the function is defined'
         correct: false
-        why: The type of the value does not matter. Any global name can be read.
+        why: 'Python does not copy it. The function looks RATE up each time it runs, so later changes are seen.'
 
   # ---- Chunk 2: flexible arguments and decorators (objectives 2 and 3) ----
   - id: py-03-q-args-type
@@ -269,7 +269,7 @@ items:
     competencies: [py.args-kwargs]
     stem: 'def f(a, b, c=0): return a + b + c. What does f(*[1, 2], **{"c": 3}) return?'
     options:
-      - text: '6, because the list and the dict are both spread into arguments'
+      - text: '6, because both are spread into arguments'
         correct: true
         why: '* spreads the list into positional arguments (a=1, b=2) and ** spreads the dict into keyword arguments (c=3).'
       - text: '3, because only the list is spread into arguments'
@@ -307,10 +307,10 @@ items:
     competencies: [py.decorators]
     stem: What does @functools.wraps(func) on a wrapper function do?
     options:
-      - text: It copies the name and docstring of func onto the wrapper
+      - text: 'It copies the name and docstring of func'
         correct: true
         why: Without it, the decorated function would report the wrapper's name, which makes tracebacks and help text confusing.
-      - text: It makes the wrapper run faster
+      - text: 'It makes the wrapper run a little faster'
         correct: false
         why: It adds a little work when the decorator is applied. It does not change speed.
       - text: It calls func once before the wrapper
@@ -430,13 +430,13 @@ items:
     competencies: [py.iterators-generators]
     stem: A file has ten million call records. Why can a generator that yields one record at a time handle it with little memory?
     options:
-      - text: It holds one record at a time instead of all of them
+      - text: 'It keeps one record in memory at a time'
         correct: true
         why: Each record is produced when asked for and can be discarded after use, so memory use stays small.
-      - text: It compresses the records
+      - text: 'It compresses the records as it reads them'
         correct: false
         why: A generator does not compress anything. It avoids building the whole collection.
-      - text: It stores the records on disk automatically
+      - text: 'It saves the records to disk as it goes'
         correct: false
         why: A generator does not use disk. It produces items on demand.
       - text: It reads the records faster than a list can
@@ -552,7 +552,7 @@ items:
         why: A generator cannot be sliced with square brackets. Use itertools.islice.
       - text: 'next(readings, 5), which returns five readings'
         correct: false
-        why: A generator has no length, and a comparison would not take items.
+        why: 'next() returns a single item. The 5 is only the default used if the generator is already exhausted.'
   - id: py-03-q-yield-vs-return
     pools: [mastery, warmup]
     objective: 4
@@ -560,7 +560,7 @@ items:
     competencies: [py.iterators-generators]
     stem: What is the difference between yield and return in a function?
     options:
-      - text: 'yield hands back a value and pauses the function, and return ends it'
+      - text: 'yield hands back a value and pauses, return ends it'
         correct: true
         why: A generator can yield many values. After a return, nothing more is produced.
       - text: 'yield ends the function, and return pauses it for later'
@@ -615,4 +615,4 @@ items:
           if batch:
               yield batch
     buggyLine: 7
-    explanation: The generator yields the same list object each time and then empties it with clear(), so a caller that collects the batches, for example with list(batches(...)), ends up with several references to one empty list. Start a new list with batch = [] instead.
+    explanation: 'The generator yields the same list object each time and then empties it with clear(), so a caller that collects the batches, for example with list(batches(...)), ends up with several references to one list object that has been emptied or refilled by the time the caller looks at it. Start a new list with batch = [] instead.'
