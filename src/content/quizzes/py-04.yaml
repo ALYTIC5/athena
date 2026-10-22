@@ -192,7 +192,7 @@ items:
         why: Exceptions still happen, but the cleanup runs before they carry on.
       - text: 'The file is locked against other programs'
         correct: false
-        why: Closing a file does not delete it.
+        why: 'with does not lock the file. It only closes it when the block ends.'
   - id: py-04-q-predict-contextmanager
     pools: [check, mastery]
     chunk: 2
@@ -543,7 +543,7 @@ items:
         why: A bug or bad input fails every time, so retrying it only wastes time and can hide the problem.
       - text: 'Only exceptions raised by your own code'
         correct: false
-        why: That is the user stopping the program, which should never be retried.
+        why: 'Where an exception comes from does not decide whether it is temporary. A timeout raised by a library is worth retrying, and a bug in your own code is not.'
       - text: None, because the first failure is always final
         correct: false
         why: Some failures are temporary, which is the reason to have a retry at all.

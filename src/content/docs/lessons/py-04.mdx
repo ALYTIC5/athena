@@ -109,6 +109,12 @@ except (KeyError, ValueError):
 print(hour)   # 9
 ```
 
+<Callout type="note" title="Retrying temporary failures">
+
+A **retry decorator** wraps a call in a loop. It catches only a tuple of listed, temporary exceptions such as a timeout, and it re-raises the last one after `max_attempts` calls in total. You will write one in the mastery check. Only retry calls that are safe to repeat.
+
+</Callout>
+
 <Predict lesson="py-04" item="py-04-q-predict-flow" />
 
 <Quiz lesson="py-04" chunk={1} />
@@ -127,7 +133,7 @@ print(hour)   # 9
 
 A `with` statement runs setup and guarantees cleanup, even if the block raises: `with open(path) as f:` closes the file at the end. A **context manager** is an object that does this. The short way to write one is a generator function with `@contextlib.contextmanager`. Code before `yield` is setup, the `with` body runs at the `yield`, and code after it, inside a `finally`, is cleanup.
 
-`pathlib.Path` represents a file path: `Path(folder) / "bookings.json"`, with `.read_text()` and `.write_text()`. `json.dumps` and `json.loads` convert between Python values and JSON text. JSON objects become dicts, and dict keys always come back as strings. `csv.DictReader` gives each row as a dict of strings, so convert numbers yourself. Bad JSON raises `json.JSONDecodeError`, a kind of `ValueError`.
+`pathlib.Path` represents a file path: `Path(folder) / "bookings.json"`, with `.read_text()` and `.write_text()`. `json.dumps` and `json.loads` convert between Python values and JSON text, and JSON objects become dicts whose keys are always strings. `csv.DictReader` gives each row as a dict of strings, so convert numbers yourself. Bad JSON raises `json.JSONDecodeError`, a kind of `ValueError`.
 
 **Worked example.** Write and read JSON with a context manager around the write.
 
@@ -184,7 +190,7 @@ print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
 
 A **naive** datetime is a clock reading with no time zone. An **aware** datetime has a UTC offset and stands for a moment in time. Ordering comparisons such as `<` between a naive and an aware one raise `TypeError`, and two naive times from different cities compare wrongly. So store and compare times in UTC, and convert to a local zone only to show them.
 
-**ISO 8601** is the standard text form, such as `2026-11-02T09:00:00+00:00`. `fromisoformat` reads it and `isoformat()` writes it. `ZoneInfo("Europe/London")` is a named time zone that follows daylight saving. `dt.replace(tzinfo=zone)` attaches a zone to a reading that is already local to it. `dt.astimezone(zone)` converts an aware time to another zone.
+**ISO 8601** is the standard text form, such as `2026-11-02T09:00:00+00:00`. `fromisoformat` reads it and `isoformat()` writes it. `ZoneInfo("Europe/London")` is a named time zone that follows daylight saving. `dt.replace(tzinfo=zone)` attaches a zone to a reading that is already local to it, and `dt.astimezone(zone)` converts an aware time to another zone.
 
 **Worked example.** The same moment in two zones, and the naive trap. This block uses a fixed offset, because a named zone needs the tz database.
 
@@ -211,6 +217,12 @@ local = datetime(2026, 11, 2, 9, 0).replace(tzinfo=ZoneInfo("America/New_York"))
 print(local.astimezone(timezone.utc).isoformat())    # 2026-11-02T14:00:00+00:00
 ```
 
+<Callout type="note" title="Keep the clock out of your logic">
+
+Code that calls `datetime.now(timezone.utc)` inside a function gives a different answer every time, which makes it hard to test. Take `now` as a parameter instead, and pass a fixed moment in tests.
+
+</Callout>
+
 <Predict lesson="py-04" item="py-04-q-predict-aware" />
 
 <Quiz lesson="py-04" chunk={3} />
@@ -218,7 +230,7 @@ print(local.astimezone(timezone.utc).isoformat())    # 2026-11-02T14:00:00+00:00
 <Callout type="misconception" title="Common misconceptions in chunk 3">
 
 - "A naive datetime is UTC." It has no zone at all, so it means nothing until you say which zone it is in.
-- "`astimezone` on a naive time converts it from nowhere." It assumes the computer's own zone, so the result depends on where the code runs.
+- "`astimezone` on a naive time treats it as being in the computer's own zone." It assumes the computer's own zone, so the result depends on where the code runs.
 - "A fixed offset is the same as a time zone." Daylight saving changes a place's offset during the year, and a named zone knows that.
 
 </Callout>

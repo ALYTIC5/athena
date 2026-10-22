@@ -13,7 +13,7 @@ competencies:
 timeoutMs: 8000
 packages: [tzdata]
 prompt: |
-  A booking tool exports appointments as CSV text with the header `id,customer,local_time`. Every `local_time` is a local clock time in one time zone, written like `2026-11-02 09:00` or `2026-11-02T09:00`, with no offset. A valid time has a date, an hour and a minute. Values may be quoted, such as `"Ng, Mei"`.
+  A booking tool exports appointments as CSV text with the header `id,customer,local_time`. Every `local_time` is a local clock time in one time zone, written like `2026-11-02 09:00` or `2026-11-02T09:00`, with no offset. A valid time is one that `datetime.fromisoformat` can read. Values may be quoted, such as `"Ng, Mei"`.
 
   Write `import_appointments(csv_text, tz_name)`. It returns a tuple `(appointments, errors)`.
 
@@ -21,7 +21,7 @@ prompt: |
   - Each valid row becomes a dict `{"id": ..., "customer": ..., "utc": ...}`, where `utc` is the start time converted to UTC and written with `isoformat()`, for example `"2026-11-02T14:00:00+00:00"`. Keep the file's order.
   - Surrounding spaces in values are ignored.
   - A row is invalid, and is skipped, for the first reason that applies, checked in this order: `missing id` (empty id), `missing customer` (empty customer), `invalid time` (not a valid time, or it includes an offset such as `+01:00` or `Z`), `duplicate id` (the id was already used by an earlier valid row).
-  - Each skipped row adds the text `row N: reason` to `errors`, where N counts the data rows from 1 (the first row after the header is row 1) and reason is one of the phrases above.
+  - Each skipped row adds the text `row N: reason` to `errors`, where N counts the rows that `csv.DictReader` yields, from 1 (the first row after the header is row 1, and a completely blank line is not a row) and reason is one of the phrases above.
   - One bad row must not stop the others.
 starter: |
   def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
