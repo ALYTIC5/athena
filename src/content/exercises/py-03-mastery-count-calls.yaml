@@ -21,7 +21,7 @@ prompt: |
   - A call that raises an exception still counts as a call.
   - While a call is running, `calls` already includes that call, so a function that reads its own `.calls` sees 1 during its first call.
 
-  Example: after `ping()` has been called twice, `ping.calls` is 2.
+  A function is an object, so it can carry attributes, such as `f.calls = 0`. Example: after `ping()` has been called twice, `ping.calls` is 2.
 starter: |
   def count_calls(func):
       ...

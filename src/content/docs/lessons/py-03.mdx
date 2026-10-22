@@ -116,7 +116,7 @@ def add(n):
 
 `*args` collects extra positional arguments into a tuple, and `**kwargs` collects extra keyword arguments into a dict. Parameters after a bare `*` (or after `*args`) are **keyword-only**: callers must name them. In a call, `f(*items, **options)` does the reverse and spreads a sequence and a dict into arguments.
 
-Functions are objects, so you can pass them to other functions and return them. A **decorator** is a function that takes a function and returns a function, usually a wrapper that adds behaviour. Writing `@deco` above `def f` means `f = deco(f)`. The wrapper takes `*args, **kwargs` so it accepts any call, returns the original's result, and `@functools.wraps(func)` copies the original's name and docstring onto it.
+Functions are objects, so you can pass them to other functions and return them. A **decorator** is a function that takes a function and returns a function, usually a wrapper that adds behaviour. Writing `@deco` above `def f` means `f = deco(f)`. The wrapper takes `*args, **kwargs` so it accepts any call, returns the original's result, and `@functools.wraps(func)` copies the original's name and docstring (the text in triple quotes at the top of a function) onto it.
 
 A decorator with a setting is a function that returns the decorator, used as `@timed(clock)`. In the exercise, `clock` is a function that returns the current time.
 
