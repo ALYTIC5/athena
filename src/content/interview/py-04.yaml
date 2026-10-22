@@ -12,7 +12,7 @@ questions:
   - id: py-04-iq-store-times
     competencies: [py.datetime]
     question: How do you store and handle times in an application used in several time zones?
-    modelAnswer: I store moments in time as aware datetimes in UTC, written as ISO 8601 text or a database timestamp with time zone, and I convert to the user's zone only when I display them. I use a named zone such as Europe/London instead of a fixed offset, because the offset changes with daylight saving. I never compare naive datetimes from different zones, and I never call astimezone on a naive time, because it assumes the machine's own zone. For code that needs the current time, I pass it in as an argument so I can test it.
+    modelAnswer: I store moments in time as aware datetimes in UTC, written as ISO 8601 text or a database timestamp with time zone, and I convert to the user's zone only when I display them. I use a named zone such as Europe/London instead of a fixed offset, because the offset changes with daylight saving. I never compare naive datetimes from different zones, and I do not call astimezone on a naive time unless I mean the machine's own zone, because by default it assumes that zone. For code that needs the current time, I pass it in as an argument so I can test it.
     listenFor:
       - stores UTC and converts for display
       - uses named zones, aware of daylight saving

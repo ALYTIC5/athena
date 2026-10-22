@@ -68,7 +68,7 @@ You know functions, decorators and generators from py-03, and dicts and `Counter
 
 An **exception** is an object raised when something goes wrong. It travels up through the calling functions until a `try`/`except` catches it, or the program stops with a traceback. Exceptions form a hierarchy (`ValueError` and `KeyError` are kinds of `Exception`). Catch the most specific type you can handle, and never a bare `except:`.
 
-In a `try` statement, `except` handles a matching exception, `else` runs only if nothing was raised, and `finally` always runs, even on a `return`. Use `raise` to signal a problem, and `raise NewError(...) from error` to keep the original as the cause. Inside an `except` block, a bare `raise` re-raises the exception being handled. A new exception type is one line, as below.
+In a `try` statement, `except` handles a matching exception, `else` runs only if nothing was raised, and `finally` always runs, even on a `return`. Use `raise` to signal a problem, and `raise NewError(...) from error` to keep the original as the cause. Inside an `except` block, a bare `raise` re-raises the exception being handled. A new exception type needs only a `class` line, as below.
 
 **EAFP** (easier to ask forgiveness than permission) means trying the action and handling the failure. **LBYL** (look before you leap) means checking first. EAFP is often safer, because the situation can change between the check and the action.
 
@@ -180,7 +180,7 @@ print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
 
 - "JSON keeps my dict keys as they were." Keys always become strings, so `{9: "free"}` comes back as `{"9": "free"}`.
 - "CSV numbers come back as numbers." Every CSV value is a string until you convert it.
-- "A context manager stops exceptions." It runs the cleanup, and the exception carries on. In a generator-based one the exception is raised at the `yield`, and a `try`/`except` around the `yield` can catch it.
+- "A context manager always hides exceptions." By default it only runs the cleanup, and the exception carries on. In a generator-based one the exception is raised at the `yield`, and a `try`/`except` around the `yield` can catch and suppress it.
 
 </Callout>
 
@@ -230,7 +230,7 @@ Code that calls `datetime.now(timezone.utc)` inside a function gives a different
 <Callout type="misconception" title="Common misconceptions in chunk 3">
 
 - "A naive datetime is UTC." It has no zone at all, so it means nothing until you say which zone it is in.
-- "`astimezone` on a naive time treats it as being in the computer's own zone." It assumes the computer's own zone, so the result depends on where the code runs.
+- "`astimezone` on a naive time is an error, or treats it as UTC." It silently assumes the computer's own zone, so the result depends on where the code runs. Attach a zone with `replace` first.
 - "A fixed offset is the same as a time zone." Daylight saving changes a place's offset during the year, and a named zone knows that.
 
 </Callout>
