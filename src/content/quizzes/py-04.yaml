@@ -1,0 +1,598 @@
+lesson: py-04
+items:
+  # ---- Chunk 1: exceptions (objective 1) ----
+  - id: py-04-q-except-specific
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: A function converts text to a number with int(text). Which handler is best for bad input?
+    options:
+      - text: except ValueError, because int raises ValueError for bad text
+        correct: true
+        why: Catching the specific type you expect handles the known problem and lets other bugs show up.
+      - text: except Exception, because it covers every error
+        correct: false
+        why: This also hides unrelated bugs, such as a typo that raises NameError, so they look like bad input.
+      - text: except, with no type, so nothing can get through
+        correct: false
+        why: A bare except also catches KeyboardInterrupt and SystemExit, which stops the program being interrupted.
+      - text: except KeyError, because the input is a key
+        correct: false
+        why: int does not raise KeyError. The handler would never run and the ValueError would escape.
+  - id: py-04-q-predict-flow
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [py.exceptions]
+    code: |
+      def parse(text):
+          try:
+              value = int(text)
+          except ValueError:
+              print("bad")
+              return -1
+          else:
+              print("ok")
+              return value
+          finally:
+              print("done")
+
+      print(parse("7"), parse("x"))
+    investigate:
+      - Why does done print even for the call that returns -1?
+      - When does the else block run?
+  - id: py-04-q-bare-except
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: A reviewer objects to try / except Exception / pass around a whole import. What is the main problem?
+    options:
+      - text: Real bugs are silently swallowed, so failures go unnoticed
+        correct: true
+        why: The import carries on with missing data and nobody is told. Catch the specific errors you can handle and log or report them.
+      - text: pass is not allowed inside an except block
+        correct: false
+        why: pass is allowed. The problem is what it hides, not the syntax.
+      - text: Exception does not include ValueError
+        correct: false
+        why: ValueError is a subclass of Exception, so it is caught. That is why the handler is too wide.
+      - text: The block runs more slowly than a handler for one type
+        correct: false
+        why: Speed is not the issue. The danger is hiding errors.
+  - id: py-04-q-finally
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: A function has try with a return in it, and a finally block that prints a message. When does the message print?
+    options:
+      - text: Every time, even when the try block returns or raises
+        correct: true
+        why: finally is for cleanup that must always happen, so it runs on the way out however the block ends.
+      - text: Only when an exception was raised
+        correct: false
+        why: That describes except. finally runs whether or not an error happened.
+      - text: Only when the try block finishes without a return
+        correct: false
+        why: A return does not skip finally. The finally block runs just before the function returns.
+      - text: Never, because return ends the function at once
+        correct: false
+        why: Python runs the finally block before leaving, so the message does print.
+  - id: py-04-q-else
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: What is the else block of a try statement for?
+    options:
+      - text: Code that should run only when the try block raised nothing
+        correct: true
+        why: Keeping it out of the try block means errors from that code are not caught by the except clause by mistake.
+      - text: Code that runs when an exception was raised and not caught
+        correct: false
+        why: An uncaught exception leaves the statement, so nothing in the else block runs.
+      - text: A second handler for exceptions of any type
+        correct: false
+        why: Handlers are except clauses. else only runs when no exception occurred.
+      - text: Code that always runs at the end
+        correct: false
+        why: That is finally. else is skipped when an exception is raised.
+  - id: py-04-q-eafp
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: What does EAFP mean, and why can it be safer than checking first?
+    options:
+      - text: Try the action and handle the failure, because the state can change between a check and the action
+        correct: true
+        why: Easier to ask forgiveness than permission. A file that exists at the check can be gone when you open it.
+      - text: Check every condition first, so no error can happen
+        correct: false
+        why: That is look before you leap (LBYL), and the state can still change after the check.
+      - text: Ignore all errors, because most of them are harmless
+        correct: false
+        why: EAFP still handles the failure. It does not ignore it.
+      - text: Always use except Exception, so every case is covered
+        correct: false
+        why: EAFP catches the specific error you expect, not every error.
+  - id: py-04-q-except-order
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: 'A try statement has except Exception first, then except ValueError. What happens when a ValueError is raised?'
+    options:
+      - text: The first handler runs, so the ValueError handler is never reached
+        correct: true
+        why: Python uses the first matching handler. ValueError is a kind of Exception, so put the specific handler first.
+      - text: Both handlers run, one after the other
+        correct: false
+        why: Only one handler runs for each exception, the first that matches.
+      - text: The ValueError handler runs, because it is more specific
+        correct: false
+        why: Python does not look for the best match. It goes in order and stops at the first match.
+      - text: Python reports a SyntaxError
+        correct: false
+        why: The code is valid. The second handler is just unreachable for ValueError.
+  - id: py-04-q-reraise
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.exceptions]
+    stem: Inside an except block you want to log the error and let it carry on to the caller. What do you write after the log call?
+    options:
+      - text: raise, with nothing after it
+        correct: true
+        why: A bare raise re-raises the exception being handled, with its original traceback.
+      - text: return None
+        correct: false
+        why: That swallows the error, and the caller will not know anything went wrong.
+      - text: pass
+        correct: false
+        why: That also ends the handler and swallows the error.
+      - text: raise Exception
+        correct: false
+        why: That would replace the real error with a vaguer one and lose its type.
+  - id: py-04-q-bug-swallow
+    pools: [mastery]
+    objective: 1
+    type: bug
+    competencies: [py.exceptions]
+    code: |
+      def load_hour(record):
+          try:
+              return int(record["hour"])
+          except Exception:
+              return 0
+    buggyLine: 4
+    explanation: A missing key and a bad value both become the hour 0, so bad data looks like midnight. Catch only the expected errors, for example (KeyError, ValueError), and decide what each should do.
+
+  # ---- Chunk 2: context managers, files and data formats (objectives 2 and 3) ----
+  - id: py-04-q-with-guarantee
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [py.context-managers]
+    stem: What does with open(path) as f guarantee?
+    options:
+      - text: The file is closed when the block ends, even if an exception is raised
+        correct: true
+        why: A context manager runs its cleanup on the way out of the with block, however the block ends.
+      - text: The file is read into memory at once
+        correct: false
+        why: with does not read anything. Reading is up to the code in the block.
+      - text: No exception can be raised inside the block
+        correct: false
+        why: Exceptions still happen, but the cleanup runs before they carry on.
+      - text: The file is deleted afterwards
+        correct: false
+        why: Closing a file does not delete it.
+  - id: py-04-q-predict-contextmanager
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [py.context-managers, py.exceptions]
+    code: |
+      import contextlib
+
+      @contextlib.contextmanager
+      def tag(name):
+          print("open", name)
+          try:
+              yield
+          finally:
+              print("close", name)
+
+      try:
+          with tag("a"):
+              raise ValueError("boom")
+      except ValueError:
+          print("caught")
+    investigate:
+      - In which order do close a and caught print, and why?
+      - What would change if the yield was not inside try and finally?
+  - id: py-04-q-contextmanager-parts
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [py.context-managers]
+    stem: In a function decorated with contextlib.contextmanager, where does the body of the with block run?
+    options:
+      - text: At the yield, so code before it is setup and code after it is cleanup
+        correct: true
+        why: The function pauses at yield, the with body runs, and then the function resumes for the cleanup.
+      - text: Before the function starts
+        correct: false
+        why: The with body runs after the setup code, not before it.
+      - text: At the return statement
+        correct: false
+        why: A context manager written this way uses yield, not return.
+      - text: After the last line of the function
+        correct: false
+        why: The cleanup comes after the body, and the body runs at the yield.
+  - id: py-04-q-cleanup-finally
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.context-managers, py.exceptions]
+    stem: Why put the yield inside try and finally in a generator-based context manager?
+    options:
+      - text: So the cleanup still runs when the body raises an exception
+        correct: true
+        why: The exception is thrown in at the yield, and finally makes sure the cleanup runs before it moves on.
+      - text: So the body runs more than once
+        correct: false
+        why: The body runs once. try and finally do not repeat it.
+      - text: So exceptions are suppressed automatically
+        correct: false
+        why: finally does not stop an exception. It runs the cleanup and the exception carries on.
+      - text: Because yield cannot be used outside a try block
+        correct: false
+        why: yield can be used anywhere in a function. The reason is the cleanup.
+  - id: py-04-q-pathlib
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.files-json]
+    stem: 'What does Path("data") / "bookings.json" give?'
+    options:
+      - text: A Path object for data/bookings.json
+        correct: true
+        why: The / operator joins path parts, and it uses the right separator for the operating system.
+      - text: The text "data/bookings.json" only
+        correct: false
+        why: It is a Path object. Use str(path) if you need the text.
+      - text: The contents of the file bookings.json
+        correct: false
+        why: Building a path does not touch the file. Use read_text() to read it.
+      - text: A TypeError, because a Path cannot be divided
+        correct: false
+        why: Path defines / to join parts, so this is valid.
+  - id: py-04-q-json-types
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.files-json]
+    stem: 'json.loads(''{"a": [1, null, true]}'') returns what?'
+    options:
+      - text: A dict whose value is the list [1, None, True]
+        correct: true
+        why: JSON objects become dicts, arrays become lists, null becomes None and true becomes True.
+      - text: A dict whose value is the list [1, "null", "true"]
+        correct: false
+        why: null and true are JSON values, not strings, so they become None and True.
+      - text: 'The string ''{"a": [1, null, true]}'' unchanged'
+        correct: false
+        why: loads parses the text. It does not return it unchanged.
+      - text: A list of two items, "a" and the array
+        correct: false
+        why: A JSON object becomes a dict, not a list of items.
+  - id: py-04-q-json-keys
+    pools: [mastery]
+    objective: 3
+    type: predict
+    competencies: [py.files-json]
+    code: |
+      import json
+
+      slots = {9: "free", 10: "taken"}
+      back = json.loads(json.dumps(slots))
+      print(back == slots, list(back))
+    investigate:
+      - Why are the keys no longer numbers?
+      - How would you get the numbers back?
+  - id: py-04-q-csv-strings
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.files-json]
+    stem: 'A CSV file has a column hour with the value 9. What is row["hour"] when you read it with csv.DictReader?'
+    options:
+      - text: The string "9", so you convert it with int
+        correct: true
+        why: The csv module does not guess types. Every value is a string, and bad values then show up as ValueError when you convert.
+      - text: The number 9
+        correct: false
+        why: csv does not convert. You have to call int yourself.
+      - text: None
+        correct: false
+        why: None appears only for missing fields in some cases. A present value is a string.
+      - text: A list holding 9
+        correct: false
+        why: Each field is one string, and the row is a dict of strings.
+  - id: py-04-q-json-error
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.files-json, py.exceptions]
+    stem: json.loads is given text that is not valid JSON. What is raised?
+    options:
+      - text: json.JSONDecodeError, which is a subclass of ValueError
+        correct: true
+        why: Catching json.JSONDecodeError is the specific choice, and except ValueError also catches it.
+      - text: KeyError
+        correct: false
+        why: KeyError is for a missing dict key. Parsing text raises a decode error.
+      - text: TypeError
+        correct: false
+        why: TypeError is for a value of the wrong type, such as passing a number to json.loads. Bad text raises a decode error.
+      - text: Nothing, it returns None
+        correct: false
+        why: Invalid text is an error. loads does not return None for it.
+  - id: py-04-q-bug-csv
+    pools: [mastery]
+    objective: 3
+    type: bug
+    competencies: [py.files-json, py.exceptions]
+    code: |
+      import csv
+      import io
+
+      def total_minutes(text):
+          total = 0
+          for row in csv.DictReader(io.StringIO(text)):
+              total += row["minutes"]
+          return total
+    buggyLine: 7
+    explanation: row["minutes"] is a string, so adding it to a number raises TypeError. Convert it with int(row["minutes"]), and decide what to do with rows where the value is not a number.
+
+  # ---- Chunk 3: dates, times and time zones (objective 4) ----
+  - id: py-04-q-naive-aware
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: What is the difference between a naive and an aware datetime?
+    options:
+      - text: An aware datetime knows its UTC offset, and a naive one is only a clock reading
+        correct: true
+        why: Only an aware datetime stands for a moment in time. A naive one could be in any time zone.
+      - text: A naive datetime is always in UTC
+        correct: false
+        why: A naive datetime has no zone at all, UTC included. It means nothing until you say which zone it is in.
+      - text: An aware datetime cannot be changed
+        correct: false
+        why: Both are immutable. The difference is the time zone information.
+      - text: A naive datetime has no date, only a time
+        correct: false
+        why: Both have a date and a time. A time with no date is a different type.
+  - id: py-04-q-predict-aware
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [py.datetime]
+    code: |
+      from datetime import datetime, timedelta, timezone
+
+      a = datetime(2026, 11, 2, 9, 0, tzinfo=timezone(timedelta(hours=-5)))
+      b = datetime(2026, 11, 2, 12, 0, tzinfo=timezone.utc)
+      print(a < b, a.astimezone(timezone.utc).hour)
+    investigate:
+      - Why is a, which shows an earlier clock time, not earlier than b?
+      - What is the clock time of a in UTC?
+  - id: py-04-q-store-utc
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: Your app stores appointment times from users in many countries. What is the safest way to store them?
+    options:
+      - text: As aware datetimes in UTC, converted to local time only for display
+        correct: true
+        why: UTC is one consistent timeline, so sorting and comparing are always correct.
+      - text: As local clock times, each in the user's own zone
+        correct: false
+        why: Local readings from different zones cannot be compared or sorted correctly.
+      - text: As naive datetimes in the server's local zone
+        correct: false
+        why: They depend on where the server runs, and break when it moves or the clocks change.
+      - text: As plain text, such as 9 o'clock
+        correct: false
+        why: Text without a date and zone cannot be compared or converted.
+  - id: py-04-q-iso
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: 'Which text is an ISO 8601 date and time that includes its UTC offset?'
+    options:
+      - text: 2026-11-02T09:00:00+00:00
+        correct: true
+        why: ISO 8601 writes the date, a T, the time and the offset. datetime.fromisoformat reads it and isoformat writes it.
+      - text: 02/11/2026 9am
+        correct: false
+        why: This is a local format that can be read in different ways, and it has no offset.
+      - text: Nov 2, 2026 09:00
+        correct: false
+        why: This is a human-readable format with no standard order and no offset.
+      - text: 2026-11-02 09:00
+        correct: false
+        why: This has the ISO date and time but no offset, so it is naive. The offset is what makes it a moment in time.
+  - id: py-04-q-replace-astimezone
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: 'You have a naive datetime that is already a London clock time. How do you make it aware, without changing the clock time?'
+    options:
+      - text: dt.replace(tzinfo=ZoneInfo("Europe/London"))
+        correct: true
+        why: replace attaches the zone and keeps the clock reading. Use astimezone to convert an aware time to another zone.
+      - text: dt.astimezone(ZoneInfo("Europe/London"))
+        correct: false
+        why: On a naive datetime, astimezone assumes the computer's own zone, so the result depends on where the code runs.
+      - text: dt + ZoneInfo("Europe/London")
+        correct: false
+        why: You cannot add a zone to a datetime. This raises TypeError.
+      - text: dt.utcoffset()
+        correct: false
+        why: utcoffset reads the offset. It returns None for a naive datetime and does not change it.
+  - id: py-04-q-compare-error
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: What happens when you compare a naive datetime with an aware one using the less-than operator?
+    options:
+      - text: A TypeError, because the two cannot be compared
+        correct: true
+        why: Python refuses to guess. Make both aware first.
+      - text: The naive one is treated as UTC
+        correct: false
+        why: Python never assumes a zone. It raises an error.
+      - text: The aware one is treated as naive
+        correct: false
+        why: Python does not drop the zone to make the comparison work.
+      - text: The result is always False
+        correct: false
+        why: There is no result. The comparison raises an error.
+  - id: py-04-q-named-zone
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [py.datetime]
+    stem: Why use ZoneInfo("Europe/London") rather than a fixed offset such as +00:00?
+    options:
+      - text: A named zone knows its daylight saving rules, and the offset changes during the year
+        correct: true
+        why: London is at +00:00 in winter and +01:00 in summer. A named zone picks the right offset for each date.
+      - text: A fixed offset cannot be used with datetime
+        correct: false
+        why: datetime.timezone supports fixed offsets. They just do not know about daylight saving.
+      - text: A named zone is always UTC
+        correct: false
+        why: A named zone follows the local rules of its place.
+      - text: ZoneInfo is faster to create
+        correct: false
+        why: Speed is not the reason. Correct offsets are.
+  - id: py-04-q-now-argument
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.datetime, py.functions]
+    stem: A function decides whether a booking has expired by calling datetime.now(timezone.utc) inside it. What is a better design for testing?
+    options:
+      - text: Take now as a parameter, so a test can pass a fixed moment
+        correct: true
+        why: The result then depends only on the arguments, so tests give the same answer every time.
+      - text: Call datetime.now twice and take the average
+        correct: false
+        why: This still depends on the real clock, and the average has no meaning.
+      - text: Use naive datetime.now, because it is simpler
+        correct: false
+        why: A naive time depends on the machine's zone and makes tests less reliable.
+      - text: Skip the test, because time cannot be tested
+        correct: false
+        why: Time can be tested by passing the time in.
+  - id: py-04-q-bug-naive
+    pools: [mastery]
+    objective: 4
+    type: bug
+    competencies: [py.datetime]
+    code: |
+      from datetime import datetime, timezone
+
+      def to_utc(local_text):
+          local = datetime.fromisoformat(local_text)
+          return local.astimezone(timezone.utc)
+    buggyLine: 5
+    explanation: fromisoformat gives a naive datetime for text with no offset, and astimezone on a naive time assumes the computer's own zone. The result changes with the server's zone. Attach the intended zone first, for example local.replace(tzinfo=ZoneInfo(name)).
+
+  # ---- Retry (objective 5) ----
+  - id: py-04-q-retry-which
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [py.exceptions, py.decorators]
+    stem: A retry decorator calls an API client. Which exceptions should it retry?
+    options:
+      - text: Temporary ones, such as a timeout or a connection reset
+        correct: true
+        why: A temporary problem may be gone on the next try. A listed set of exceptions says which problems those are.
+      - text: Every exception
+        correct: false
+        why: A bug or bad input fails every time, so retrying it only wastes time and can hide the problem.
+      - text: Only KeyboardInterrupt
+        correct: false
+        why: That is the user stopping the program, which should never be retried.
+      - text: None, because the first failure is always final
+        correct: false
+        why: Some failures are temporary, which is the reason to have a retry at all.
+  - id: py-04-q-retry-attempts
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.exceptions, py.decorators]
+    stem: A function is decorated with retry(max_attempts=3). It fails every time with a listed exception. How many times is it called, and what does the caller see?
+    options:
+      - text: Three calls, then the last exception is raised to the caller
+        correct: true
+        why: max_attempts counts the calls in total, and the final failure must reach the caller.
+      - text: Three calls, then None is returned
+        correct: false
+        why: Returning None would hide the failure. The caller would not know the call never worked.
+      - text: Four calls, one first and then three retries
+        correct: false
+        why: max_attempts is the total number of calls, so the first call counts.
+      - text: One call, then the exception is raised
+        correct: false
+        why: A listed exception is retried until the attempts run out.
+  - id: py-04-q-retry-idempotent
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.exceptions]
+    stem: Why is it risky to retry a call that charges a card when it times out?
+    options:
+      - text: The first attempt may have worked, so a retry could charge twice
+        correct: true
+        why: A timeout means you did not get an answer, not that nothing happened. Retry only operations that are safe to repeat, or use an idempotency key.
+      - text: Timeouts are never temporary
+        correct: false
+        why: Many timeouts are temporary. The risk is the repeated action.
+      - text: Retries are slower than first attempts
+        correct: false
+        why: Speed is not the main risk here. A repeated charge is.
+      - text: A card can only be charged once per day
+        correct: false
+        why: There is no such rule. The risk is a duplicate charge from the retry.
+  - id: py-04-q-retry-order
+    pools: [mastery]
+    objective: 5
+    type: order
+    competencies: [py.exceptions, py.decorators]
+    stem: Put the steps of one retried call in order, when the first attempt fails with a listed exception and the second succeeds.
+    steps:
+      - The wrapper calls the function, and it raises a listed exception
+      - The wrapper catches it, sees it is not the last attempt, and calls again
+      - The function returns a result on the second attempt
+      - The wrapper returns that result to the caller

@@ -1,0 +1,29 @@
+lesson: py-04
+questions:
+  - id: py-04-iq-api-errors
+    competencies: [py.exceptions, py.decorators]
+    question: How do you handle errors in code that calls an external API?
+    modelAnswer: I first separate the kinds of failure. A timeout or a connection error is usually temporary, so I retry a limited number of times, only for calls that are safe to repeat, and I let the last error reach the caller. A bad request or an error in my own data will fail every time, so I do not retry it, and I raise a specific error that says what was wrong. I catch the specific exceptions I can handle, never a bare except, and I log enough to debug, such as the status code and request id but never the secret. I also set a timeout on every call, because a call with no timeout can hang for ever.
+    listenFor:
+      - separates temporary from permanent failures
+      - retries only listed exceptions, with a limit, and only for safe operations
+      - catches specific exceptions and raises meaningful ones
+      - mentions timeouts and logging without secrets
+  - id: py-04-iq-store-times
+    competencies: [py.datetime]
+    question: How do you store and handle times in an application used in several time zones?
+    modelAnswer: I store moments in time as aware datetimes in UTC, written as ISO 8601 text or a database timestamp with time zone, and I convert to the user's zone only when I display them. I use a named zone such as Europe/London instead of a fixed offset, because the offset changes with daylight saving. I never compare naive datetimes from different zones, and I never call astimezone on a naive time, because it assumes the machine's own zone. For code that needs the current time, I pass it in as an argument so I can test it.
+    listenFor:
+      - stores UTC and converts for display
+      - uses named zones, aware of daylight saving
+      - knows the naive versus aware problem
+      - passes the current time in for testing
+  - id: py-04-iq-eafp
+    competencies: [py.exceptions]
+    question: What is EAFP, and when would you not use it?
+    modelAnswer: Easier to ask forgiveness than permission means trying the action and handling the exception, instead of checking conditions first. It is often safer, because the situation can change between a check and the action, as when a file disappears after you checked that it exists, and it is common in Python. I would check first when the failure is expensive or has side effects before it fails, or when a simple check makes the code much clearer, for example testing that a key is in a dict I only read. I keep the try block small and catch the specific exception.
+    listenFor:
+      - try first and handle the failure
+      - the race between a check and the action
+      - a fair case for checking first
+      - small try block and specific exceptions

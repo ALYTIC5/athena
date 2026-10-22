@@ -1,0 +1,133 @@
+id: py-04-debug-first-appointment
+lesson: py-04
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: The earliest appointment is wrong across time zones
+difficulty: 3
+competencies:
+  - py.datetime
+timeoutMs: 8000
+packages: [tzdata]
+prompt: |
+  Appointments come from several cities. Each one is a dict with an `"id"`, a local start time `"local"` such as `"2026-11-02T09:00"` (no offset) and the name of the time zone it is local to, `"tz"`, such as `"America/New_York"`.
+  `first_appointment(appointments)` should return the id of the appointment that starts first in real time. It returns `None` for an empty list. If two start at the same moment, the one that comes first in the list wins.
+  It currently gives the wrong answer when the appointments are in different time zones. Find the cause and fix it.
+starter: |
+  from datetime import datetime
+
+
+  def first_appointment(appointments):
+      if not appointments:
+          return None
+      earliest = min(appointments, key=lambda a: datetime.fromisoformat(a["local"]))
+      return earliest["id"]
+visibleTests: |
+  def test_london_starts_before_new_york_even_though_its_clock_time_is_later():
+      appointments = [
+          {"id": "ny", "local": "2026-11-02T09:00", "tz": "America/New_York"},
+          {"id": "ldn", "local": "2026-11-02T12:00", "tz": "Europe/London"},
+      ]
+      assert first_appointment(appointments) == "ldn"
+
+  def test_empty_list():
+      assert first_appointment([]) is None
+hiddenTests: |
+  def test_tokyo_evening_is_the_earliest_moment():
+      appointments = [
+          {"id": "ny", "local": "2026-11-02T09:00", "tz": "America/New_York"},
+          {"id": "ldn", "local": "2026-11-02T12:00", "tz": "Europe/London"},
+          {"id": "tok", "local": "2026-11-02T20:00", "tz": "Asia/Tokyo"},
+      ]
+      assert first_appointment(appointments) == "tok"
+
+  def test_same_zone_still_works():
+      appointments = [
+          {"id": "late", "local": "2026-11-02T15:00", "tz": "Europe/London"},
+          {"id": "early", "local": "2026-11-02T08:30", "tz": "Europe/London"},
+      ]
+      assert first_appointment(appointments) == "early"
+
+  def test_same_moment_in_different_zones_first_in_list_wins():
+      appointments = [
+          {"id": "a", "local": "2026-11-02T14:00", "tz": "Europe/London"},
+          {"id": "b", "local": "2026-11-02T09:00", "tz": "America/New_York"},
+      ]
+      assert first_appointment(appointments) == "a"
+
+  def test_one_appointment():
+      assert first_appointment([{"id": "x", "local": "2026-11-02T09:00", "tz": "Asia/Tokyo"}]) == "x"
+
+  def test_input_is_not_changed():
+      appointments = [{"id": "x", "local": "2026-11-02T09:00", "tz": "Asia/Tokyo"}]
+      snapshot = [dict(a) for a in appointments]
+      first_appointment(appointments)
+      assert appointments == snapshot
+feedback:
+  - test: test_london_starts_before_new_york_even_though_its_clock_time_is_later
+    message: You are comparing clock readings, not moments. 12:00 in London is 12:00 UTC, but 09:00 in New York is 14:00 UTC. Attach each appointment's own time zone to its time before you compare.
+  - test: test_tokyo_evening_is_the_earliest_moment
+    message: 20:00 in Tokyo is 11:00 UTC, earlier than the others. Compare aware datetimes, which compare as moments in time.
+  - test: test_same_moment_in_different_zones_first_in_list_wins
+    message: 14:00 in London and 09:00 in New York are the same moment on this date. When two start together, return the one that comes first in the list.
+hints:
+  - Two appointments can show the same clock time and still start hours apart. What information does the naive datetime from fromisoformat leave out?
+  - "Attach the appointment's own time zone to its naive time with replace(tzinfo=ZoneInfo(name)), so the datetime becomes aware. Aware datetimes compare as moments in time."
+  - |
+    from zoneinfo import ZoneInfo
+
+    key=lambda a: datetime.fromisoformat(a["local"]).replace(tzinfo=____(a["____"]))
+referenceSolution: |
+  from datetime import datetime
+  from zoneinfo import ZoneInfo
+
+
+  def first_appointment(appointments):
+      if not appointments:
+          return None
+      earliest = min(
+          appointments,
+          key=lambda a: datetime.fromisoformat(a["local"]).replace(tzinfo=ZoneInfo(a["tz"])),
+      )
+      return earliest["id"]
+wrongSolutions:
+  - label: Compares naive clock times, ignoring the time zone
+    code: |
+      from datetime import datetime
+
+
+      def first_appointment(appointments):
+          if not appointments:
+              return None
+          earliest = min(appointments, key=lambda a: datetime.fromisoformat(a["local"]))
+          return earliest["id"]
+  - label: Marks every time as UTC, so the zone names are ignored
+    code: |
+      from datetime import datetime, timezone
+
+
+      def first_appointment(appointments):
+          if not appointments:
+              return None
+          earliest = min(
+              appointments,
+              key=lambda a: datetime.fromisoformat(a["local"]).replace(tzinfo=timezone.utc),
+          )
+          return earliest["id"]
+  - label: Returns the latest appointment instead of the earliest
+    code: |
+      from datetime import datetime
+      from zoneinfo import ZoneInfo
+
+
+      def first_appointment(appointments):
+          if not appointments:
+              return None
+          latest = max(
+              appointments,
+              key=lambda a: datetime.fromisoformat(a["local"]).replace(tzinfo=ZoneInfo(a["tz"])),
+          )
+          return latest["id"]
+explanation: |
+  A naive datetime is only a clock reading: it does not say where the clock is. `replace(tzinfo=ZoneInfo(name))` says which time zone the reading belongs to, and aware datetimes compare as moments in time, so the comparison is correct whatever the zones are. Use `replace` here because the reading is already local to that zone, and `astimezone` when you want to convert an aware time into another zone. `min` returns the first of equal items, which gives the tie rule for free. Alternative: convert each time to UTC first with `.astimezone(timezone.utc)` and compare those. The result is the same, and storing UTC is the safer habit for data you keep.

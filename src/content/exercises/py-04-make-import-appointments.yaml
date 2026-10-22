@@ -1,0 +1,295 @@
+id: py-04-make-import-appointments
+lesson: py-04
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Import a CSV export of appointments and report the bad rows
+difficulty: 3
+competencies:
+  - py.files-json
+  - py.datetime
+  - py.exceptions
+timeoutMs: 8000
+packages: [tzdata]
+prompt: |
+  A booking tool exports appointments as CSV text with the header `id,customer,local_time`. Every `local_time` is a local clock time in one time zone, written like `2026-11-02 09:00` or `2026-11-02T09:00`, with no offset.
+
+  Write `import_appointments(csv_text, tz_name)`. It returns a tuple `(appointments, errors)`.
+
+  - `tz_name` is the time zone of the whole file, such as `"America/New_York"`.
+  - Each valid row becomes a dict `{"id": ..., "customer": ..., "utc": ...}`, where `utc` is the start time converted to UTC and written with `isoformat()`, for example `"2026-11-02T14:00:00+00:00"`. Keep the file's order.
+  - Surrounding spaces in values are ignored.
+  - A row is invalid, and is skipped, for the first reason that applies, checked in this order: `missing id` (empty id), `missing customer` (empty customer), `invalid time` (not a valid time, or it includes an offset such as `+01:00` or `Z`), `duplicate id` (the id was already used by an earlier valid row).
+  - Each skipped row adds the text `row N: reason` to `errors`, where N counts the data rows from 1 (the first row after the header is row 1) and reason is one of the phrases above.
+  - One bad row must not stop the others.
+starter: |
+  def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+      ...
+visibleTests: |
+  def test_converts_to_utc_and_keeps_order():
+      text = "id,customer,local_time\na1,Amara,2026-11-02 09:00\na2,Bayu,2026-11-02T10:30\n"
+      appointments, errors = import_appointments(text, "America/New_York")
+      assert appointments == [
+          {"id": "a1", "customer": "Amara", "utc": "2026-11-02T14:00:00+00:00"},
+          {"id": "a2", "customer": "Bayu", "utc": "2026-11-02T15:30:00+00:00"},
+      ]
+      assert errors == []
+
+  def test_bad_rows_are_reported_and_skipped():
+      text = "id,customer,local_time\na1,Amara,2026-11-02 09:00\n,Chen,2026-11-02 11:00\na3,Mei,not a time\n"
+      appointments, errors = import_appointments(text, "Europe/London")
+      assert [a["id"] for a in appointments] == ["a1"]
+      assert errors == ["row 2: missing id", "row 3: invalid time"]
+hiddenTests: |
+  def test_missing_customer():
+      text = "id,customer,local_time\na1, ,2026-11-02 09:00\n"
+      assert import_appointments(text, "Europe/London") == ([], ["row 1: missing customer"])
+
+  def test_duplicate_id_after_a_valid_row():
+      text = "id,customer,local_time\na1,Amara,2026-11-02 09:00\na1,Bayu,2026-11-02 10:00\n"
+      appointments, errors = import_appointments(text, "Europe/London")
+      assert [a["customer"] for a in appointments] == ["Amara"]
+      assert errors == ["row 2: duplicate id"]
+
+  def test_an_invalid_row_does_not_reserve_its_id():
+      text = "id,customer,local_time\na1,Amara,nope\na1,Bayu,2026-11-02 10:00\n"
+      appointments, errors = import_appointments(text, "Europe/London")
+      assert [a["customer"] for a in appointments] == ["Bayu"]
+      assert errors == ["row 1: invalid time"]
+
+  def test_time_with_an_offset_is_invalid():
+      text = "id,customer,local_time\na1,Amara,2026-11-02T09:00+01:00\na2,Bayu,2026-11-02T09:00Z\n"
+      appointments, errors = import_appointments(text, "Europe/London")
+      assert appointments == []
+      assert errors == ["row 1: invalid time", "row 2: invalid time"]
+
+  def test_first_reason_wins():
+      text = "id,customer,local_time\n,,nope\n"
+      assert import_appointments(text, "Europe/London")[1] == ["row 1: missing id"]
+
+  def test_spaces_are_ignored():
+      text = "id,customer,local_time\n  a1 , Amara ,  2026-11-02 09:00  \n"
+      appointments, errors = import_appointments(text, "Asia/Tokyo")
+      assert appointments == [{"id": "a1", "customer": "Amara", "utc": "2026-11-02T00:00:00+00:00"}]
+      assert errors == []
+
+  def test_quoted_customer_with_a_comma():
+      text = 'id,customer,local_time\na1,"Ng, Mei",2026-11-02 09:00\n'
+      appointments, errors = import_appointments(text, "Europe/London")
+      assert appointments[0]["customer"] == "Ng, Mei"
+
+  def test_header_only_and_empty_text():
+      assert import_appointments("id,customer,local_time\n", "Europe/London") == ([], [])
+      assert import_appointments("", "Europe/London") == ([], [])
+
+  def test_the_file_zone_decides_the_conversion():
+      text = "id,customer,local_time\na1,Amara,2026-11-02 09:00\n"
+      london = import_appointments(text, "Europe/London")[0][0]["utc"]
+      tokyo = import_appointments(text, "Asia/Tokyo")[0][0]["utc"]
+      assert london == "2026-11-02T09:00:00+00:00"
+      assert tokyo == "2026-11-02T00:00:00+00:00"
+feedback:
+  - test: test_converts_to_utc_and_keeps_order
+    message: Attach the file's time zone to each local time, then convert to UTC and write it with isoformat(). New York is UTC-5 on 2 November 2026, so 09:00 there is 14:00 UTC.
+  - test: test_the_file_zone_decides_the_conversion
+    message: The time zone name decides the conversion. A time that is converted without the file's time zone, for example with astimezone on a naive time, uses the computer's own zone instead.
+  - test: test_bad_rows_are_reported_and_skipped
+    message: 'Skip a bad row and add a message of the form "row N: reason". Count the data rows from 1, not counting the header.'
+  - test: test_first_reason_wins
+    message: Check the problems in the order of the list in the prompt and report only the first one that applies.
+  - test: test_time_with_an_offset_is_invalid
+    message: A time that already has an offset, such as +01:00 or Z, is not a local clock time. After parsing it, check whether it already has a time zone.
+  - test: test_duplicate_id_after_a_valid_row
+    message: Remember the ids of valid rows, and report a later row that reuses one.
+  - test: test_an_invalid_row_does_not_reserve_its_id
+    message: Only valid rows use up an id. Add an id to the set of seen ids after the whole row has passed its checks.
+  - test: test_spaces_are_ignored
+    message: Strip the spaces from each value before you check it.
+hints:
+  - Which steps does one row go through, and what decides that a row is skipped? Could you write a helper that checks one row and returns either a result or a reason?
+  - 'Read the rows with csv.DictReader over io.StringIO(csv_text), counting them from 1 with enumerate. For each row, strip the values and check them in the given order. Parse the time with datetime.fromisoformat, reject it if it is invalid or already has a tzinfo, then attach ZoneInfo(tz_name) with replace and convert with astimezone(timezone.utc).'
+  - |
+    import csv
+    import io
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    zone = ZoneInfo(tz_name)
+    for number, row in enumerate(csv.DictReader(io.StringIO(csv_text)), start=____):
+        ...
+        local = datetime.fromisoformat(raw)
+        utc = local.replace(tzinfo=____).astimezone(timezone.utc).isoformat()
+referenceSolution: |
+  import csv
+  import io
+  from datetime import datetime, timezone
+  from zoneinfo import ZoneInfo
+
+
+  def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+      zone = ZoneInfo(tz_name)
+      appointments = []
+      errors = []
+      used_ids = set()
+      for number, row in enumerate(csv.DictReader(io.StringIO(csv_text)), start=1):
+          appointment_id = (row.get("id") or "").strip()
+          customer = (row.get("customer") or "").strip()
+          raw = (row.get("local_time") or "").strip()
+          if not appointment_id:
+              errors.append(f"row {number}: missing id")
+              continue
+          if not customer:
+              errors.append(f"row {number}: missing customer")
+              continue
+          try:
+              local = datetime.fromisoformat(raw)
+          except ValueError:
+              errors.append(f"row {number}: invalid time")
+              continue
+          if local.tzinfo is not None:
+              errors.append(f"row {number}: invalid time")
+              continue
+          if appointment_id in used_ids:
+              errors.append(f"row {number}: duplicate id")
+              continue
+          used_ids.add(appointment_id)
+          utc = local.replace(tzinfo=zone).astimezone(timezone.utc).isoformat()
+          appointments.append({"id": appointment_id, "customer": customer, "utc": utc})
+      return appointments, errors
+wrongSolutions:
+  - label: Never converts the time zone, so the local time is written as if it were UTC
+    code: |
+      import csv
+      import io
+      from datetime import datetime, timezone
+
+
+      def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+          appointments = []
+          errors = []
+          used_ids = set()
+          for number, row in enumerate(csv.DictReader(io.StringIO(csv_text)), start=1):
+              appointment_id = (row.get("id") or "").strip()
+              customer = (row.get("customer") or "").strip()
+              raw = (row.get("local_time") or "").strip()
+              if not appointment_id:
+                  errors.append(f"row {number}: missing id")
+                  continue
+              if not customer:
+                  errors.append(f"row {number}: missing customer")
+                  continue
+              try:
+                  local = datetime.fromisoformat(raw)
+              except ValueError:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if local.tzinfo is not None:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if appointment_id in used_ids:
+                  errors.append(f"row {number}: duplicate id")
+                  continue
+              used_ids.add(appointment_id)
+              utc = local.replace(tzinfo=timezone.utc).isoformat()
+              appointments.append({"id": appointment_id, "customer": customer, "utc": utc})
+          return appointments, errors
+  - label: Calls astimezone on a naive time, which uses the computer's zone instead of the file's
+    code: |
+      import csv
+      import io
+      from datetime import datetime, timezone
+
+
+      def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+          appointments = []
+          errors = []
+          used_ids = set()
+          for number, row in enumerate(csv.DictReader(io.StringIO(csv_text)), start=1):
+              appointment_id = (row.get("id") or "").strip()
+              customer = (row.get("customer") or "").strip()
+              raw = (row.get("local_time") or "").strip()
+              if not appointment_id:
+                  errors.append(f"row {number}: missing id")
+                  continue
+              if not customer:
+                  errors.append(f"row {number}: missing customer")
+                  continue
+              try:
+                  local = datetime.fromisoformat(raw)
+              except ValueError:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if local.tzinfo is not None:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if appointment_id in used_ids:
+                  errors.append(f"row {number}: duplicate id")
+                  continue
+              used_ids.add(appointment_id)
+              utc = local.astimezone(timezone.utc).isoformat()
+              appointments.append({"id": appointment_id, "customer": customer, "utc": utc})
+          return appointments, errors
+  - label: Stops at the first bad row by raising an error
+    code: |
+      import csv
+      import io
+      from datetime import datetime, timezone
+      from zoneinfo import ZoneInfo
+
+
+      def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+          zone = ZoneInfo(tz_name)
+          appointments = []
+          errors = []
+          for number, row in enumerate(csv.DictReader(io.StringIO(csv_text)), start=1):
+              appointment_id = (row.get("id") or "").strip()
+              customer = (row.get("customer") or "").strip()
+              if not appointment_id:
+                  raise ValueError(f"row {number}: missing id")
+              if not customer:
+                  raise ValueError(f"row {number}: missing customer")
+              local = datetime.fromisoformat((row.get("local_time") or "").strip())
+              utc = local.replace(tzinfo=zone).astimezone(timezone.utc).isoformat()
+              appointments.append({"id": appointment_id, "customer": customer, "utc": utc})
+          return appointments, errors
+  - label: Counts rows from 0, so the row numbers are off by one
+    code: |
+      import csv
+      import io
+      from datetime import datetime, timezone
+      from zoneinfo import ZoneInfo
+
+
+      def import_appointments(csv_text: str, tz_name: str) -> tuple[list[dict], list[str]]:
+          zone = ZoneInfo(tz_name)
+          appointments = []
+          errors = []
+          used_ids = set()
+          for number, row in enumerate(csv.DictReader(io.StringIO(csv_text))):
+              appointment_id = (row.get("id") or "").strip()
+              customer = (row.get("customer") or "").strip()
+              raw = (row.get("local_time") or "").strip()
+              if not appointment_id:
+                  errors.append(f"row {number}: missing id")
+                  continue
+              if not customer:
+                  errors.append(f"row {number}: missing customer")
+                  continue
+              try:
+                  local = datetime.fromisoformat(raw)
+              except ValueError:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if local.tzinfo is not None:
+                  errors.append(f"row {number}: invalid time")
+                  continue
+              if appointment_id in used_ids:
+                  errors.append(f"row {number}: duplicate id")
+                  continue
+              used_ids.add(appointment_id)
+              utc = local.replace(tzinfo=zone).astimezone(timezone.utc).isoformat()
+              appointments.append({"id": appointment_id, "customer": customer, "utc": utc})
+          return appointments, errors
+explanation: |
+  `csv.DictReader` turns each row into a dict of strings, and `enumerate(..., start=1)` numbers the data rows the way the prompt asks. Each row is checked in the stated order, and a `continue` skips the rest of that row, so one bad row never stops the others. `fromisoformat` raises `ValueError` for text it cannot parse, which is a specific exception you can catch, and a parsed time that already has an offset is rejected because a local clock time must not carry one. The valid time is a naive reading in the file's zone, so `replace(tzinfo=zone)` says where the reading belongs and `astimezone(timezone.utc)` converts it. Alternative: write a helper that checks one row and raises a `ValueError` with the reason, then catch it in the loop. That keeps the loop short and mirrors how larger imports are structured, but for four checks the plain `if` statements are easier to follow.

@@ -67,7 +67,7 @@
     - id: py-04
       title: 'Errors, files and data formats'
       durationMin: 120
-      status: planned
+      status: published
     - id: sql-01
       title: 'Querying one table'
       durationMin: 45

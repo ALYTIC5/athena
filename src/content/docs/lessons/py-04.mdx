@@ -1,0 +1,252 @@
+---
+title: Errors, files and data formats
+description: Raising and handling specific exceptions, context managers, reading and writing JSON and CSV with pathlib, and working with time zones using aware datetimes.
+sidebar:
+  order: 60
+lessonId: py-04
+week: 6
+track: py
+durationMin: 120
+anatomy: full
+competencies: [py.exceptions, py.context-managers, py.files-json, py.datetime]
+prerequisites: [py-03]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting, and REST APIs and webhooks appear in 54%. Both are full of
+  files, JSON, errors and timestamps: a webhook arrives as JSON, an export arrives as CSV, an API call fails, and every
+  booking has a time that means different things in different cities. Handling these four things carefully is much of
+  what makes backend code reliable.
+objectives:
+  - Raise and handle specific exceptions, and explain EAFP versus LBYL
+  - Write a context manager with contextlib
+  - Read and write JSON and CSV with pathlib and the json and csv modules
+  - Convert between time zones with aware datetimes and zoneinfo, and store times in UTC
+  - Write a retry decorator that retries only the exceptions you list
+sources:
+  - title: "Python tutorial: errors and exceptions"
+    url: https://docs.python.org/3/tutorial/errors.html
+  - title: "Python library: built-in exceptions, the exception hierarchy"
+    url: https://docs.python.org/3/library/exceptions.html#exception-hierarchy
+  - title: "Python glossary: EAFP"
+    url: https://docs.python.org/3/glossary.html#term-EAFP
+  - title: "contextlib.contextmanager"
+    url: https://docs.python.org/3/library/contextlib.html#contextlib.contextmanager
+  - title: "pathlib: object-oriented filesystem paths"
+    url: https://docs.python.org/3/library/pathlib.html
+  - title: "json: JSON encoder and decoder"
+    url: https://docs.python.org/3/library/json.html
+  - title: "csv: CSV file reading and writing"
+    url: https://docs.python.org/3/library/csv.html
+  - title: "datetime: aware and naive objects"
+    url: https://docs.python.org/3/library/datetime.html#aware-and-naive-objects
+  - title: "zoneinfo: IANA time zone support"
+    url: https://docs.python.org/3/library/zoneinfo.html
+---
+
+<WarmUp lesson="py-04" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting, and REST APIs and webhooks appear in 54%. Both are full of files, JSON, errors and timestamps: a webhook arrives as JSON, an export arrives as CSV, an API call fails, and every booking has a time that means different things in different cities. Handling these four things carefully is much of what makes backend code reliable.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Raise and handle specific exceptions, and explain EAFP versus LBYL.
+2. Write a context manager with `contextlib`.
+3. Read and write JSON and CSV with `pathlib` and the `json` and `csv` modules.
+4. Convert between time zones with aware datetimes and `zoneinfo`, and store times in UTC.
+5. Write a retry decorator that retries only the exceptions you list.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know functions, decorators and generators from py-03, and dicts and `Counter` from py-02. A `class` statement makes a new type of object. This lesson uses one line of it, `class MyError(Exception): ...`, to make a new exception type, and py-05 teaches classes. Exercises that use time zones take the current time as an argument and load the `tzdata` package, because the browser has no time zone database of its own.
+
+</Callout>
+
+<Chunk n={1} title="Exceptions: raise, catch and clean up">
+
+An **exception** is an object raised when something goes wrong. It travels up through the calling functions until a `try`/`except` catches it, or the program stops with a traceback. Exceptions form a hierarchy: `ValueError`, `KeyError` and `OSError` are all kinds of `Exception`. Catch the most specific type you can handle, and never a bare `except:`.
+
+In a `try` statement, `except` handles a matching exception, `else` runs only if nothing was raised, and `finally` always runs, even on a `return`, so it is for cleanup. Use `raise` to signal a problem, and `raise NewError(...) from error` to keep the original as the cause. A new exception type is one line, as below.
+
+**EAFP** (easier to ask forgiveness than permission) means trying the action and handling the failure. **LBYL** (look before you leap) means checking first. EAFP is often safer, because the situation can change between the check and the action.
+
+**Worked example.** Booking a slot, with a custom exception.
+
+```python
+class SlotTakenError(Exception):
+    """Raised when a slot is already booked."""
+
+def book(slots, slot):
+    if slot in slots:
+        raise SlotTakenError(slot)       # raise a specific error
+    slots.add(slot)
+
+slots = set()
+for wanted in ["09:00", "09:00"]:
+    try:
+        book(slots, wanted)
+    except SlotTakenError as error:      # catch only this problem
+        print("taken:", error)
+    else:
+        print("booked", wanted)          # runs only if nothing was raised
+    finally:
+        print("checked", wanted)         # always runs
+```
+
+The same idea in both styles.
+
+```python
+record = {"hour": "9"}
+# LBYL: check first
+hour = int(record["hour"]) if "hour" in record and record["hour"].isdigit() else None
+# EAFP: try it, and handle the failure
+try:
+    hour = int(record["hour"])
+except (KeyError, ValueError):
+    hour = None
+print(hour)   # 9
+```
+
+<Predict lesson="py-04" item="py-04-q-predict-flow" />
+
+<Quiz lesson="py-04" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "`except Exception: pass` makes the program safe." It hides real bugs, so failures go unnoticed.
+- "`finally` only runs when there was an error." It runs every time, including after a `return`.
+- "Handlers are matched by best fit." The first matching `except` runs, so put the specific one first.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Context managers, files, JSON and CSV">
+
+A `with` statement runs setup and guarantees cleanup, even if the block raises: `with open(path) as f:` closes the file at the end. A **context manager** is an object that does this. The short way to write one is a generator function with `@contextlib.contextmanager`. Code before `yield` is setup, the `with` body runs at the `yield`, and code after it, inside a `finally`, is cleanup.
+
+`pathlib.Path` represents a file path: `Path(folder) / "bookings.json"`, with `.read_text()` and `.write_text()`. `json.dumps` and `json.loads` convert between Python values and JSON text. JSON objects become dicts, and dict keys always come back as strings. `csv.DictReader` gives each row as a dict of strings, so convert numbers yourself. Bad JSON raises `json.JSONDecodeError`, a kind of `ValueError`.
+
+**Worked example.** Write and read JSON with a context manager around the write.
+
+```python
+import contextlib
+import json
+import tempfile
+from pathlib import Path
+
+@contextlib.contextmanager
+def announce(label):
+    print("start", label)
+    try:
+        yield                          # the body of the with block runs here
+    finally:
+        print("end", label)            # runs even if the body raises
+
+with tempfile.TemporaryDirectory() as folder:
+    path = Path(folder) / "bookings.json"
+    with announce("write"):
+        path.write_text(json.dumps([{"id": "b1", "hour": 9}]))
+    data = json.loads(path.read_text())
+    print(data[0]["hour"])             # 9: numbers survive, keys are strings
+```
+
+CSV text becomes dicts of strings.
+
+```python
+import csv
+import io
+
+text = "id,caller\nb1,amara\nb2,bayu\n"
+rows = list(csv.DictReader(io.StringIO(text)))
+print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
+```
+
+<Predict lesson="py-04" item="py-04-q-predict-contextmanager" />
+
+<Exercise id="py-04-faded-load-bookings" />
+
+<Quiz lesson="py-04" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "JSON keeps my dict keys as they were." Keys always become strings, so `{9: "free"}` comes back as `{"9": "free"}`.
+- "CSV numbers come back as numbers." Every CSV value is a string until you convert it.
+- "A context manager stops exceptions." It runs the cleanup, and the exception carries on unless the manager catches it.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Dates, times and time zones">
+
+A **naive** datetime is a clock reading with no time zone. An **aware** datetime has a UTC offset and stands for a moment in time. Python refuses to compare a naive one with an aware one (`TypeError`), and two naive times from different cities compare wrongly. So store and compare times in UTC, and convert to a local zone only to show them.
+
+**ISO 8601** is the standard text form, such as `2026-11-02T09:00:00+00:00`. `fromisoformat` reads it and `isoformat()` writes it. `ZoneInfo("Europe/London")` is a named time zone that follows daylight saving. `dt.replace(tzinfo=zone)` attaches a zone to a reading that is already local to it. `dt.astimezone(zone)` converts an aware time to another zone.
+
+**Worked example.** The same moment in two zones, and the naive trap. This block uses a fixed offset, because a named zone needs the tz database.
+
+```python
+from datetime import datetime, timedelta, timezone
+
+utc = datetime(2026, 11, 2, 14, 0, tzinfo=timezone.utc)      # aware: it knows its offset
+tokyo = timezone(timedelta(hours=9))                         # a fixed offset, not a named zone
+print(utc.astimezone(tokyo).isoformat())                     # 2026-11-02T23:00:00+09:00
+print(utc == utc.astimezone(tokyo))                          # True: the same moment
+try:
+    datetime(2026, 11, 2, 14, 0) < utc                       # naive against aware
+except TypeError:
+    print("cannot compare naive and aware")
+```
+
+A named zone, as you will use it in the exercises:
+
+```python nocheck="needs the tzdata package"
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+local = datetime(2026, 11, 2, 9, 0).replace(tzinfo=ZoneInfo("America/New_York"))
+print(local.astimezone(timezone.utc).isoformat())    # 2026-11-02T14:00:00+00:00
+```
+
+<Predict lesson="py-04" item="py-04-q-predict-aware" />
+
+<Quiz lesson="py-04" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "A naive datetime is UTC." It has no zone at all, so it means nothing until you say which zone it is in.
+- "`astimezone` on a naive time converts it from nowhere." It assumes the computer's own zone, so the result depends on where the code runs.
+- "A fixed offset is the same as a time zone." Daylight saving changes a place's offset during the year, and a named zone knows that.
+
+</Callout>
+
+</Chunk>
+
+<SessionBreak />
+
+## Find the bug
+
+Three appointments in three cities are compared, and the wrong one comes first. The failing test names the symptom.
+
+<Exercise id="py-04-debug-first-appointment" />
+
+## Write it yourself
+
+<Exercise id="py-04-make-import-appointments" />
+
+<ExplainBack lesson="py-04" exercise="py-04-make-import-appointments" />
+
+## Mastery check
+
+<MasteryCheck lesson="py-04" count={6} />
+
+<InterviewCorner lesson="py-04" />
+
+## Further reading
+
+- [Python tutorial: errors and exceptions](https://docs.python.org/3/tutorial/errors.html)
+- [datetime: aware and naive objects](https://docs.python.org/3/library/datetime.html#aware-and-naive-objects)
+- [zoneinfo: IANA time zone support](https://docs.python.org/3/library/zoneinfo.html)
