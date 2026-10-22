@@ -56,7 +56,7 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know names, mutability and default arguments from py-01, and dicts, tuples and comprehensions from py-02. You can write a function with `def` and call it. The rest is explained where it appears.
+You know names, mutability and default arguments from py-01, and dicts, tuples and comprehensions from py-02. You can write a function with `def` and call it. A `lambda` is a small unnamed one-line function: `lambda: name` returns `name` when it is called. The rest is explained where it appears.
 
 </Callout>
 
@@ -114,9 +114,11 @@ def add(n):
 
 <Chunk n={2} title="Flexible arguments and decorators">
 
-`*args` collects extra positional arguments into a tuple, and `**kwargs` collects extra keyword arguments into a dict. Parameters after a bare `*` are **keyword-only**: callers must name them. In a call, `f(*items, **options)` does the reverse and spreads a sequence and a dict into arguments.
+`*args` collects extra positional arguments into a tuple, and `**kwargs` collects extra keyword arguments into a dict. Parameters after a bare `*` (or after `*args`) are **keyword-only**: callers must name them. In a call, `f(*items, **options)` does the reverse and spreads a sequence and a dict into arguments.
 
-Functions are objects, so you can pass them to other functions and return them. A **decorator** is a function that takes a function and returns a function, usually a wrapper that adds behaviour. Writing `@deco` above `def f` means `f = deco(f)`. The wrapper takes `*args, **kwargs` so it accepts any call, returns the original's result, and `@functools.wraps(func)` copies the original's name and docstring onto it. A decorator with a setting is a function that returns the decorator, used as `@timed(clock)`.
+Functions are objects, so you can pass them to other functions and return them. A **decorator** is a function that takes a function and returns a function, usually a wrapper that adds behaviour. Writing `@deco` above `def f` means `f = deco(f)`. The wrapper takes `*args, **kwargs` so it accepts any call, returns the original's result, and `@functools.wraps(func)` copies the original's name and docstring onto it.
+
+A decorator with a setting is a function that returns the decorator, used as `@timed(clock)`. In the exercise, `clock` is a function that returns the current time.
 
 **Worked example.** A decorator that logs every call.
 
@@ -136,6 +138,26 @@ def book(name, *, slot):                   # slot is keyword-only
 
 print(book("amara", slot="09:00"))         # calling book ('amara',) {'slot': '09:00'} / amara at 09:00
 print(book.__name__)                       # book: wraps kept the name
+```
+
+A decorator with a setting adds one more level.
+
+```python
+import functools
+
+def prefix(tag):                           # the factory: takes the setting
+    def decorator(func):                   # the real decorator
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            return tag + func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@prefix("VIP: ")                           # prefix("VIP: ") runs first and returns the decorator
+def greet(name):
+    return "hello " + name
+
+print(greet("amara"))                      # VIP: hello amara
 ```
 
 <Predict lesson="py-03" item="py-03-q-predict-show" />
@@ -174,6 +196,13 @@ gen = read_calls(["amara,9", "bayu,14", "chen,10"])
 print(next(gen))                      # ('amara', 9): the body ran up to the first yield
 print(list(gen))                      # [('bayu', 14), ('chen', 10)]: the rest
 print(list(gen))                      # []: a generator is used up after one pass
+```
+
+```python
+import itertools
+
+readings = (n * 10 for n in range(1_000_000))   # a generator expression: nothing is made yet
+print(list(itertools.islice(readings, 3)))      # [0, 10, 20]: only three items are produced
 ```
 
 <Predict lesson="py-03" item="py-03-q-predict-lazy" />

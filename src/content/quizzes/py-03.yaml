@@ -73,16 +73,16 @@ items:
     competencies: [py.scope-closures]
     stem: What does nonlocal count do inside an inner function?
     options:
-      - text: It lets the inner function rebind the count of the enclosing function
+      - text: 'It lets the inner function rebind the enclosing count'
         correct: true
         why: Without it, assigning to count would create a new local name in the inner function.
-      - text: It makes count a global variable
+      - text: 'It makes count a global variable shared by the whole module'
         correct: false
         why: That is what global does. nonlocal refers to the enclosing function, not the module.
-      - text: It makes count a read-only constant
+      - text: 'It makes count a read-only constant in the inner function'
         correct: false
         why: Python has no such declaration. nonlocal is about which scope a name belongs to.
-      - text: It copies count into the inner function
+      - text: 'It copies count into the inner function, so changes stay local'
         correct: false
         why: No copy is made. The inner function shares the enclosing variable.
   - id: py-03-q-closure-remembers
@@ -130,16 +130,16 @@ items:
     competencies: [py.scope-closures]
     stem: 'A script sets list = [1, 2] near the top. Later, list("ab") raises TypeError. Why?'
     options:
-      - text: The global name list now hides the built-in list, and a list is not callable
+      - text: 'The new global name list hides the built-in list'
         correct: true
         why: The global scope is searched before the built-ins, so the built-in is hidden by the new name.
-      - text: list can only be called with numbers
+      - text: 'list can only be called with numbers, not with strings'
         correct: false
         why: list accepts any iterable, including a string.
-      - text: Built-in names can only be used once per program
+      - text: 'Built-in names can only be used once in a program'
         correct: false
         why: You can use a built-in as often as you like until you rebind its name.
-      - text: A string cannot be turned into a list
+      - text: 'A string cannot be turned into a list at all'
         correct: false
         why: list("ab") gives ['a', 'b'] when list is the built-in.
   - id: py-03-q-predict-lambda-default
@@ -269,16 +269,16 @@ items:
     competencies: [py.args-kwargs]
     stem: 'def f(a, b, c=0): return a + b + c. What does f(*[1, 2], **{"c": 3}) return?'
     options:
-      - text: '6'
+      - text: '6, because the list and the dict are both spread into arguments'
         correct: true
         why: '* spreads the list into positional arguments (a=1, b=2) and ** spreads the dict into keyword arguments (c=3).'
-      - text: '3'
+      - text: '3, because only the list is spread into arguments'
         correct: false
         why: The keyword argument c=3 is passed too, so the total is 1 + 2 + 3.
-      - text: A TypeError, because a list cannot be passed to a function
+      - text: 'A TypeError, because a list cannot be passed as arguments'
         correct: false
         why: The * in front of the list unpacks it. Without the star it would be one argument.
-      - text: A TypeError, because c is given twice
+      - text: 'A TypeError, because c would be given twice'
         correct: false
         why: c is only given once, through the dict. The list holds just a and b.
   - id: py-03-q-decorator-equivalent
@@ -333,7 +333,7 @@ items:
               print("calling", func.__name__)
               func(*args, **kwargs)
           return wrapper
-    buggyLine: 8
+    buggyLine: 7
     explanation: The wrapper calls func but throws the result away, so every decorated function returns None. Write return func(*args, **kwargs).
   - id: py-03-q-decorator-factory
     pools: [mastery]
@@ -403,7 +403,12 @@ items:
     objective: 4
     type: single
     competencies: [py.iterators-generators]
-    stem: 'def numbers(): yield 1 ... print("start") is in the body before the first yield. What does g = numbers() do?'
+    stem: What does g = numbers() do?
+    code: |
+      def numbers():
+          print("start")
+          yield 1
+          yield 2
     options:
       - text: It returns a generator and runs none of the body yet
         correct: true
@@ -454,7 +459,7 @@ items:
       print(next(gen))
     investigate:
       - Why does start print after created?
-      - What would the next call to next(gen) print?
+      - What would the next call to next(gen) return, and would start print again?
   - id: py-03-q-parsons-batches
     pools: [check]
     chunk: 3
@@ -479,16 +484,16 @@ items:
     competencies: [py.iterators-generators]
     stem: 'gen = (n for n in range(3)). After a = list(gen), what does b = list(gen) give?'
     options:
-      - text: An empty list, because the generator is already used up
+      - text: 'An empty list, as the generator is used up'
         correct: true
         why: A generator can be consumed only once. To go through the items again, create a new generator.
-      - text: The same list as a, [0, 1, 2]
+      - text: 'The same list as a, [0, 1, 2], because lists repeat'
         correct: false
         why: Lists can be read again and again, but a generator cannot.
-      - text: A StopIteration error
+      - text: 'A StopIteration error raised by list()'
         correct: false
         why: list() catches StopIteration and simply ends, so you get an empty list.
-      - text: A list of None values
+      - text: 'A list of None values, one for each item'
         correct: false
         why: Nothing is produced after the end, so the list is empty.
   - id: py-03-q-for-protocol
@@ -517,16 +522,16 @@ items:
     competencies: [py.iterators-generators]
     stem: Which statement about a list and a generator is correct?
     options:
-      - text: A list is an iterable that can be looped over again, and a generator is an iterator that is used up once
+      - text: 'A list can be looped over again, but a generator is used up once'
         correct: true
         why: Each for loop over a list starts a fresh iterator, but a generator is its own iterator.
       - text: A list is an iterator, and a generator is an iterable
         correct: false
         why: This swaps the two ideas. A generator is itself an iterator.
-      - text: Both can be looped over any number of times
+      - text: 'Both can be looped over again and again, as often as needed'
         correct: false
         why: A generator is used up after one pass.
-      - text: Neither can be used in a for loop
+      - text: 'Neither can be used in a for loop, only in a while loop'
         correct: false
         why: Both can. A for loop accepts any iterable.
   - id: py-03-q-islice
@@ -536,16 +541,16 @@ items:
     competencies: [py.iterators-generators]
     stem: A generator produces an endless stream of readings. How do you take the first five?
     options:
-      - text: list(itertools.islice(readings, 5))
+      - text: 'list(itertools.islice(readings, 5)), a lazy slice'
         correct: true
         why: islice takes a slice of an iterator lazily, so it stops after five items.
-      - text: list(readings)[:5]
+      - text: 'list(readings)[:5], a slice of the finished list'
         correct: false
         why: list(readings) tries to collect the whole endless stream first and never finishes.
-      - text: readings[:5]
+      - text: 'readings[:5], a slice of the generator'
         correct: false
         why: A generator cannot be sliced with square brackets. Use itertools.islice.
-      - text: len(readings) == 5
+      - text: 'next(readings, 5), which returns five readings'
         correct: false
         why: A generator has no length, and a comparison would not take items.
   - id: py-03-q-yield-vs-return
@@ -555,16 +560,16 @@ items:
     competencies: [py.iterators-generators]
     stem: What is the difference between yield and return in a function?
     options:
-      - text: yield hands back a value and pauses, and return ends the function
+      - text: 'yield hands back a value and pauses the function, and return ends it'
         correct: true
         why: A generator can yield many values. After a return, nothing more is produced.
-      - text: yield ends the function, and return pauses it
+      - text: 'yield ends the function, and return pauses it for later'
         correct: false
         why: This swaps them. return is the one that ends the function.
-      - text: They are the same, but yield is faster
+      - text: 'They are the same, but yield is a little faster'
         correct: false
         why: They behave differently. yield keeps the local state between items.
-      - text: yield can only be used with numbers
+      - text: 'yield can only be used in functions with no arguments'
         correct: false
         why: A generator can yield any object.
   - id: py-03-q-order-next

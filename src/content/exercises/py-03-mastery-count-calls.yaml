@@ -1,0 +1,200 @@
+id: py-03-mastery-count-calls
+lesson: py-03
+runtime: python
+kind: make
+pools:
+  - mastery
+title: A decorator that counts calls and forwards every argument
+difficulty: 3
+competencies:
+  - py.decorators
+  - py.args-kwargs
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write a decorator `count_calls`. A function decorated with it must behave exactly as before, and it must also have an attribute `calls` that holds how many times it has been called so far (0 before the first call).
+
+  - The decorated function accepts any positional and keyword arguments and passes them on unchanged.
+  - It returns whatever the original function returns.
+  - Each decorated function has its own count.
+  - The decorated function keeps the original name and docstring.
+  - A call that raises an exception still counts as a call.
+
+  Example: after `ping()` has been called twice, `ping.calls` is 2.
+starter: |
+  def count_calls(func):
+      ...
+visibleTests: |
+  def test_counts_calls():
+      @count_calls
+      def ping():
+          return "pong"
+
+      assert ping.calls == 0
+      ping()
+      ping()
+      assert ping.calls == 2
+
+  def test_forwards_arguments_and_result():
+      @count_calls
+      def book(name, *, slot="09:00"):
+          return name + " at " + slot
+
+      assert book("amara", slot="10:30") == "amara at 10:30"
+      assert book.calls == 1
+hiddenTests: |
+  def test_each_function_has_its_own_count():
+      @count_calls
+      def first():
+          return 1
+
+      @count_calls
+      def second():
+          return 2
+
+      first()
+      first()
+      second()
+      assert (first.calls, second.calls) == (2, 1)
+
+  def test_name_and_docstring_are_kept():
+      @count_calls
+      def lookup(key):
+          """Find a booking."""
+          return key
+
+      assert lookup.__name__ == "lookup"
+      assert lookup.__doc__ == "Find a booking."
+
+  def test_a_failing_call_still_counts():
+      @count_calls
+      def boom():
+          raise ValueError("no")
+
+      try:
+          boom()
+      except ValueError:
+          pass
+      assert boom.calls == 1
+
+  def test_extra_keyword_arguments():
+      @count_calls
+      def collect(*args, **kwargs):
+          return args, kwargs
+
+      assert collect(1, 2, a=3) == ((1, 2), {"a": 3})
+
+  def test_result_none_is_returned():
+      @count_calls
+      def nothing():
+          return None
+
+      assert nothing() is None
+      assert nothing.calls == 1
+
+  def test_count_is_visible_between_calls():
+      @count_calls
+      def seen():
+          return seen.calls
+
+      assert seen() == 1
+      assert seen() == 2
+feedback:
+  - test: test_each_function_has_its_own_count
+    message: Each decorated function needs its own count. Store it on the wrapper function that you return, not in a variable shared by all decorated functions.
+  - test: test_forwards_arguments_and_result
+    message: The wrapper must accept any arguments with *args and **kwargs, pass them on, and return the original function's result.
+  - test: test_name_and_docstring_are_kept
+    message: Use functools.wraps on the wrapper so the decorated function keeps its name and docstring.
+  - test: test_a_failing_call_still_counts
+    message: Add one to the count before you call the original function, so a call that raises is still counted.
+  - test: test_count_is_visible_between_calls
+    message: Update wrapper.calls before the original function runs, so the function can already see the new count.
+  - test: test_counts_calls
+    message: The count starts at 0 on the wrapper, and goes up by one each time it is called.
+hints:
+  - Where can the count live so that each decorated function has its own, and so that outside code can read it as ping.calls?
+  - 'A function is an object, so it can have attributes. Set wrapper.calls = 0 after defining the wrapper. Inside the wrapper, add one to wrapper.calls, then call func with *args and **kwargs and return its result. Use functools.wraps.'
+  - |
+    import functools
+
+    def count_calls(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            wrapper.calls += 1
+            return ____(*args, ____)
+
+        wrapper.calls = 0
+        return wrapper
+referenceSolution: |
+  import functools
+
+
+  def count_calls(func):
+      @functools.wraps(func)
+      def wrapper(*args, **kwargs):
+          wrapper.calls += 1
+          return func(*args, **kwargs)
+
+      wrapper.calls = 0
+      return wrapper
+wrongSolutions:
+  - label: Keeps one count in a global variable, shared by every decorated function
+    code: |
+      import functools
+
+      total = 0
+
+
+      def count_calls(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              global total
+              total += 1
+              wrapper.calls = total
+              return func(*args, **kwargs)
+
+          wrapper.calls = 0
+          return wrapper
+  - label: Does not forward keyword arguments
+    code: |
+      import functools
+
+
+      def count_calls(func):
+          @functools.wraps(func)
+          def wrapper(*args):
+              wrapper.calls += 1
+              return func(*args)
+
+          wrapper.calls = 0
+          return wrapper
+  - label: Counts only after the call, so a call that raises is not counted
+    code: |
+      import functools
+
+
+      def count_calls(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              result = func(*args, **kwargs)
+              wrapper.calls += 1
+              return result
+
+          wrapper.calls = 0
+          return wrapper
+  - label: Drops the result of the original function
+    code: |
+      import functools
+
+
+      def count_calls(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              wrapper.calls += 1
+              func(*args, **kwargs)
+
+          wrapper.calls = 0
+          return wrapper
+explanation: |
+  A function is an object, so the wrapper can carry its own `calls` attribute. Each time `count_calls` decorates a function it creates a new wrapper with its own count, so counts never mix. The wrapper adds one first, then forwards `*args` and `**kwargs` and returns the result, so a call that raises is still counted. `functools.wraps` copies the original name and docstring. Alternative: a `nonlocal` counter inside `count_calls` also works for counting, but the outside code could not read it, which is why an attribute is convenient here.
