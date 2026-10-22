@@ -45,7 +45,13 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01). The mastery exercises use a little Python: a loop, `startswith`, `strip`, `lower` and a true/false flag. Each has a three-step hint ladder that shows them. Markdown is the plain-text format that READMEs use. `#` starts a heading (`##` makes a level-2 heading), and three backticks start and end a code block. All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
+You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01).
+
+The mastery exercises use a little Python: a loop, `startswith`, `strip`, `lower` and a true/false flag. Each has a three-step hint ladder that shows them.
+
+Markdown is the plain-text format that READMEs use. `#` starts a heading (`##` makes a level-2 heading), and three backticks start and end a code block.
+
+All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
 
 </Callout>
 
@@ -121,7 +127,7 @@ A **pull request** asks a teammate to review and merge a change. The reviewer ca
 - **What changed:** the approach in a few sentences, and anything surprising. Do not retell the diff.
 - **Testing (how it was checked):** the exact commands and results, and what you did not check.
 
-The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", keep it under about 70 characters and leave off the full stop; these are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch (the branch the repository treats as its main line, usually `main`). A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
+The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", keep it short (the exercise uses 72 characters) and leave off the full stop; these are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch (the branch the repository treats as its main line, usually `main`). A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
 
 **Worked example.** Compare two descriptions of the same change.
 
