@@ -1,0 +1,62 @@
+lesson: py-04
+cards:
+  - id: py-04-c-except-specific
+    type: explain
+    competencies: [py.exceptions]
+    front: Why catch a specific exception such as ValueError instead of Exception, and why never a bare except?
+    back: A specific handler deals with the problem you expect and lets bugs show up. except Exception also hides unrelated bugs, and a bare except even catches KeyboardInterrupt and SystemExit.
+  - id: py-04-c-try-else-finally
+    type: explain
+    competencies: [py.exceptions]
+    front: What do the except, else and finally parts of a try statement do?
+    back: except handles a matching exception. else runs only if the try block raised nothing, and keeps that code out of the try so its errors are not caught by mistake. finally always runs, even on a return or an exception, so it is for cleanup.
+  - id: py-04-c-eafp
+    type: explain
+    competencies: [py.exceptions]
+    front: What is EAFP, and how does it differ from LBYL?
+    back: Easier to ask forgiveness than permission means trying the action and handling the failure. Look before you leap means checking first. EAFP is often safer because the state can change between a check and the action, such as a file deleted after you checked it exists.
+  - id: py-04-c-reraise
+    type: basic
+    competencies: [py.exceptions]
+    front: How do you log an error and still let it reach the caller?
+    back: Catch it, log it, then use a bare raise to re-raise it with its original traceback. To change its type, use raise NewError(...) from error, which keeps the original as the cause.
+  - id: py-04-c-with
+    type: explain
+    competencies: [py.context-managers]
+    front: What does a with statement guarantee, and how do you write your own context manager?
+    back: The cleanup of the context manager runs when the block ends, even if it raises. The short way to write one is a generator function with the contextlib.contextmanager decorator. Code before yield is setup, the with body runs at the yield, and code after it (in a finally) is cleanup.
+  - id: py-04-c-pathlib-json
+    type: basic
+    competencies: [py.files-json]
+    front: How do you read a JSON file with pathlib, and what comes back?
+    back: json.loads(Path("file.json").read_text(encoding="utf-8")). Objects become dicts, arrays lists, null None, and dict keys are always strings. Bad text raises json.JSONDecodeError, a subclass of ValueError.
+  - id: py-04-c-csv
+    type: basic
+    competencies: [py.files-json]
+    front: What types do you get from csv.DictReader?
+    back: Each row is a dict of strings. The csv module does not convert anything, so convert numbers yourself, for example with int, and handle the ValueError for bad values.
+  - id: py-04-c-naive-aware
+    type: explain
+    competencies: [py.datetime]
+    front: What is the difference between a naive and an aware datetime, and why does it matter?
+    back: A naive datetime is a clock reading with no time zone. An aware one has a UTC offset and stands for a moment in time. Ordering a naive time against an aware one raises TypeError, and naive times from different zones compare wrongly.
+  - id: py-04-c-store-utc
+    type: explain
+    competencies: [py.datetime]
+    front: How should an app store and show times?
+    back: Store aware datetimes in UTC, written as ISO 8601 text such as 2026-11-02T09:00:00+00:00, and convert to the user's zone with astimezone only when displaying them. UTC is one consistent timeline for sorting and comparing.
+  - id: py-04-c-replace-astimezone
+    type: explain
+    competencies: [py.datetime]
+    front: When do you use replace(tzinfo=...) and when astimezone(...)?
+    back: replace attaches a zone to a naive time that is already a reading in that zone, and keeps the clock time. astimezone converts an aware time to another zone, and keeps the moment. Calling astimezone on a naive time assumes the computer's own zone.
+  - id: py-04-c-named-zone
+    type: basic
+    competencies: [py.datetime]
+    front: Why use ZoneInfo("Europe/London") instead of a fixed offset?
+    back: A named zone applies the daylight saving rules, so the offset is right for each date. A fixed offset is the same all year. zoneinfo needs the tz database, which comes from the tzdata package on Windows and in the browser.
+  - id: py-04-c-retry
+    type: explain
+    competencies: [py.exceptions, py.decorators]
+    front: How should a retry decorator behave, and what is the danger?
+    back: It retries only the listed temporary exceptions, up to max_attempts calls in total, then lets the last exception reach the caller. The danger is repeating an operation that is not safe to repeat, such as a charge, so retry only idempotent calls.
