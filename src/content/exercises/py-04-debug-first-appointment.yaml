@@ -66,7 +66,7 @@ hiddenTests: |
       assert appointments == snapshot
 feedback:
   - test: test_london_starts_before_new_york_even_though_its_clock_time_is_later
-    message: You are comparing clock readings, not moments. 12:00 in London is 12:00 UTC, but 09:00 in New York is 14:00 UTC. Attach each appointment's own time zone to its time before you compare.
+    message: "You are comparing clock readings, not moments. 12:00 in London is 12:00 UTC, but 09:00 in New York is 14:00 UTC. Attach each appointment's own time zone to its time before you compare. Marking every time as UTC with replace(tzinfo=timezone.utc) also ignores the zone name."
   - test: test_tokyo_evening_is_the_earliest_moment
     message: 20:00 in Tokyo is 11:00 UTC, earlier than the others. Compare aware datetimes, which compare as moments in time.
   - test: test_same_moment_in_different_zones_first_in_list_wins

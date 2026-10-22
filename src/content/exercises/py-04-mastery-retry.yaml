@@ -18,7 +18,7 @@ prompt: |
   - If it raises one of the listed exceptions (or a subclass), call it again, up to `max_attempts` calls in total. If the last attempt also fails, let that exception go to the caller.
   - Any other exception is not retried: it goes straight to the caller after one call.
   - Pass all arguments through, and keep the original function's name and docstring.
-  - `max_attempts` below 1 raises `ValueError` when the decorator is created.
+  - `max_attempts` below 1 raises `ValueError` as soon as `retry(...)` is called.
   - Do not wait between attempts.
 
   Example: with `retry(3, (TimeoutError,))`, a function that raises `TimeoutError` twice and then returns `"ok"` is called three times and returns `"ok"`.

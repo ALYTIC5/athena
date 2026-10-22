@@ -8,7 +8,7 @@ week: 6
 track: py
 durationMin: 120
 anatomy: full
-competencies: [py.exceptions, py.context-managers, py.files-json, py.datetime]
+competencies: [py.exceptions, py.context-managers, py.files-json, py.datetime, py.decorators]
 prerequisites: [py-03]
 whyItMatters: >
   Python appears in 61% of the postings you are targeting, and REST APIs and webhooks appear in 54%. Both are full of
@@ -18,7 +18,7 @@ whyItMatters: >
 objectives:
   - Raise and handle specific exceptions, and explain EAFP versus LBYL
   - Write a context manager with contextlib
-  - Read and write JSON and CSV with pathlib and the json and csv modules
+  - Read JSON and CSV, and write JSON, with pathlib and the json and csv modules
   - Convert between time zones with aware datetimes and zoneinfo, and store times in UTC
   - Write a retry decorator that retries only the exceptions you list
 sources:
@@ -54,21 +54,21 @@ By the end of this lesson you can:
 
 1. Raise and handle specific exceptions, and explain EAFP versus LBYL.
 2. Write a context manager with `contextlib`.
-3. Read and write JSON and CSV with `pathlib` and the `json` and `csv` modules.
+3. Read JSON and CSV, and write JSON, with `pathlib` and the `json` and `csv` modules.
 4. Convert between time zones with aware datetimes and `zoneinfo`, and store times in UTC.
 5. Write a retry decorator that retries only the exceptions you list.
 
 <Callout type="note" title="What this lesson assumes">
 
-You know functions, decorators and generators from py-03, and dicts and `Counter` from py-02. A `class` statement makes a new type of object. This lesson uses one line of it, `class MyError(Exception): ...`, to make a new exception type, and py-05 teaches classes. Exercises that use time zones take the current time as an argument and load the `tzdata` package, because the browser has no time zone database of its own.
+You know functions, decorators and generators from py-03, and dicts and `Counter` from py-02. A `class` statement makes a new type of object. This lesson uses one line of it, `class MyError(Exception): ...`, to make a new exception type, and py-05 teaches classes. The exercises that use time zones load the `tzdata` package, because the browser has no time zone database of its own.
 
 </Callout>
 
 <Chunk n={1} title="Exceptions: raise, catch and clean up">
 
-An **exception** is an object raised when something goes wrong. It travels up through the calling functions until a `try`/`except` catches it, or the program stops with a traceback. Exceptions form a hierarchy: `ValueError`, `KeyError` and `OSError` are all kinds of `Exception`. Catch the most specific type you can handle, and never a bare `except:`.
+An **exception** is an object raised when something goes wrong. It travels up through the calling functions until a `try`/`except` catches it, or the program stops with a traceback. Exceptions form a hierarchy (`ValueError` and `KeyError` are kinds of `Exception`). Catch the most specific type you can handle, and never a bare `except:`.
 
-In a `try` statement, `except` handles a matching exception, `else` runs only if nothing was raised, and `finally` always runs, even on a `return`, so it is for cleanup. Use `raise` to signal a problem, and `raise NewError(...) from error` to keep the original as the cause. A new exception type is one line, as below.
+In a `try` statement, `except` handles a matching exception, `else` runs only if nothing was raised, and `finally` always runs, even on a `return`. Use `raise` to signal a problem, and `raise NewError(...) from error` to keep the original as the cause. Inside an `except` block, a bare `raise` re-raises the exception being handled. A new exception type is one line, as below.
 
 **EAFP** (easier to ask forgiveness than permission) means trying the action and handling the failure. **LBYL** (look before you leap) means checking first. EAFP is often safer, because the situation can change between the check and the action.
 
@@ -145,7 +145,7 @@ def announce(label):
     finally:
         print("end", label)            # runs even if the body raises
 
-with tempfile.TemporaryDirectory() as folder:
+with tempfile.TemporaryDirectory() as folder:   # a throwaway folder, deleted after the block
     path = Path(folder) / "bookings.json"
     with announce("write"):
         path.write_text(json.dumps([{"id": "b1", "hour": 9}]))
@@ -160,7 +160,7 @@ import csv
 import io
 
 text = "id,caller\nb1,amara\nb2,bayu\n"
-rows = list(csv.DictReader(io.StringIO(text)))
+rows = list(csv.DictReader(io.StringIO(text)))   # StringIO makes text act like a file
 print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
 ```
 
@@ -174,7 +174,7 @@ print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
 
 - "JSON keeps my dict keys as they were." Keys always become strings, so `{9: "free"}` comes back as `{"9": "free"}`.
 - "CSV numbers come back as numbers." Every CSV value is a string until you convert it.
-- "A context manager stops exceptions." It runs the cleanup, and the exception carries on unless the manager catches it.
+- "A context manager stops exceptions." It runs the cleanup, and the exception carries on. In a generator-based one the exception is raised at the `yield`, and a `try`/`except` around the `yield` can catch it.
 
 </Callout>
 
@@ -182,7 +182,7 @@ print(rows[1]["caller"], type(rows[0]["id"]).__name__)   # bayu str
 
 <Chunk n={3} title="Dates, times and time zones">
 
-A **naive** datetime is a clock reading with no time zone. An **aware** datetime has a UTC offset and stands for a moment in time. Python refuses to compare a naive one with an aware one (`TypeError`), and two naive times from different cities compare wrongly. So store and compare times in UTC, and convert to a local zone only to show them.
+A **naive** datetime is a clock reading with no time zone. An **aware** datetime has a UTC offset and stands for a moment in time. Ordering comparisons such as `<` between a naive and an aware one raise `TypeError`, and two naive times from different cities compare wrongly. So store and compare times in UTC, and convert to a local zone only to show them.
 
 **ISO 8601** is the standard text form, such as `2026-11-02T09:00:00+00:00`. `fromisoformat` reads it and `isoformat()` writes it. `ZoneInfo("Europe/London")` is a named time zone that follows daylight saving. `dt.replace(tzinfo=zone)` attaches a zone to a reading that is already local to it. `dt.astimezone(zone)` converts an aware time to another zone.
 
@@ -229,7 +229,7 @@ print(local.astimezone(timezone.utc).isoformat())    # 2026-11-02T14:00:00+00:00
 
 ## Find the bug
 
-Three appointments in three cities are compared, and the wrong one comes first. The failing test names the symptom.
+Appointments from different cities are compared, and the wrong one comes first. The failing test shows the symptom.
 
 <Exercise id="py-04-debug-first-appointment" />
 

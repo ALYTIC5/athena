@@ -39,7 +39,7 @@ cards:
     type: explain
     competencies: [py.datetime]
     front: What is the difference between a naive and an aware datetime, and why does it matter?
-    back: A naive datetime is a clock reading with no time zone. An aware one has a UTC offset and stands for a moment in time. Naive and aware times cannot be compared (TypeError), and naive times from different zones compare wrongly.
+    back: A naive datetime is a clock reading with no time zone. An aware one has a UTC offset and stands for a moment in time. Ordering a naive time against an aware one raises TypeError, and naive times from different zones compare wrongly.
   - id: py-04-c-store-utc
     type: explain
     competencies: [py.datetime]

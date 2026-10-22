@@ -17,10 +17,10 @@ items:
         why: This also hides unrelated bugs, such as a typo that raises NameError, so they look like bad input.
       - text: except, with no type, so nothing can get through
         correct: false
-        why: A bare except also catches KeyboardInterrupt and SystemExit, which stops the program being interrupted.
-      - text: except KeyError, because the input is a key
+        why: 'A bare except also catches KeyboardInterrupt and SystemExit, which makes the program impossible to interrupt. It is also too wide to be useful.'
+      - text: 'except TypeError, because the input is text'
         correct: false
-        why: int does not raise KeyError. The handler would never run and the ValueError would escape.
+        why: 'int raises ValueError for bad text, not TypeError. The handler would never run and the ValueError would escape.'
   - id: py-04-q-predict-flow
     pools: [check, mastery]
     chunk: 1
@@ -70,7 +70,7 @@ items:
     competencies: [py.exceptions]
     stem: A function has try with a return in it, and a finally block that prints a message. When does the message print?
     options:
-      - text: Every time, even when the try block returns or raises
+      - text: 'Every time, even after a return or a raise'
         correct: true
         why: finally is for cleanup that must always happen, so it runs on the way out however the block ends.
       - text: Only when an exception was raised
@@ -108,7 +108,7 @@ items:
     competencies: [py.exceptions]
     stem: What does EAFP mean, and why can it be safer than checking first?
     options:
-      - text: Try the action and handle the failure, because the state can change between a check and the action
+      - text: 'Try it and handle the failure, because the state can change after a check'
         correct: true
         why: Easier to ask forgiveness than permission. A file that exists at the check can be gone when you open it.
       - text: Check every condition first, so no error can happen
@@ -127,7 +127,7 @@ items:
     competencies: [py.exceptions]
     stem: 'A try statement has except Exception first, then except ValueError. What happens when a ValueError is raised?'
     options:
-      - text: The first handler runs, so the ValueError handler is never reached
+      - text: 'The first handler runs, and the ValueError one is skipped'
         correct: true
         why: Python uses the first matching handler. ValueError is a kind of Exception, so put the specific handler first.
       - text: Both handlers run, one after the other
@@ -190,7 +190,7 @@ items:
       - text: No exception can be raised inside the block
         correct: false
         why: Exceptions still happen, but the cleanup runs before they carry on.
-      - text: The file is deleted afterwards
+      - text: 'The file is locked against other programs'
         correct: false
         why: Closing a file does not delete it.
   - id: py-04-q-predict-contextmanager
@@ -482,7 +482,7 @@ items:
     competencies: [py.datetime]
     stem: Why use ZoneInfo("Europe/London") rather than a fixed offset such as +00:00?
     options:
-      - text: A named zone knows its daylight saving rules, and the offset changes during the year
+      - text: 'A named zone follows daylight saving, so its offset changes during the year'
         correct: true
         why: London is at +00:00 in winter and +01:00 in summer. A named zone picks the right offset for each date.
       - text: A fixed offset cannot be used with datetime
@@ -498,7 +498,7 @@ items:
     pools: [mastery]
     objective: 4
     type: single
-    competencies: [py.datetime, py.functions]
+    competencies: [py.datetime]
     stem: A function decides whether a booking has expired by calling datetime.now(timezone.utc) inside it. What is a better design for testing?
     options:
       - text: Take now as a parameter, so a test can pass a fixed moment
@@ -541,7 +541,7 @@ items:
       - text: Every exception
         correct: false
         why: A bug or bad input fails every time, so retrying it only wastes time and can hide the problem.
-      - text: Only KeyboardInterrupt
+      - text: 'Only exceptions raised by your own code'
         correct: false
         why: That is the user stopping the program, which should never be retried.
       - text: None, because the first failure is always final
