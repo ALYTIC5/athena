@@ -72,7 +72,7 @@ items:
       - text: A set, because it removes duplicates and then looks each part up fast
         correct: false
         why: A set has no order or positions, so you could not tell which part is the caller, and equal values would merge.
-      - text: A dict, because a dict is the only collection that can hold different kinds of values
+      - text: A dict, because a record always needs named fields
         correct: false
         why: A dict is a good choice when you want named fields, but a tuple is the simpler choice for a short fixed record.
   - id: py-02-q-dict-order

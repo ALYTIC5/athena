@@ -53,7 +53,7 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know names, mutability and functions from py-01: a list passed to a function is the caller's list, and `sorted` builds a new list. You can read `for` loops and `if`. Everything else is explained where it appears.
+You know names, mutability and functions from py-01: a list passed to a function is the caller's list, and `sorted` builds a new list. You can read `for` loops and `if`. Calling `list(d)` on a dict gives its keys. Everything else is explained where it appears.
 
 </Callout>
 
@@ -107,6 +107,12 @@ Three tools from the `collections` module and the built-ins handle most summarie
 
 `sorted(items, key=func)` returns a new list ordered by the value `func` returns for each item. The sort is **stable**: items with equal keys keep their input order. A key can return a tuple, which Python compares one part at a time. Putting a minus sign on a number sorts it largest first.
 
+<Callout type="note" title="Small tools used in this lesson">
+
+`lambda c: c["seconds"]` is a one-line function without a name that returns the seconds of `c`. `sorted`, `min` and `max` call it on each item when you pass `key=`. `d.items()` gives a dict's `(key, value)` pairs, `list(d)` gives its keys, and `x[:n]` is the first `n` items of a list.
+
+</Callout>
+
 **Worked example.** Count the reasons for calling, group them by caller, and rank calls.
 
 ```python
@@ -126,15 +132,9 @@ ranked = sorted(calls, key=lambda c: (-c["seconds"], c["id"]))   # longest first
 print([c["id"] for c in ranked])                            # ['c2', 'c3', 'c1']
 ```
 
-Put the lines in order, then try the exercise below it. One line is a distractor that would answer a different question.
+Put the lines in order, then try the Predict and the exercise at the end of this chunk. One line is a distractor that would answer a different question.
 
 <Parsons lesson="py-02" item="py-02-q-parsons-top-reasons" />
-
-<Callout type="note" title="Small tools used in this lesson">
-
-`lambda c: c["seconds"]` is a one-line function without a name that returns the seconds of `c`. `sorted`, `min` and `max` call it on each item when you pass `key=`. `d.items()` gives a dict's `(key, value)` pairs, `list(d)` gives its keys, and `x[:n]` is the first `n` items of a list.
-
-</Callout>
 
 <Predict lesson="py-02" item="py-02-q-predict-counter" />
 
@@ -156,7 +156,7 @@ Put the lines in order, then try the exercise below it. One line is a distractor
 
 **Big-O** describes how the number of steps grows as the input size `n` grows, ignoring constant factors. We count steps instead of seconds because seconds depend on the computer. O(1) means the work does not grow, O(n) grows in step with `n`, O(n log n) grows slightly faster (sorting), and O(n²) means doubling the input makes the work about four times larger.
 
-Reading one list item by position is O(1). `x in a_list` is O(n), because Python compares `x` with each item until it finds a match. `x in a_set` and `key in a_dict` are O(1) on average, because a hash takes Python straight to where the item would be. The price is memory, hashable items and no order.
+Reading one list item by position is O(1). `x in a_list` is O(n), because Python compares `x` with each item until it finds a match. `x in a_set` (and `x not in a_set`, its opposite) and `key in a_dict` are O(1) on average, because a hash takes Python straight to where the item would be. The price is memory, hashable items and no order.
 
 A loop that does O(n) work on each of `n` passes costs O(n²). The danger is a hidden loop: `in` on a list looks like one cheap step but is a loop.
 

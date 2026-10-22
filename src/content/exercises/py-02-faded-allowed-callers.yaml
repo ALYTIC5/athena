@@ -14,7 +14,7 @@ estMin: 5
 packages: []
 prompt: |
   `allowed(callers, blocked)` returns the callers that are not in the `blocked` list, in their original order. Both lists can be long, so test membership against a collection that answers "is it in here?" quickly.
-  Fill in the blanks: the collection to build from `blocked` once, and the operator that keeps a caller only when it is missing from that collection.
+  The last visible test counts how many times Python compares two items with `==`, so scanning the blocked list for every caller fails it. Fill in the blanks: the collection to build from `blocked` once, and the operator that keeps a caller only when it is missing from that collection.
 starter: |
   def allowed(callers, blocked):
       blocked_set = ____(blocked)
