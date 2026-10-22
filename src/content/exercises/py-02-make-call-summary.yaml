@@ -9,7 +9,6 @@ difficulty: 3
 competencies:
   - py.collections
   - py.comprehensions
-  - py.complexity
 timeoutMs: 5000
 packages: []
 prompt: |

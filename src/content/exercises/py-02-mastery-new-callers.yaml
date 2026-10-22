@@ -77,13 +77,19 @@ hiddenTests: |
       assert Tracked.hashes < 10 * (len(today) + len(yesterday))
 feedback:
   - test: test_work_grows_with_the_lists_not_their_product
-    message: Your function compared callers too many times. Looking each caller up in a list scans the whole list. Put yesterday's callers in a set once, then test each caller against the set.
+    message: Your function did too much work. Looking each caller up in a list scans the whole list, and building a new set inside the loop repeats the work for every caller. Put yesterday's callers in a set once, before the loop, then test each caller against it.
   - test: test_empty_yesterday_keeps_first_appearance_order
     message: The result must keep the order of first appearance. A set does not promise any order, so do not build the answer by turning a set back into a list.
   - test: test_order_is_first_appearance_not_sorted
     message: Do not sort the result. Keep the order in which the new callers first appeared today.
   - test: test_repeats_today_are_reported_once
     message: A caller who called three times today is still one new caller. Remember who you have already reported.
+  - test: test_inputs_are_not_changed
+    message: Your function changed one of the lists it was given. Build a new result list and a separate set.
+  - test: test_works_with_tuples
+    message: Tuples of hashable values can go in a set. Do not make the function depend on the type of the callers.
+  - test: test_empty_today
+    message: With no callers today, the result is an empty list.
   - test: test_example_from_the_prompt
     message: Return the callers in today that are not in yesterday. Check which list is which.
 hints:

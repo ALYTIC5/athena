@@ -10,6 +10,7 @@ competencies:
   - py.collections
   - py.comprehensions
 timeoutMs: 5000
+estMin: 4
 packages: []
 prompt: |
   `unique_callers(calls)` takes a list of call records (dicts with a `"caller"` key) and returns a sorted list that holds each caller once.

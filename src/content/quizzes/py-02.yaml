@@ -337,10 +337,10 @@ items:
     competencies: [py.collections]
     stem: 'What does Counter(reasons).most_common(2) return?'
     options:
-      - text: The two (reason, count) pairs with the highest counts
+      - text: The two (reason, count) pairs with the top counts
         correct: true
         why: most_common(n) returns pairs, sorted by count from highest to lowest. Ties keep the order the items were first seen.
-      - text: A list of the two most common reasons only
+      - text: A list of the two top reasons only
         correct: false
         why: The pairs include the counts.
       - text: A new Counter that holds two items
@@ -372,7 +372,7 @@ items:
     competencies: [py.complexity, py.collections]
     stem: 'You test "x in items" many times. How does the cost of one test change as the collection grows?'
     options:
-      - text: It grows with the length for a list, and stays about the same for a set or dict
+      - text: It grows for a list, and stays about the same for a set or dict
         correct: true
         why: A list is searched item by item. A set or dict finds an item through its hash, which takes about the same time whatever the size.
       - text: It grows with the length for a set, and stays about the same for a list

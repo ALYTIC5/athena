@@ -93,6 +93,8 @@ feedback:
     message: Your function compared items far too many times. For each new item it looked through everything seen so far, so the work grows with the square of the list. Use a collection that answers "have I seen this?" without scanning.
   - test: test_work_stays_small_when_there_is_a_duplicate_late
     message: With a duplicate near the end the function still compared too many items. Check how `seen` is searched.
+  - test: test_no_duplicate
+    message: A list with no repeats should give False. Check that you test for an item before you add it to what you have seen.
   - test: test_works_with_tuples
     message: Tuples of hashable values are hashable too, so they can go in a set. Check that you did not make the function depend on the type of the items.
   - test: test_input_is_not_changed

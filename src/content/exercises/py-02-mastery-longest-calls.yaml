@@ -12,7 +12,7 @@ competencies:
 timeoutMs: 5000
 packages: []
 prompt: |
-  Each call is a dict with `"id"` (a string) and `"seconds"` (a number). Write `longest_calls(calls, n)` that returns a new list with the `n` longest calls, longest first. If two calls last the same time, the one with the smaller id (in alphabetical order) comes first.
+  Each call is a dict with `"id"` (a string) and `"seconds"` (a number). Write `longest_calls(calls, n)` that returns a new list with the `n` longest calls (the same call dicts, not copies), longest first. If two calls last the same time, the one with the smaller id (in alphabetical order) comes first.
 
   - If `n` is larger than the number of calls, return all of them in that order. If `n` is 0, return an empty list.
   - The list you were given must keep its original order.
@@ -69,6 +69,10 @@ feedback:
     message: Calls with the same length must be ordered by id. A sort is stable, so equal keys keep their input order. Put the id in the key as a second part.
   - test: test_longest_first
     message: The longest call must come first. Check the direction of your sort.
+  - test: test_returns_a_new_list
+    message: Return a new list, not the list you were given. Sorting with `sorted` and slicing both build new lists.
+  - test: test_returns_the_same_call_dicts
+    message: Return the call dicts themselves, not copies or new dicts.
   - test: test_mixed_ties_and_lengths
     message: Sort on both values at once, with a key that returns a tuple such as (-seconds, id).
 hints:
