@@ -1,0 +1,29 @@
+lesson: py-03
+questions:
+  - id: py-03-iq-yield
+    competencies: [py.iterators-generators]
+    question: What does `yield` do?
+    modelAnswer: A function that contains yield is a generator function. Calling it does not run the body. It returns a generator, and each time the caller asks for the next item, the body runs until it reaches a yield, hands that value over and pauses with its local variables intact. Because items are produced one at a time, I can process a huge file or an endless stream without holding it all in memory. The trade-offs are that a generator can be consumed only once and has no length or indexing. If I need to loop twice, I make a new generator or collect a list.
+    listenFor:
+      - the body does not run until the first next
+      - pauses and keeps local state
+      - memory benefit from producing items on demand
+      - mentions that a generator is used up after one pass
+  - id: py-03-iq-decorator
+    competencies: [py.decorators, py.args-kwargs, py.scope-closures]
+    question: Explain a decorator you have written.
+    modelAnswer: One I wrote remembers results per set of arguments. The decorator takes a function and returns a wrapper. The wrapper takes *args, so it accepts whatever the original takes, and uses the argument tuple as a key in a dict that lives in the enclosing function, which makes it a closure. If the key is missing, it calls the original and stores the result, and it returns the stored value. I used functools.wraps so the decorated function keeps its name and docstring. I would mention the limits, which are that the arguments must be hashable and that the memory grows without a limit, and that functools.lru_cache already does this in the standard library.
+    listenFor:
+      - a decorator takes a function and returns a function
+      - the wrapper forwards arguments and returns the result
+      - uses functools.wraps and says why
+      - names a limit or a standard-library alternative
+  - id: py-03-iq-args-kwargs
+    competencies: [py.args-kwargs]
+    question: What are `*args` and `**kwargs`, and when do you use them?
+    modelAnswer: In a function definition, *args collects extra positional arguments into a tuple, and **kwargs collects extra keyword arguments into a dict. In a call, the stars do the opposite and spread a sequence or a dict into arguments. I use them in wrappers and decorators, to pass everything on to another function, and when a function really takes a variable number of inputs. For ordinary functions I prefer named parameters, because they document themselves, and I use a bare * to make options keyword-only so that callers cannot mix up the order.
+    listenFor:
+      - tuple for args and dict for kwargs
+      - the stars also unpack in a call
+      - typical use in wrappers and decorators
+      - prefers named parameters and keyword-only options for ordinary functions

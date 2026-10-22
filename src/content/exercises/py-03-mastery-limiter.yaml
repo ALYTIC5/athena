@@ -1,0 +1,121 @@
+id: py-03-mastery-limiter
+lesson: py-03
+runtime: python
+kind: make
+pools:
+  - mastery
+title: A call limiter that counts its own calls
+difficulty: 3
+competencies:
+  - py.scope-closures
+timeoutMs: 5000
+packages: []
+prompt: |
+  A webhook handler must accept at most a fixed number of requests per batch. Write `make_limiter(max_calls)`. It returns a function `allow()` that takes no arguments. The first `max_calls` calls to `allow()` return `True`, and every call after that returns `False`.
+
+  - Each limiter keeps its own count. Two limiters made by two calls to `make_limiter` do not affect each other.
+  - `make_limiter(0)` returns a function that always returns `False`.
+  - Do not use a global variable.
+
+  Example: with `allow = make_limiter(2)`, the calls `allow()`, `allow()`, `allow()` return `True`, `True`, `False`.
+starter: |
+  def make_limiter(max_calls: int):
+      ...
+visibleTests: |
+  def test_allows_the_first_calls_then_refuses():
+      allow = make_limiter(2)
+      assert [allow(), allow(), allow()] == [True, True, False]
+
+  def test_two_limiters_are_independent():
+      first = make_limiter(1)
+      second = make_limiter(1)
+      assert first() is True
+      assert second() is True
+      assert first() is False
+hiddenTests: |
+  def test_zero_always_refuses():
+      allow = make_limiter(0)
+      assert [allow(), allow()] == [False, False]
+
+  def test_keeps_refusing_after_the_limit():
+      allow = make_limiter(3)
+      results = [allow() for _ in range(6)]
+      assert results == [True, True, True, False, False, False]
+
+  def test_exactly_max_calls_are_allowed():
+      allow = make_limiter(5)
+      assert sum(1 for _ in range(10) if allow()) == 5
+
+  def test_a_second_limiter_with_a_different_size():
+      small = make_limiter(1)
+      large = make_limiter(3)
+      assert [small(), large(), large(), large(), large()] == [True, True, True, True, False]
+
+  def test_results_are_real_booleans():
+      allow = make_limiter(1)
+      assert allow() is True
+      assert allow() is False
+feedback:
+  - test: test_allows_the_first_calls_then_refuses
+    message: After max_calls calls, allow() must return False. Count the calls, and compare the count with max_calls after adding the current call.
+  - test: test_two_limiters_are_independent
+    message: Each limiter needs its own count. Keep the count inside make_limiter, not in a global variable.
+  - test: test_keeps_refusing_after_the_limit
+    message: The count must survive from one call to the next. A local variable inside allow starts again on every call. Keep it in the enclosing function and declare it with nonlocal.
+  - test: test_exactly_max_calls_are_allowed
+    message: Exactly max_calls calls return True. Check whether you are off by one.
+hints:
+  - Where can a count live so that it survives between calls of allow, and so that each limiter has its own?
+  - 'Keep a `count` variable in make_limiter, outside allow. In allow, declare it `nonlocal` so that adding to it changes the enclosing variable. Add one for this call, then compare with max_calls.'
+  - |
+    count = 0
+
+    def allow():
+        ____ count
+        count += 1
+        return count ____ max_calls
+referenceSolution: |
+  def make_limiter(max_calls: int):
+      count = 0
+
+      def allow():
+          nonlocal count
+          count += 1
+          return count <= max_calls
+
+      return allow
+wrongSolutions:
+  - label: Keeps the count in a local variable, so it starts again on every call
+    code: |
+      def make_limiter(max_calls: int):
+          def allow():
+              count = 0
+              count += 1
+              return count <= max_calls
+
+          return allow
+  - label: Keeps the count in a global variable, so all limiters share it
+    code: |
+      count = 0
+
+
+      def make_limiter(max_calls: int):
+          def allow():
+              global count
+              count += 1
+              return count <= max_calls
+
+          return allow
+  - label: Allows one call too few
+    code: |
+      def make_limiter(max_calls: int):
+          count = 0
+
+          def allow():
+              nonlocal count
+              count += 1
+              return count < max_calls
+
+          return allow
+explanation: |
+  `count` lives in the enclosing function, so each call to `make_limiter` creates its own `count`, and `allow` is a closure over it. Without `nonlocal`, `count += 1` would make `count` a local name of `allow`, and Python would raise `UnboundLocalError` before the first call returned. The first `max_calls` calls leave `count` at or below the limit, so they return `True`. Alternative: a class with a `count` attribute and a `__call__` method does the same job, and a one-item list such as `count = [0]` avoids `nonlocal`, because changing the list is not rebinding the name. The closure with `nonlocal` is the usual short form.

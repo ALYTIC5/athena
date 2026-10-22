@@ -1,0 +1,62 @@
+lesson: py-03
+cards:
+  - id: py-03-c-legb
+    type: explain
+    competencies: [py.scope-closures]
+    front: In what order does Python look up a name inside a function?
+    back: Local, then Enclosing functions, then Global (module), then Built-in. It stops at the first scope that has the name, so a local name hides a global one.
+  - id: py-03-c-unbound-local
+    type: explain
+    competencies: [py.scope-closures]
+    front: Why does total += 1 inside a function raise UnboundLocalError when total is a global?
+    back: Assigning to a name anywhere in a function makes it local for the whole function. The += reads the local total before it has a value. Declare global total, or better, pass the value in and return the result.
+  - id: py-03-c-closure
+    type: explain
+    competencies: [py.scope-closures]
+    front: What is a closure, and when do you need nonlocal?
+    back: A closure is an inner function that keeps using variables of the enclosing function after that function has returned. You need nonlocal when the inner function assigns to such a variable, because otherwise the assignment creates a new local name.
+  - id: py-03-c-late-binding
+    type: explain
+    competencies: [py.scope-closures]
+    front: Why do functions made in a loop all see the last value of the loop variable, and how do you fix it?
+    back: A closure looks the variable up when it is called, and the loop has finished by then, so they all see the last value. Fix it by giving each function its own value, for example with a default argument (lambda i=i, ...) or by creating the function inside a helper function that is called once for each value.
+  - id: py-03-c-args-kwargs
+    type: explain
+    competencies: [py.args-kwargs]
+    front: What do *args and **kwargs collect, and what is a keyword-only parameter?
+    back: 'Extra positional arguments are collected by *args into a tuple, and extra keyword arguments by **kwargs into a dict. A parameter after a bare * (or after *args) can only be given by name, so callers cannot get the order wrong.'
+  - id: py-03-c-unpack
+    type: basic
+    competencies: [py.args-kwargs]
+    front: What do the stars mean in a call such as f(*items, **options)?
+    back: The single star spreads an iterable into positional arguments. The double star spreads a dict into keyword arguments.
+  - id: py-03-c-decorator
+    type: explain
+    competencies: [py.decorators]
+    front: What does a decorator do, and what does @deco above def f mean?
+    back: A decorator is a function that takes a function and returns a function, usually one that wraps the original with extra behaviour. @deco above def f is the same as writing f = deco(f) after the definition.
+  - id: py-03-c-wraps
+    type: explain
+    competencies: [py.decorators, py.args-kwargs]
+    front: Why does a decorator's wrapper use *args, **kwargs and functools.wraps?
+    back: '*args and **kwargs let the wrapper pass on any call to the original function, and return its result. functools.wraps copies the original name and docstring onto the wrapper, so tracebacks and help text still show the real function.'
+  - id: py-03-c-decorator-factory
+    type: explain
+    competencies: [py.decorators]
+    front: How do you write a decorator that takes an argument, such as @timed(clock)?
+    back: Write a function that takes the argument and returns the real decorator. Python evaluates timed(clock) first, and the result is applied to the function. So there are three levels, the factory, the decorator and the wrapper.
+  - id: py-03-c-yield
+    type: explain
+    competencies: [py.iterators-generators]
+    front: What does yield do, and what happens when you call a generator function?
+    back: yield hands a value to the caller and pauses the function, keeping its local variables. Calling a generator function runs none of its body. It returns a generator, and each next() runs the body to the next yield.
+  - id: py-03-c-generator-memory
+    type: explain
+    competencies: [py.iterators-generators]
+    front: Why does a generator save memory, and what is its catch?
+    back: It produces one item at a time instead of building a collection of all of them, so memory use stays small however long the input is. The catch is that it can be used only once, and it has no length or indexing.
+  - id: py-03-c-iterator-protocol
+    type: basic
+    competencies: [py.iterators-generators]
+    front: What does a for loop do with the object it loops over?
+    back: It calls iter() to get an iterator, then calls next() on it until StopIteration is raised. A list is an iterable that gives a fresh iterator each time, and a generator is its own iterator.
