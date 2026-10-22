@@ -32,11 +32,13 @@ visibleTests: |
 hiddenTests: |
   class Tracked:
       comparisons = 0
+      hashes = 0
 
       def __init__(self, value):
           self.value = value
 
       def __hash__(self):
+          Tracked.hashes += 1
           return hash(self.value)
 
       def __eq__(self, other):
@@ -68,9 +70,11 @@ hiddenTests: |
       today = [Tracked(n) for n in range(600)]
       yesterday = [Tracked(n) for n in range(300, 900)]
       Tracked.comparisons = 0
+      Tracked.hashes = 0
       result = new_callers(today, yesterday)
       assert [t.value for t in result] == list(range(300))
       assert Tracked.comparisons < 10 * (len(today) + len(yesterday))
+      assert Tracked.hashes < 10 * (len(today) + len(yesterday))
 feedback:
   - test: test_work_grows_with_the_lists_not_their_product
     message: Your function compared callers too many times. Looking each caller up in a list scans the whole list. Put yesterday's callers in a set once, then test each caller against the set.
@@ -115,6 +119,14 @@ wrongSolutions:
     code: |
       def new_callers(today: list, yesterday: list) -> list:
           return list(set(today) - set(yesterday))
+  - label: Rebuilds the set from yesterday's list for every caller, so the work still grows with the product
+    code: |
+      def new_callers(today: list, yesterday: list) -> list:
+          result = []
+          for caller in dict.fromkeys(today):
+              if caller not in set(yesterday):
+                  result.append(caller)
+          return result
   - label: Does not remove repeats from today
     code: |
       def new_callers(today: list, yesterday: list) -> list:

@@ -61,7 +61,7 @@ You know names, mutability and functions from py-01: a list passed to a function
 
 <Chunk n={1} title="Choosing a collection, and building one with a comprehension">
 
-Each collection answers a different question. A **list** is an ordered sequence you read by position and can grow. A **tuple** is a fixed record that cannot change, such as `(caller, hour)`. A **set** holds each item once and answers "is it in here?" fast. A **dict** maps unique **keys** to values, and a dict keeps the order in which keys were first added.
+Each collection answers a different question. A **list** is an ordered sequence you read by position and can grow, and a **tuple** is a fixed record that cannot change, such as `(caller, hour)`. A **set** holds each item once and answers "is it in here?" fast. A **dict** maps unique **keys** to values, and keeps the order in which keys were first added.
 
 Set items and dict keys must be **hashable**: Python can compute a number from them (a hash) that never changes while they are stored. Numbers, strings and tuples of hashable items are hashable. Lists, sets and dicts are not, because they can change.
 

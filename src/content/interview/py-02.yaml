@@ -12,7 +12,7 @@ questions:
   - id: py-02-iq-tuple
     competencies: [py.collections]
     question: When would you use a tuple instead of a list?
-    modelAnswer: I use a tuple for a small fixed record whose parts have different meanings, such as (caller, hour, reason), and I use a list for a sequence of similar items that can grow. A tuple cannot change, so it protects the record from accidental edits, and if its items are hashable it can be a dict key or a set item, which a list cannot. If the parts need names and the record is passed around a lot, I would move to a dataclass or a named tuple so the code says what each part is.
+    modelAnswer: I use a tuple for a small fixed record whose parts have different meanings, such as (caller, hour, reason), and I use a list for a sequence of similar items that can grow. A tuple cannot change, so it protects the record from accidental edits, and if its items are hashable it can be a dict key or a set item, which a list cannot. If the parts need names and the record is passed around a lot, I would give the parts names so the code says what each one is.
     listenFor:
       - tuple is fixed and a list is a growing sequence of similar items
       - can be a key because it is immutable and hashable

@@ -18,9 +18,9 @@ items:
       - text: A tuple of caller ids
         correct: false
         why: A tuple is a list that cannot change. It has the same slow search and cannot grow as you read more records.
-      - text: A dict that maps each caller id to the list of all their calls
+      - text: A dict that maps each caller id to the string "seen"
         correct: false
-        why: A dict would work for lookup, but it stores far more than the question needs. Choose the collection that stores only what you ask about.
+        why: This works for lookup but stores a pointless value for every caller. A set stores only the ids, which is all the question needs.
   - id: py-02-q-hashable
     pools: [check, mastery, warmup]
     chunk: 1
@@ -63,16 +63,16 @@ items:
     competencies: [py.collections]
     stem: You store one call as (caller, hour, reason), and the three parts never change after the call is logged. Which is the better choice, and why?
     options:
-      - text: A tuple, because it is a fixed record that cannot be changed by accident and can be used as a dict key or set item
+      - text: A tuple, because it is a fixed record that cannot be changed by accident
         correct: true
         why: Use a tuple for a fixed group of related values. Its immutability protects the record and makes it hashable.
-      - text: A list, because lists are always faster
+      - text: A list, because a list is the usual choice for a record you may want to edit later
         correct: false
         why: Lists are not faster for this. A list is for a sequence of similar items that may grow or change, and it cannot be a dict key.
-      - text: A set, because it removes duplicates
+      - text: A set, because it removes duplicates and then looks each part up fast
         correct: false
         why: A set has no order or positions, so you could not tell which part is the caller, and equal values would merge.
-      - text: A dict, because dicts are the only way to name parts
+      - text: A dict, because a dict is the only collection that can hold different kinds of values
         correct: false
         why: A dict is a good choice when you want named fields, but a tuple is the simpler choice for a short fixed record.
   - id: py-02-q-dict-order
@@ -82,16 +82,16 @@ items:
     competencies: [py.collections]
     stem: In current Python versions, in which order does a loop over a dict give its keys?
     options:
-      - text: The order in which the keys were first inserted
+      - text: The order the keys were first added, as the language guarantees
         correct: true
         why: Since Python 3.7 the language guarantees insertion order for dicts. Changing the value of an existing key does not move it.
-      - text: Alphabetical order
+      - text: Alphabetical order, as the dict sorts its keys when you add them
         correct: false
         why: A dict never sorts its keys. Use sorted(d) when you want sorted keys.
-      - text: A random order that can change on every run
+      - text: A random order that can change on every run, as Python decides at start-up
         correct: false
         why: This was a common belief before Python 3.7. Today the order is defined.
-      - text: Order of the values, smallest first
+      - text: The order of the values, smallest value first
         correct: false
         why: A dict does not look at values to decide order.
   - id: py-02-q-set-order
@@ -101,16 +101,16 @@ items:
     competencies: [py.collections, py.mutability]
     stem: You print the callers in a set of strings to a report, and the lines appear in a different order on different days. What is the right fix?
     options:
-      - text: Use sorted(callers) when you print, because a set promises no order
+      - text: Use sorted(callers) when you print
         correct: true
         why: Never rely on the order of a set. Sort when order matters.
-      - text: Convert the set to a tuple, which keeps a fixed order
+      - text: Convert the set to a tuple first
         correct: false
         why: tuple(callers) keeps whatever arbitrary order the set had at that moment. It does not make the order stable.
-      - text: Call callers.sort()
+      - text: Call callers.sort() before printing
         correct: false
         why: Sets have no sort method. Only lists do, and list.sort changes the list in place.
-      - text: Use a larger set
+      - text: Use a set with fewer items
         correct: false
         why: The size of a set does not change its order guarantees.
   - id: py-02-q-comprehension-read
@@ -160,16 +160,16 @@ items:
     competencies: [py.comprehensions]
     stem: What is the difference between sum([s for s in seconds]) and sum(s for s in seconds)?
     options:
-      - text: The second is a generator expression, which gives sum one value at a time without building a list first
+      - text: The second is a generator expression and builds no list first
         correct: true
         why: Both give the same total. The generator expression avoids storing all the items in memory at once.
-      - text: The second gives a different total
+      - text: The second gives a different total, because it skips repeated values
         correct: false
         why: The two forms produce the same values, so the total is the same.
-      - text: The first is a syntax error
+      - text: The first is a syntax error, because sum cannot take a list written like that
         correct: false
         why: Both are valid. The first builds a list and then sums it.
-      - text: The second can only be used once with sum, and the first can be used with any function
+      - text: The second sorts the values before it adds them, and the first does not
         correct: false
         why: Generator expressions work with any function that takes an iterable. The real difference is when the items are produced.
   - id: py-02-q-predict-dictcomp
@@ -214,16 +214,16 @@ items:
     competencies: [py.collections]
     stem: 'groups = defaultdict(list). What does groups["new"].append(1) do when "new" is not yet a key?'
     options:
-      - text: It creates an empty list for "new", then appends 1, so groups["new"] is [1]
+      - text: It makes an empty list for "new", then appends 1
         correct: true
         why: When a key is missing, defaultdict calls the factory (list) to make the starting value.
-      - text: It raises KeyError
+      - text: It raises KeyError, as it would for a plain dict
         correct: false
         why: That is what a plain dict does. The default factory exists to avoid this.
-      - text: It does nothing, because the key does not exist
+      - text: It does nothing, because the key is missing
         correct: false
         why: Reading a missing key creates it with the factory value, so the append works.
-      - text: It creates the key with the value None
+      - text: It makes the key, with the value None
         correct: false
         why: The starting value comes from the factory. list() gives an empty list, so append works.
   - id: py-02-q-parsons-top-reasons
@@ -243,7 +243,7 @@ items:
     chunk: 2
     objective: 4
     type: predict
-    competencies: [py.collections, py.complexity]
+    competencies: [py.collections]
     code: |
       from collections import Counter
 
@@ -261,16 +261,16 @@ items:
     competencies: [py.collections]
     stem: 'What does sorted(calls, key=lambda c: c["seconds"]) return?'
     options:
-      - text: A new list of the calls, shortest first, and calls itself is unchanged
+      - text: A new list of the calls, shortest first
         correct: true
         why: sorted always returns a new list. The key function says what to compare, and the default direction is smallest first.
-      - text: The same list, sorted in place
+      - text: The same list, sorted in place in memory
         correct: false
         why: That describes calls.sort(...). sorted builds a new list.
-      - text: A list of the seconds values only
+      - text: A list of just the seconds values
         correct: false
         why: The key function only decides the order. The items returned are the calls themselves.
-      - text: None
+      - text: None, because sorted changes the list in place
         correct: false
         why: list.sort returns None, but sorted returns the new list.
   - id: py-02-q-sort-stable
@@ -280,23 +280,23 @@ items:
     competencies: [py.collections]
     stem: 'Two calls have the same "seconds", and call A comes before call B in the input. After sorted(calls, key=lambda c: c["seconds"]), which comes first?'
     options:
-      - text: Call A, because sorting is stable and equal keys keep their input order
+      - text: Call A, because equal keys keep their input order
         correct: true
         why: Python sorts are stable. That is also why a second sort key (such as the id) is needed when you want a specific tie order.
-      - text: Call B, because later items win ties
+      - text: Call B, because the later item wins a tie
         correct: false
         why: Ties never reorder the items. The input order is kept.
-      - text: Either one, because the order of ties is random
+      - text: Either one, because the order of ties is not defined
         correct: false
         why: The order of ties is defined, not random.
-      - text: Python raises an error for equal keys
+      - text: Python raises an error when two keys are equal
         correct: false
         why: Equal keys are allowed and common.
   - id: py-02-q-tiebreak-key
     pools: [mastery]
     objective: 4
     type: single
-    competencies: [py.collections, py.comprehensions]
+    competencies: [py.collections]
     stem: 'What order does sorted(calls, key=lambda c: (-c["seconds"], c["id"])) give?'
     options:
       - text: Longest first, and for equal lengths the smaller id first
@@ -318,16 +318,16 @@ items:
     competencies: [py.collections, py.mutability]
     stem: 'A function does top = calls.sort(key=lambda c: c["seconds"]) and then top[0]. What happens?'
     options:
-      - text: A TypeError, because list.sort changes the list in place and returns None
+      - text: A TypeError, because sort returns None
         correct: true
         why: top is None, and None is not subscriptable. Use sorted(...) when you want the new list, or call sort and then use calls.
-      - text: top holds the sorted list, and calls is unchanged
+      - text: top holds the new sorted list, and calls is left unchanged
         correct: false
         why: This describes sorted. sort works in place and returns nothing.
-      - text: top holds the sorted list, and calls is sorted too
+      - text: top holds the sorted list, and calls is sorted in place as well
         correct: false
         why: sort returns None, so top is not the list.
-      - text: top[0] is the longest call
+      - text: top[0] is the longest call in the list
         correct: false
         why: sort puts the shortest first, and in any case top is None.
   - id: py-02-q-most-common
@@ -337,16 +337,16 @@ items:
     competencies: [py.collections]
     stem: 'What does Counter(reasons).most_common(2) return?'
     options:
-      - text: A list of the two (reason, count) pairs with the highest counts, highest first
+      - text: The two (reason, count) pairs with the highest counts
         correct: true
         why: most_common(n) returns pairs, sorted by count from highest to lowest. Ties keep the order the items were first seen.
-      - text: A list of the two most common reasons, without their counts
+      - text: A list of the two most common reasons only
         correct: false
         why: The pairs include the counts.
-      - text: A Counter holding two items
+      - text: A new Counter that holds two items
         correct: false
         why: It returns a plain list of pairs, so you can loop over it or slice it.
-      - text: The single most common reason
+      - text: Only the single most common reason
         correct: false
         why: With n=2 it returns two pairs. most_common(1) would return one pair, still inside a list.
   - id: py-02-q-bug-defaultdict
@@ -372,16 +372,16 @@ items:
     competencies: [py.complexity, py.collections]
     stem: 'You test "x in items" many times. How does the cost of one test change as the collection grows?'
     options:
-      - text: For a list it grows in step with the length. For a set or dict it stays about the same on average
+      - text: It grows with the length for a list, and stays about the same for a set or dict
         correct: true
         why: A list is searched item by item. A set or dict finds an item through its hash, which takes about the same time whatever the size.
-      - text: For a set it grows in step with the length, and for a list it stays about the same
+      - text: It grows with the length for a set, and stays about the same for a list
         correct: false
         why: This is the wrong way round. The hash lookup is what makes sets and dicts fast.
-      - text: It is the same for lists, sets and dicts
+      - text: It is the same for lists, sets and dicts of the same size
         correct: false
         why: The three differ a lot, which is why the choice of collection matters.
-      - text: It grows with the square of the length for a list
+      - text: It grows with the square of the length for every collection
         correct: false
         why: One test on a list is linear. The square appears when you repeat the test for every item.
   - id: py-02-q-big-o-loop
@@ -400,16 +400,16 @@ items:
                       pairs += 1
           return pairs
     options:
-      - text: O(n squared), because the inner loop runs n times for each of the n outer passes
+      - text: O(n squared), because the loops are nested
         correct: true
         why: Nested loops over the same input multiply. Doubling n makes the work about four times larger.
-      - text: O(n), because there is only one list
+      - text: O(n), because there is only one list to read
         correct: false
         why: What counts is how many times the innermost line runs, not how many lists there are.
-      - text: O(2n), because there are two loops
+      - text: O(2n), because there are two loops in total
         correct: false
         why: Two loops one after the other would add. Two loops inside each other multiply.
-      - text: O(1), because the function returns one number
+      - text: O(1), because the function returns just one number
         correct: false
         why: The result is one number, but the work to produce it depends on n.
   - id: py-02-q-predict-steps
@@ -473,16 +473,16 @@ items:
     competencies: [py.complexity, py.collections]
     stem: You must check 5,000 caller ids against a blocked list of 5,000 ids. What is the best approach?
     options:
-      - text: Build a set from the blocked list once, then test each caller against the set
+      - text: Build a set from the blocked list once, then test each caller in it
         correct: true
         why: Building the set costs about n steps once. Each of the 5,000 tests then costs about one step, instead of up to 5,000.
-      - text: Test each caller against the blocked list with "in"
+      - text: Test each caller against the blocked list with "in", one caller at a time
         correct: false
         why: Each test scans up to 5,000 items, so the total is about 25 million comparisons.
-      - text: Build a new set from the blocked list for every caller
+      - text: Build a new set from the blocked list inside the loop, for each caller
         correct: false
         why: Rebuilding the set each time brings back the cost you wanted to avoid. Build it once, before the loop.
-      - text: Sort both lists and compare them by eye
+      - text: Sort both lists, then loop over them with one loop inside the other
         correct: false
         why: Sorting is not needed for a membership question, and it costs n log n.
   - id: py-02-q-set-multiple
@@ -501,9 +501,9 @@ items:
       - text: '"x in a_list" has to compare x with the items one by one until it finds a match'
         correct: true
         why: This is a linear search. In the worst case it checks every item.
-      - text: A set is always faster than a list, whatever you do with it
+      - text: A set keeps the items in the order they were added
         correct: false
-        why: A set is not faster for everything. It costs more memory, needs hashable items, has no order or positions, and is not better if you only test membership once on a short list.
+        why: A set promises no order. A dict keeps insertion order, but a set does not.
   - id: py-02-q-dict-lookup
     pools: [mastery]
     objective: 2
@@ -511,16 +511,16 @@ items:
     competencies: [py.complexity, py.collections]
     stem: What is needed before a value can be used as a dict key or a set item?
     options:
-      - text: It must be hashable, which in practice means it cannot change
+      - text: It must be hashable, so it cannot change
         correct: true
         why: The hash decides where the item is stored, so it must not change while the item is in the collection.
-      - text: It must be a string
+      - text: It must be a string or a number
         correct: false
         why: Numbers, tuples of hashable items and other immutable values work too.
-      - text: It must be sorted
+      - text: It must be sorted before it is stored
         correct: false
         why: Dicts and sets do not sort their contents.
-      - text: It must be unique across the whole program
+      - text: It must be unique in the whole program
         correct: false
         why: It only needs to be unique inside this dict or set. Two equal keys would be the same key.
   - id: py-02-q-big-o-order
@@ -541,16 +541,16 @@ items:
     competencies: [py.complexity]
     stem: 'A function makes one pass over n calls to count callers, and then a second, separate pass over the same calls to count hours. What is its cost?'
     options:
-      - text: O(n), because two passes one after the other add up to about 2n, and constant factors are ignored
+      - text: O(n), because the two passes add up and the constant is ignored
         correct: true
         why: Sequential loops add. Big-O ignores the constant 2, so the growth is still linear.
-      - text: O(n squared), because there are two loops
+      - text: O(n squared), because every call is looked at by two different loops
         correct: false
         why: Only loops inside each other multiply.
-      - text: O(2n squared)
+      - text: O(2n squared), because each pass is repeated for every call
         correct: false
         why: The loops are not nested, so nothing is squared.
-      - text: O(log n)
+      - text: O(log n), because the second pass can reuse the first
         correct: false
         why: Each pass reads every call, so the cost cannot be smaller than n.
   - id: py-02-q-set-worst-case
@@ -560,15 +560,15 @@ items:
     competencies: [py.complexity, py.collections]
     stem: A reviewer says "set lookups are O(1)". What is the more careful statement?
     options:
-      - text: They are O(1) on average. The worst case, with many items sharing a hash, can be slower
+      - text: They are O(1) on average, but can be slower in a bad case
         correct: true
         why: The Python documentation gives the average case as constant time. A very bad hash function can make many items collide, which slows lookups.
-      - text: They are O(1) always, whatever the items are
+      - text: They are O(1) in every case, whatever the items are
         correct: false
         why: Constant time holds on average, not in every possible case.
-      - text: They are O(log n), like a sorted list
+      - text: They are O(log n), as the items are kept sorted
         correct: false
         why: A set is not stored as a sorted structure. It uses hashing.
-      - text: They are O(n), like a list
+      - text: They are O(n), as the set is searched in order
         correct: false
         why: A list is searched item by item. A set uses a hash to jump to the right place.
