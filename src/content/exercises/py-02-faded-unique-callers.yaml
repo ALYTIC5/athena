@@ -1,0 +1,61 @@
+id: py-02-faded-unique-callers
+lesson: py-02
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: List each caller once
+difficulty: 1
+competencies:
+  - py.collections
+  - py.comprehensions
+timeoutMs: 5000
+packages: []
+prompt: |
+  `unique_callers(calls)` takes a list of call records (dicts with a `"caller"` key) and returns a sorted list that holds each caller once.
+  Fill in the blank with the collection that keeps each item only once.
+starter: |
+  def unique_callers(calls):
+      return sorted(____(call["caller"] for call in calls))
+visibleTests: |
+  def test_each_caller_once_sorted():
+      calls = [{"caller": "bayu"}, {"caller": "amara"}, {"caller": "bayu"}]
+      assert unique_callers(calls) == ["amara", "bayu"]
+
+  def test_no_calls():
+      assert unique_callers([]) == []
+hiddenTests: |
+  def test_one_caller_many_calls():
+      calls = [{"caller": "chen"}] * 4
+      assert unique_callers(calls) == ["chen"]
+
+  def test_returns_a_list():
+      assert isinstance(unique_callers([{"caller": "mei"}]), list)
+
+  def test_input_is_not_changed():
+      calls = [{"caller": "b"}, {"caller": "a"}, {"caller": "b"}]
+      unique_callers(calls)
+      assert [c["caller"] for c in calls] == ["b", "a", "b"]
+feedback:
+  - test: test_each_caller_once_sorted
+    message: A caller appears more than once in your result. A list keeps duplicates; use the collection that stores each item only once, then sort it.
+  - test: test_one_caller_many_calls
+    message: Four calls from one caller should give one name. Which collection drops repeats on its own?
+hints:
+  - Which collection never holds the same item twice?
+  - Build that collection from the callers, then let `sorted` turn it into a list.
+  - sorted(____(call["caller"] for call in calls))   where the blank is the name of the collection that keeps each item once
+referenceSolution: |
+  def unique_callers(calls):
+      return sorted(set(call["caller"] for call in calls))
+wrongSolutions:
+  - label: Uses a list, so repeated callers stay in the result
+    code: |
+      def unique_callers(calls):
+          return sorted(list(call["caller"] for call in calls))
+  - label: Uses a tuple, which also keeps repeats
+    code: |
+      def unique_callers(calls):
+          return sorted(tuple(call["caller"] for call in calls))
+explanation: |
+  A set stores each item once, so building a set from the callers drops the repeats. A set has no order you can rely on, so `sorted(...)` turns it into a list in a known order. Alternative: the set comprehension `sorted({call["caller"] for call in calls})` does the same and reads a little more directly. Another option is `sorted(dict.fromkeys(...))`, which also drops repeats, but it is a trick that is harder to read.

@@ -1,0 +1,134 @@
+id: py-02-mastery-new-callers
+lesson: py-02
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Find the callers who are new today
+difficulty: 3
+competencies:
+  - py.collections
+  - py.complexity
+timeoutMs: 8000
+packages: []
+prompt: |
+  Write `new_callers(today, yesterday)`. Both arguments are lists of hashable caller ids (strings, numbers or tuples). Return a list of the callers who appear in `today` but not in `yesterday`.
+
+  - Each new caller appears once, even if they called several times today.
+  - Keep the order in which each new caller first appeared in `today`.
+  - Neither input list may change.
+  - Both lists can be long, so the work must grow roughly in step with their lengths, not with their product.
+
+  Example: `new_callers(["a", "b", "a", "c"], ["c", "d"])` returns `["a", "b"]`.
+starter: |
+  def new_callers(today: list, yesterday: list) -> list:
+      ...
+visibleTests: |
+  def test_example_from_the_prompt():
+      assert new_callers(["a", "b", "a", "c"], ["c", "d"]) == ["a", "b"]
+
+  def test_nobody_new():
+      assert new_callers(["a", "b"], ["b", "a", "c"]) == []
+hiddenTests: |
+  class Tracked:
+      comparisons = 0
+
+      def __init__(self, value):
+          self.value = value
+
+      def __hash__(self):
+          return hash(self.value)
+
+      def __eq__(self, other):
+          Tracked.comparisons += 1
+          return self.value == other.value
+
+
+  def test_empty_today():
+      assert new_callers([], ["a"]) == []
+
+  def test_empty_yesterday_keeps_first_appearance_order():
+      assert new_callers([5, 3, 9, 3, 1, 5], []) == [5, 3, 9, 1]
+
+  def test_order_is_first_appearance_not_sorted():
+      assert new_callers([9, 2, 7, 2], [7]) == [9, 2]
+
+  def test_repeats_today_are_reported_once():
+      assert new_callers(["x", "x", "x"], ["y"]) == ["x"]
+
+  def test_inputs_are_not_changed():
+      today, yesterday = [3, 1, 3], [1]
+      new_callers(today, yesterday)
+      assert today == [3, 1, 3] and yesterday == [1]
+
+  def test_works_with_tuples():
+      assert new_callers([(1, 2), (3, 4)], [(1, 2)]) == [(3, 4)]
+
+  def test_work_grows_with_the_lists_not_their_product():
+      today = [Tracked(n) for n in range(600)]
+      yesterday = [Tracked(n) for n in range(300, 900)]
+      Tracked.comparisons = 0
+      result = new_callers(today, yesterday)
+      assert [t.value for t in result] == list(range(300))
+      assert Tracked.comparisons < 10 * (len(today) + len(yesterday))
+feedback:
+  - test: test_work_grows_with_the_lists_not_their_product
+    message: Your function compared callers too many times. Looking each caller up in a list scans the whole list. Put yesterday's callers in a set once, then test each caller against the set.
+  - test: test_empty_yesterday_keeps_first_appearance_order
+    message: The result must keep the order of first appearance. A set does not promise any order, so do not build the answer by turning a set back into a list.
+  - test: test_order_is_first_appearance_not_sorted
+    message: Do not sort the result. Keep the order in which the new callers first appeared today.
+  - test: test_repeats_today_are_reported_once
+    message: A caller who called three times today is still one new caller. Remember who you have already reported.
+  - test: test_example_from_the_prompt
+    message: Return the callers in today that are not in yesterday. Check which list is which.
+hints:
+  - Two things need a fast "have I seen this?" answer. Which two collections of callers are they?
+  - 'Make a set from yesterday. Walk through today in order, and keep a caller only if it is not in that set. Add each kept caller to the set so it is not kept twice.'
+  - |
+    known = ____(yesterday)
+    result = []
+    for caller in today:
+        if caller not in ____:
+            result.append(caller)
+            known.____(caller)
+    return result
+referenceSolution: |
+  def new_callers(today: list, yesterday: list) -> list:
+      known = set(yesterday)
+      result = []
+      for caller in today:
+          if caller not in known:
+              result.append(caller)
+              known.add(caller)
+      return result
+wrongSolutions:
+  - label: Searches yesterday's list for every caller, so the work grows with the product of the lengths
+    code: |
+      def new_callers(today: list, yesterday: list) -> list:
+          result = []
+          for caller in today:
+              if caller not in yesterday and caller not in result:
+                  result.append(caller)
+          return result
+  - label: Uses set subtraction and turns the set back into a list, which loses the order
+    code: |
+      def new_callers(today: list, yesterday: list) -> list:
+          return list(set(today) - set(yesterday))
+  - label: Does not remove repeats from today
+    code: |
+      def new_callers(today: list, yesterday: list) -> list:
+          known = set(yesterday)
+          return [caller for caller in today if caller not in known]
+  - label: Swaps the lists and returns yesterday's callers who did not call today
+    code: |
+      def new_callers(today: list, yesterday: list) -> list:
+          known = set(today)
+          result = []
+          for caller in yesterday:
+              if caller not in known:
+                  result.append(caller)
+                  known.add(caller)
+          return result
+explanation: |
+  A set answers "is this caller in yesterday's list?" in about the same time however long that list is, so building `known` once costs n steps and each of the m lookups costs one. The total is about n plus m, not n times m. Adding each reported caller to `known` also removes repeats from today, and walking through `today` in order keeps the order of first appearance. Alternative: `dict.fromkeys(today)` keeps each caller once in order, and you could then filter it with the set; it is neat but less direct. Set subtraction is the shortest, but a set has no order you can rely on, so it fails the ordering rule.

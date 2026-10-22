@@ -1,0 +1,28 @@
+lesson: py-02
+questions:
+  - id: py-02-iq-set-vs-list
+    competencies: [py.complexity, py.collections]
+    question: Why is `x in my_set` faster than `x in my_list`?
+    modelAnswer: A list is searched from the start, comparing x with each item until it finds a match, so the time grows with the length of the list. A set stores items by their hash, so Python can jump to the place where x would be, and on average the cost does not depend on how many items there are. That fast lookup costs more memory and means the items must be hashable, and a set has no order. I would build the set once, before the loop, not inside it. If I only test one or two items in a short list, a list is fine.
+    listenFor:
+      - list search is linear, set lookup is constant on average
+      - mentions hashing
+      - mentions the trade-offs (memory, hashable items, no order)
+      - says to build the set once, outside the loop
+  - id: py-02-iq-tuple
+    competencies: [py.collections]
+    question: When would you use a tuple instead of a list?
+    modelAnswer: I use a tuple for a small fixed record whose parts have different meanings, such as (caller, hour, reason), and I use a list for a sequence of similar items that can grow. A tuple cannot change, so it protects the record from accidental edits, and if its items are hashable it can be a dict key or a set item, which a list cannot. If the parts need names and the record is passed around a lot, I would move to a dataclass or a named tuple so the code says what each part is.
+    listenFor:
+      - tuple is fixed and a list is a growing sequence of similar items
+      - can be a key because it is immutable and hashable
+      - says when a named structure is clearer
+  - id: py-02-iq-big-o
+    competencies: [py.complexity]
+    question: What is the big-O of your solution, and how could you make it faster?
+    modelAnswer: Say I wrote a duplicate check that loops over the items and tests each against a list of items seen so far. Each test scans the list, so the total is about n squared. If I keep the seen items in a set instead, each test costs about one step on average, so the whole function is O(n) time with O(n) extra memory. I would say what n is, name the cost of the key operations, and mention the trade-off, here time against memory. If the input were already sorted I could compare neighbours with no extra memory.
+    listenFor:
+      - says what n is
+      - counts the work of the loop and of the operations inside it
+      - spots the hidden linear operation, such as `in` on a list
+      - states the trade-off between time and memory

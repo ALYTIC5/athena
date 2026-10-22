@@ -1,0 +1,219 @@
+---
+title: Collections and complexity
+description: Choosing between lists, tuples, sets and dicts, writing comprehensions, counting and grouping with Counter and defaultdict, sorting with a key, and reading the big-O cost of simple code.
+sidebar:
+  order: 40
+lessonId: py-02
+week: 4
+track: py
+durationMin: 165
+anatomy: full
+competencies: [py.collections, py.comprehensions, py.complexity]
+prerequisites: [py-01]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting, and nearly every Python task starts with data in a list or a
+  dict: a day of call logs, a batch of webhook events, a table of bookings. Choosing the right collection decides
+  whether code stays fast when the data grows from a hundred records to a hundred thousand. Interviewers ask "what is
+  the big-O of your solution?" in almost every coding round, and a slow duplicate check is one of the most common
+  real bugs.
+objectives:
+  - Choose the right collection (list, tuple, set or dict) for a task
+  - Explain the cost of a membership test in a list, a set and a dict
+  - Write list, dict and set comprehensions and generator expressions
+  - Count and group with Counter and defaultdict, and sort with a key function
+  - State the big-O cost of a simple function and spot a hidden quadratic loop
+sources:
+  - title: "Python tutorial: data structures"
+    url: https://docs.python.org/3/tutorial/datastructures.html
+  - title: "Python reference: displays for lists, sets and dictionaries"
+    url: https://docs.python.org/3/reference/expressions.html#displays-for-lists-sets-and-dictionaries
+  - title: "Python glossary: hashable"
+    url: https://docs.python.org/3/glossary.html#term-hashable
+  - title: "collections: container datatypes"
+    url: https://docs.python.org/3/library/collections.html
+  - title: "Sorting techniques (HOWTO)"
+    url: https://docs.python.org/3/howto/sorting.html
+  - title: "Python wiki: time complexity"
+    url: https://wiki.python.org/moin/TimeComplexity
+---
+
+<WarmUp lesson="py-02" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting, and nearly every Python task starts with data in a list or a dict: a day of call logs, a batch of webhook events, a table of bookings. Choosing the right collection decides whether code stays fast when the data grows from a hundred records to a hundred thousand. Interviewers ask "what is the big-O of your solution?" in almost every coding round, and a slow duplicate check is one of the most common real bugs.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Choose the right collection (list, tuple, set or dict) for a task.
+2. Explain the cost of a membership test in a list, a set and a dict.
+3. Write list, dict and set comprehensions and generator expressions.
+4. Count and group with `Counter` and `defaultdict`, and sort with a key function.
+5. State the big-O cost of a simple function and spot a hidden quadratic loop.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know names, mutability and functions from py-01: a list passed to a function is the caller's list, and `sorted` builds a new list. You can read `for` loops and `if`. Everything else is explained where it appears.
+
+</Callout>
+
+<Chunk n={1} title="Choosing a collection, and building one with a comprehension">
+
+Each collection answers a different question. A **list** is an ordered sequence you read by position and can grow. A **tuple** is a fixed record that cannot change, such as `(caller, hour)`. A **set** holds each item once and answers "is it in here?" fast. A **dict** maps unique **keys** to values, and a dict keeps the order in which keys were first added.
+
+Set items and dict keys must be **hashable**: Python can compute a number from them (a hash) that never changes while they are stored. Numbers, strings and tuples of hashable items are hashable. Lists, sets and dicts are not, because they can change.
+
+A **comprehension** builds a collection in one expression: `[x for x in items if test]` builds a list, `{k: v for ...}` a dict and `{x for ...}` a set. Round brackets make a **generator expression**, which hands over one item at a time instead of building the collection.
+
+**Worked example.** One day of calls, as `(caller, hour)` tuples.
+
+```python
+calls = [("amara", 9), ("bayu", 9), ("amara", 14), ("chen", 10)]
+callers = {c for c, h in calls}            # set comprehension: each caller once
+print(sorted(callers))                     # ['amara', 'bayu', 'chen']: sorted, because a set has no order
+morning = [c for c, h in calls if h < 12]  # list comprehension with a filter
+print(morning)                             # ['amara', 'bayu', 'chen']
+last_hour = {c: h for c, h in calls}       # dict comprehension: a repeated key keeps the later value
+print(last_hour["amara"])                  # 14
+print(sum(h for c, h in calls))            # 42: a generator expression, no list is built
+```
+
+A list cannot be a key, because it is not hashable.
+
+```python nocheck="raises TypeError on purpose"
+slots = {[9, 30]: "free"}   # TypeError: unhashable type: 'list'
+slots = {(9, 30): "free"}   # fine: a tuple of numbers is hashable
+```
+
+<Predict lesson="py-02" item="py-02-q-predict-collections" />
+
+<Exercise id="py-02-faded-unique-callers" />
+
+<Quiz lesson="py-02" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A set keeps the order I added things in." It promises no order. Use `sorted(the_set)` when order matters. A dict does keep insertion order.
+- "A comprehension is always clearer than a loop." Use one for a simple filter or transform. When it needs several conditions or side effects, write a loop.
+- "A tuple is just a slow list." It is a fixed record: it protects the data from change and can be a dict key.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Counting, grouping and sorting">
+
+Three tools from the `collections` module and the built-ins handle most summaries. `Counter(items)` counts how often each item appears; a missing item counts as 0, and `.most_common(n)` gives the `n` highest `(item, count)` pairs. `defaultdict(list)` is a dict that creates an empty list the first time you read a missing key, which makes grouping one line.
+
+`sorted(items, key=func)` returns a new list ordered by the value `func` returns for each item. The sort is **stable**: items with equal keys keep their input order. A key can return a tuple, which Python compares one part at a time. Putting a minus sign on a number sorts it largest first.
+
+**Worked example.** Count the reasons for calling, group them by caller, and rank calls.
+
+```python
+from collections import Counter, defaultdict
+
+calls = [
+    {"id": "c1", "caller": "amara", "reason": "booking", "seconds": 40},
+    {"id": "c2", "caller": "bayu", "reason": "booking", "seconds": 90},
+    {"id": "c3", "caller": "amara", "reason": "billing", "seconds": 90},
+]
+print(Counter(c["reason"] for c in calls).most_common(1))   # [('booking', 2)]
+by_caller = defaultdict(list)
+for c in calls:
+    by_caller[c["caller"]].append(c["id"])                  # a new caller starts with []
+print(dict(by_caller))                                      # {'amara': ['c1', 'c3'], 'bayu': ['c2']}
+ranked = sorted(calls, key=lambda c: (-c["seconds"], c["id"]))   # longest first, ties by id
+print([c["id"] for c in ranked])                            # ['c2', 'c3', 'c1']
+```
+
+Put the lines in order, then try the exercise below it. One line is a distractor that would answer a different question.
+
+<Parsons lesson="py-02" item="py-02-q-parsons-top-reasons" />
+
+<Predict lesson="py-02" item="py-02-q-predict-counter" />
+
+<Exercise id="py-02-faded-group-by-caller" />
+
+<Quiz lesson="py-02" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "`most_common` breaks ties alphabetically." Ties keep the order the items were first seen. Sort with a tuple key when ties need a rule.
+- "A `defaultdict` is just a dict." Reading a missing key adds it. Convert to a plain dict with `dict(groups)` before returning it.
+- "`calls.sort()` gives me the sorted list." It sorts in place and returns `None`. Use `sorted(calls)` for a new list.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="What it costs: big-O">
+
+**Big-O** describes how the number of steps grows as the input size `n` grows, ignoring constant factors. We count steps instead of seconds because seconds depend on the computer. O(1) means the work does not grow, O(n) grows in step with `n`, O(n log n) grows slightly faster (sorting), and O(n²) means doubling the input makes the work about four times larger.
+
+Reading one list item by position is O(1). `x in a_list` is O(n), because Python compares `x` with each item until it finds a match. `x in a_set` and `key in a_dict` are O(1) on average, because a hash takes Python straight to where the item would be. The price is memory, hashable items and no order.
+
+A loop that does O(n) work on each of `n` passes costs O(n²). The danger is a hidden loop: `in` on a list looks like one cheap step but is a loop.
+
+**Worked example.** The same task, with two different costs.
+
+```python
+def has_duplicates_slow(items):
+    seen = []                  # a list
+    for item in items:         # n passes...
+        if item in seen:       # ...each scanning up to n items: O(n squared) in total
+            return True
+        seen.append(item)
+    return False
+
+def has_duplicates_fast(items):
+    seen = set()               # a set
+    for item in items:         # n passes...
+        if item in seen:       # ...each a hash lookup: O(n) in total
+            return True
+        seen.add(item)
+    return False
+
+print(has_duplicates_slow([3, 1, 3]), has_duplicates_fast([3, 1, 2]))   # True False
+```
+
+<Predict lesson="py-02" item="py-02-q-predict-steps" />
+
+<Quiz lesson="py-02" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "Two loops mean O(n²)." Only loops inside each other multiply. Two loops one after the other add up to about 2n, which is still O(n).
+- "A set is always faster than a list." It is faster for membership tests. It costs more memory, needs hashable items and has no order.
+- "Set lookup is always O(1)." It is O(1) on average. Many items with the same hash can slow it down.
+
+</Callout>
+
+</Chunk>
+
+<SessionBreak />
+
+## Find the bug
+
+The duplicate check below gets very slow on a busy day. The failing test counts comparisons, not seconds, so it gives the same answer on every computer.
+
+<Exercise id="py-02-debug-slow-duplicates" />
+
+## Write it yourself
+
+<Exercise id="py-02-make-call-summary" />
+
+<ExplainBack lesson="py-02" exercise="py-02-make-call-summary" />
+
+## Mastery check
+
+<MasteryCheck lesson="py-02" count={8} />
+
+<InterviewCorner lesson="py-02" />
+
+## Further reading
+
+- [Python tutorial: data structures](https://docs.python.org/3/tutorial/datastructures.html)
+- [collections: container datatypes](https://docs.python.org/3/library/collections.html)
+- [Sorting techniques (HOWTO)](https://docs.python.org/3/howto/sorting.html)
