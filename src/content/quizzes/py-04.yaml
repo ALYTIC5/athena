@@ -425,7 +425,7 @@ items:
     competencies: [py.datetime]
     stem: 'Which text is an ISO 8601 date and time that includes its UTC offset?'
     options:
-      - text: 2026-11-02T09:00:00+00:00
+      - text: '2026-11-02T09:00:00+00:00'
         correct: true
         why: ISO 8601 writes the date, a T, the time and the offset. datetime.fromisoformat reads it and isoformat writes it.
       - text: 02/11/2026 9am
@@ -434,7 +434,7 @@ items:
       - text: Nov 2, 2026 09:00
         correct: false
         why: This is a human-readable format with no standard order and no offset.
-      - text: 2026-11-02 09:00
+      - text: '2026-11-02 09:00'
         correct: false
         why: This has the ISO date and time but no offset, so it is naive. The offset is what makes it a moment in time.
   - id: py-04-q-replace-astimezone
