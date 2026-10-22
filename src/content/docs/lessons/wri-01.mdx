@@ -9,7 +9,7 @@ track: wri
 durationMin: 75
 anatomy: short
 competencies: [wri.readme, wri.pr-description, wri.design-note]
-prerequisites: [git-01]
+prerequisites: [git-01, sec-01]
 whyItMatters: >
   English communication appears in 59% of the postings you are targeting, and the writing a team sees first is a README,
   a pull request description or a design note. A reader who has no context decides in a minute whether your work is
@@ -45,13 +45,13 @@ By the end of this lesson you can:
 
 <Callout type="note" title="What this lesson assumes">
 
-You know what a pull request and an issue are (git-01). Markdown is the plain-text format that READMEs use: `#` starts a heading, and three backticks start and end a code block. All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
+You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01). You can read the short Python functions from start-00; the exercises use loops, sets and string methods, and each has a three-step hint ladder. Markdown is the plain-text format that READMEs use: `#` starts a heading, and three backticks start and end a code block. All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
 
 </Callout>
 
 <Chunk n={1} title="A README answers five questions">
 
-A **README** is the file a reader opens first, and GitHub shows it on the repository's front page. Write it for a stranger who has two minutes. It should answer five questions, in this order:
+A **README** is the file a reader opens first, and GitHub shows it on the repository's front page. Write it for a stranger who has two minutes. This lesson teaches five questions, in this order (GitHub's own page suggests a slightly different list, and teams vary):
 
 1. What is this, and who is it for?
 2. How do I run it? This is the **quickstart**: exact commands, in order, that can be copied.
@@ -63,7 +63,7 @@ Long reference material does not belong in front of these answers. Link to it in
 
 **Worked example.** The start of a README for an invented booking service. Each comment says which question the line answers.
 
-```markdown
+````markdown
 # Slotkeeper
 
 Slotkeeper reserves appointment slots for small salons and sends a     <!-- 1: what, who -->
@@ -71,20 +71,24 @@ reminder the day before. It is for developers who run their own booking page.
 
 ## Quickstart
 
-    git clone https://example.com/slotkeeper.git                       <!-- 2: copyable commands -->
-    cd slotkeeper && pip install -r requirements.txt
-    python -m slotkeeper                                               <!-- the command that runs it -->
+```bash
+git clone https://example.com/slotkeeper.git                           # 2: copyable commands
+cd slotkeeper && pip install -r requirements.txt
+python -m slotkeeper                                                   # the command that runs it
 ```
+````
 
 Here is the same Quickstart with the key parts removed. Fill in the blanks before you open the answer.
 
-```markdown
+````markdown
 ## Quickstart
 
-    git clone ____
-    cd slotkeeper && ____
-    python -m slotkeeper
+```bash
+git clone ____
+cd slotkeeper && ____
+python -m slotkeeper
 ```
+````
 
 <details>
 <summary>Answer</summary>
@@ -111,9 +115,9 @@ A **pull request** asks a teammate to review and merge a change. The reviewer ca
 
 - **Why:** the problem and who it affects. Link the issue.
 - **What changed:** the approach in a few sentences, and anything surprising. Do not retell the diff.
-- **How it was checked:** the exact commands and results, and what you did not check.
+- **Testing (how it was checked):** the exact commands and results, and what you did not check.
 
-The title says what the change does, as a command: "Reject overlapping bookings". Many teams keep titles under about 70 characters; the limit is a convention. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch. A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
+The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", and keep it under about 70 characters; both are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch. A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
 
 **Worked example.** Compare two descriptions of the same change.
 
@@ -126,7 +130,7 @@ Body:  Fixed the bug. Please review.
 Title: Reject a booking that overlaps an existing one
 
 ## Why
-Two guests could book the 10:00 slot at the same salon (#42).
+Two guests could book the 10:00 slot at the same salon. Closes #42.
 
 ## What changed
 `create_booking` now looks for an overlapping booking before it saves.
@@ -160,7 +164,7 @@ Now complete the sentence yourself: for a change that adds a daily reminder mess
 
 <Chunk n={3} title="A design note settles the choice before the code">
 
-A **design note** is a short document that proposes how to build something, written before you build it. Teams also call it a design doc or an RFC (request for comments). Python's own proposals, called PEPs, have sections for motivation and rejected ideas, which is the same idea. Disagreements are cheapest to settle in a page of text.
+A **design note** is a short document that proposes how to build something, written before you build it. Teams also call it a design doc or an RFC (request for comments). Python's own proposals, called PEPs (Python Enhancement Proposals), have sections for motivation and rejected ideas, which is the same idea. Disagreements are cheapest to settle in a page of text.
 
 Keep it to one page, with these parts:
 
@@ -177,12 +181,13 @@ Keep it to one page, with these parts:
 # Missed-call text-back
 
 Context: Callers who reach voicemail rarely call back. We want to text them.
-Goals: send a text within 5 minutes of a missed call; never text one number twice in a day.
+Goals: send a text within 5 minutes of a missed call; never text one number twice in a day;
+       never lose a text because the SMS provider is down for a while.
 Non-goals: two-way conversations (a later project).
-Options: A) send from the webhook handler. Fast, but a provider outage loses messages.
-         B) put a message on a queue. Survives outages, needs a worker.
+Options: A) send the text at once, inside the code that handles the call. Fast, but an outage loses messages.
+         B) save each message in a waiting list and send from a separate process. Survives outages.
 Decision: B. It meets "never lost" in the goals; we accept running one more process.
-Risks: queue backlog delays texts. First response: alert at 100 waiting messages.
+Risks: a long waiting list delays texts. First response: alert at 100 waiting messages.
 ```
 
 Fill in the blank: in the note above, the decision is tied to the goals because ____.
@@ -212,7 +217,7 @@ It says option B was chosen because it meets the goal that messages are never lo
 
 ## Practise on your own work
 
-This checklist is self-assessed. Do it with one of your own repositories. Nothing you write here is sent anywhere.
+This checklist is self-assessed. Do it with one of your own repositories. Nothing is sent to Athena.
 
 <Checklist id="wri-01-checklist-readme-review" />
 

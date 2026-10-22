@@ -3,12 +3,14 @@ lesson: wri-01
 kind: checklist
 competencies:
   - wri.readme
-title: Write a README for one of your own projects, have Claude read it as a stranger, then test your quickstart
-estMin: 4
+title: Write a README for one of your own projects, have Claude read it as a stranger, test your quickstart, then describe the change in a pull request
+estMin: 5
 steps:
   - do: 'In one of your own repositories, create or rewrite README.md with these level-2 headings: Overview, Quickstart, Usage, Configuration, Tests. Write the Quickstart as commands that can be copied. In Configuration list setting names only.'
     expect: README.md has the five headings. The Overview says what the project is and who it is for in one or two sentences. No key, token or password value appears anywhere in the file.
   - do: 'Copy the README text only (nothing else from the repository, and no real secrets) and paste it into Claude with this prompt: "You have never seen this project. Using only this README, tell me what it is, how to run it, how to configure it and how to test it. For each of the four, say if the README does not answer it. Do not guess."'
-    expect: Claude answers each question from the README, or says it cannot. Every "cannot answer" is a gap to fix. Do not paste the README into Athena, and do not ask Claude to write it for you.
+    expect: Claude answers each question from the README, or says it cannot. Every "cannot answer" is a gap to fix. Do not ask Claude to write the README for you.
   - do: 'Fix the gaps Claude found. Then clone the repository again into an empty folder and run your Quickstart commands exactly as written, in order.'
     expect: Every command works without extra steps from your memory. If one fails, the README is wrong, so fix the README (or the project) and run it again.
+  - do: 'Open a pull request in that repository for the README change. Write the description with three headings: Why, What changed, Testing. Put in Testing the quickstart run you just did and what you did not check.'
+    expect: A description with a real reason (or a link to an issue), a short summary of the approach, and the exact commands you ran. No placeholder text remains.

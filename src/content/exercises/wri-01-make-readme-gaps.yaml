@@ -10,9 +10,9 @@ competencies:
   - wri.readme
 timeoutMs: 5000
 packages: []
-estMin: 9
+estMin: 8
 prompt: |
-  A README should answer four questions, each under its own heading. Write `missing_sections(readme)`. It takes the text of a README and returns the names from `REQUIRED` that have no heading, in the order of `REQUIRED`.
+  A README answers several questions, each under its own heading. This exercise checks four of them (the lesson also teaches Usage). Write `missing_sections(readme)`. It takes the text of a README and returns the names from `REQUIRED` that have no heading, in the order of `REQUIRED`.
 
   Rules:
   - A heading is a line that starts with `## ` (two hashes and a space) at the very start of the line. The heading text is what follows, without surrounding spaces.

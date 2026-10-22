@@ -12,7 +12,7 @@ items:
       - text: '"Slotkeeper is a small service that reserves appointment slots for a salon and sends a reminder message the day before. It is for developers who run their own booking page."'
         correct: true
         why: It says what the project is, what it does and who it is for, in two sentences. That is the first question a README must answer.
-      - text: '"Welcome! Thanks for visiting. This project was started in March and has had many contributors."'
+      - text: '"Welcome, and thanks for visiting. This project was started in March and has had many contributors."'
         correct: false
         why: It is friendly but says nothing about what the project does. A reader still cannot decide whether to keep reading.
       - text: '"slotkeeper v2.3.1. See docs/ for everything."'
@@ -265,7 +265,7 @@ items:
     objective: 3
     type: single
     competencies: [wri.design-note]
-    stem: Which decision statement is strongest?
+    stem: 'A reminder service has two goals: no reminder is sent more than an hour late, and no new service to run. Which decision statement is strongest?'
     options:
       - text: 'We chose a scheduled job that runs every hour. It reuses the existing worker and needs no new service. The cost is that a reminder can be up to an hour late.'
         correct: true

@@ -12,7 +12,7 @@ timeoutMs: 5000
 packages: []
 estMin: 12
 prompt: |
-  A team checks every pull request against four rules. Write `pr_problems(title, body)`. It returns the codes of the rules the pull request breaks, in this order:
+  A team checks every pull request against five rules. Write `pr_problems(title, body)`. It returns the codes of the rules the pull request breaks, in this order:
 
   1. `"empty-title"`: the title is empty after removing surrounding spaces.
   2. `"title-too-long"`: the title (without surrounding spaces) is longer than 72 characters. (This team's limit. Teams differ.)

@@ -15,9 +15,9 @@ prompt: |
   A teammate wants to test that a README's quickstart really works, so they need its commands as a list. Write `quickstart_commands(readme)`.
 
   Rules:
-  - The quickstart is the first fenced code block (it starts with a line beginning with three backticks, and ends at the next such line) after a line that is exactly `## Quickstart`, and before the next line that starts with `## `.
+  - The quickstart section starts at a line `## Quickstart` (ignoring case and surrounding spaces) and ends at the next line that starts with `## `. Its quickstart is the first fenced code block in the section: it starts with a line beginning with three backticks (spaces before them are allowed, and a language tag after them is not a command) and ends at the next such line.
   - Return the commands in that block, one string per line, in order, without surrounding spaces.
-  - Skip blank lines and comment lines (lines that start with `#`).
+  - Strip each line first. Skip blank lines and comment lines (lines that start with `#`).
   - If a command starts with the prompt `$ ` (a dollar sign and a space), remove the prompt.
   - Return an empty list when there is no `## Quickstart` section or it has no code block.
   - Ignore every other code block, in other sections or after the first one.
