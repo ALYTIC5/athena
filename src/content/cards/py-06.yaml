@@ -1,0 +1,62 @@
+lesson: py-06
+cards:
+  - id: py-06-c-aaa
+    type: explain
+    competencies: [py.pytest]
+    front: What are the three parts of a test, and what rules make a test easy to read?
+    back: Arrange (set up the input), act (call the code) and assert (state what must be true). Test one behaviour per test, name the test after it, and test the values on both sides of each boundary.
+  - id: py-06-c-discovery
+    type: basic
+    competencies: [py.pytest]
+    front: How does pytest find tests?
+    back: It collects functions named test_* in files named test_*.py or *_test.py, runs each one, and reports the ones whose assert fails or that raise an unexpected error.
+  - id: py-06-c-raises
+    type: basic
+    competencies: [py.pytest]
+    front: How do you test that code raises an error?
+    back: Put the call in with pytest.raises(ValueError). The test passes only if that exception is raised, and fails if nothing is raised or a different exception is.
+  - id: py-06-c-approx
+    type: basic
+    competencies: [py.pytest]
+    front: Why does assert 0.1 + 0.2 == 0.3 fail, and what do you write instead?
+    back: Floats are stored in binary, so 0.1 + 0.2 is 0.30000000000000004. Compare with a tolerance, for example assert result == pytest.approx(0.3).
+  - id: py-06-c-tdd
+    type: explain
+    competencies: [py.pytest]
+    front: What is test-driven development in small steps?
+    back: Write a small test and watch it fail, make the smallest change that makes it pass, run all the tests, then tidy the code and run them again. The test says what you want before the code exists.
+  - id: py-06-c-fixture
+    type: explain
+    competencies: [py.pytest]
+    front: What is a fixture, and how does a test use one?
+    back: A function marked with @pytest.fixture that builds something tests need. A test asks for it by naming it as a parameter, and pytest calls it again for each test, so every test gets a fresh object.
+  - id: py-06-c-parametrize
+    type: explain
+    competencies: [py.pytest]
+    front: Why use @pytest.mark.parametrize instead of a loop inside a test?
+    back: It runs the same test once for each set of values and reports each case separately. A loop stops at its first failing assert, so you do not see the later cases.
+  - id: py-06-c-independence
+    type: basic
+    competencies: [py.pytest]
+    front: Why must tests not depend on each other?
+    back: A test that only passes after another test gives confusing failures and breaks when the order changes. Give each test what it needs, with a fixture, and keep shared state out of the module.
+  - id: py-06-c-fake-mock
+    type: explain
+    competencies: [py.mocking]
+    front: What is the difference between a fake and a mock?
+    back: A fake is a simple working replacement, such as a list that records messages. A mock records how it was called, so a test can check the calls. A fake that also records what it was sent, like a recording sender, is a hybrid. Prefer fakes and results, and use mocks when the call itself is the behaviour.
+  - id: py-06-c-inject
+    type: explain
+    competencies: [py.mocking]
+    front: How do you make code that calls an API, an LLM or the clock easy to test?
+    back: Pass the dependency in as an argument, such as a sender, a model or now, so a test can give it a fake. When you cannot change the code, monkeypatch.setattr replaces a name for the length of one test.
+  - id: py-06-c-flaky
+    type: explain
+    competencies: [py.pytest]
+    front: A test passes on some runs and fails on others. What is the usual cause and the fix?
+    back: It depends on something that changes, such as the clock, the network, random numbers or the order of other tests. Replace it with something you control, like a fixed now or a fake service.
+  - id: py-06-c-unit-integration
+    type: explain
+    competencies: [py.pytest]
+    front: What is the difference between a unit test and an integration test, and why have both?
+    back: A unit test checks one piece alone and is fast. An integration test checks pieces working together, for example with a real database, and is slower. Unit tests find the faulty piece, and integration tests find faults between the pieces.

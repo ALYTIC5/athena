@@ -1,0 +1,559 @@
+lesson: py-06
+items:
+  # ---- Chunk 1: first tests, exceptions and test-first work (objectives 1 and 4) ----
+  - id: py-06-q-pytest-raises
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: What does with pytest.raises(ValueError) around a call do in a test?
+    options:
+      - text: The test passes only if the call raises ValueError
+        correct: true
+        why: If nothing is raised, or a different exception is raised, the test fails. That makes it a check of the error path.
+      - text: The test passes whether or not the call raises anything
+        correct: false
+        why: This would hide a missing error. pytest.raises exists to require the exception.
+      - text: The ValueError is hidden, so the test always passes
+        correct: false
+        why: The exception is caught so the test can continue, but pytest.raises then fails the test if none arrived.
+      - text: The test fails when the call raises ValueError
+        correct: false
+        why: This is the opposite. Raising the named exception is what the block expects.
+  - id: py-06-q-predict-assert
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [py.pytest]
+    code: |
+      def total(prices):
+          return sum(prices)
+
+      try:
+          assert total([0.1, 0.2]) == 0.3
+          print("pass")
+      except AssertionError:
+          print("fail")
+      print(total([0.1, 0.2]))
+    investigate:
+      - Why does an assert on 0.1 + 0.2 == 0.3 fail?
+      - How would pytest.approx change the test?
+  - id: py-06-q-test-discovery
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: 'A file contains def check_fee(): ... with an assert in it. When you run pytest, what happens to this function?'
+    options:
+      - text: It is not run, because the name does not start with test_
+        correct: true
+        why: pytest collects functions named test_* in files named test_*.py or *_test.py. Other functions are ordinary code.
+      - text: It is run, because pytest runs every function that contains assert
+        correct: false
+        why: pytest looks at names, not at the body of the function.
+      - text: It is run, but its result is not reported
+        correct: false
+        why: A function pytest does not collect is not run at all.
+      - text: pytest reports an error about the name
+        correct: false
+        why: A different name is allowed. The function is simply left alone.
+  - id: py-06-q-aaa
+    pools: [mastery]
+    objective: 1
+    type: order
+    competencies: [py.pytest]
+    stem: Put the three parts of a test in order.
+    steps:
+      - Arrange (set up the input)
+      - Act (call the code being tested)
+      - Assert (state what must be true)
+  - id: py-06-q-boundary
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: A function waives a fee for totals of 50 or more. Which pair of inputs best tests the boundary?
+    options:
+      - text: 49 and 50
+        correct: true
+        why: These are the last value on each side of the rule. They catch a mistake that uses > instead of >=.
+      - text: 20 and 80
+        correct: false
+        why: Both are far from the boundary, so they pass even when the comparison is off by one.
+      - text: 50 and 51
+        correct: false
+        why: Both are on the waived side, so a threshold set too low, such as >= 49, still passes. 50 does catch >, but you need 49 to see the other side.
+      - text: 0 and 100
+        correct: false
+        why: These test the extremes, not the point where the behaviour changes.
+  - id: py-06-q-one-behaviour
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: Why is it better to write several small tests than one test with many assertions?
+    options:
+      - text: A failure then points to one behaviour
+        correct: true
+        why: pytest reports each test separately, and a test stops at its first failing assert, so a long test can hide later problems.
+      - text: pytest only allows one assert in a test
+        correct: false
+        why: Several asserts are allowed. The advice is about clarity, not a rule of the tool.
+      - text: Small tests always run much faster
+        correct: false
+        why: Speed is not the reason. Clear failures are.
+      - text: Small tests need no names
+        correct: false
+        why: Every test needs a name, and a name that describes the behaviour is part of the value.
+  - id: py-06-q-approx
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: How should a test compare a float result such as 0.1 + 0.2 with 0.3?
+    options:
+      - text: assert result == pytest.approx(0.3)
+        correct: true
+        why: approx allows a tiny tolerance, because floats are stored in binary and many decimals are not exact.
+      - text: assert result == 0.3
+        correct: false
+        why: This fails for 0.1 + 0.2, which is 0.30000000000000004.
+      - text: assert round(result) == 0.3
+        correct: false
+        why: round with no digits gives a whole number, so it never equals 0.3.
+      - text: assert str(result) == "0.3"
+        correct: false
+        why: The text of the float is 0.30000000000000004, so this fails as well.
+  - id: py-06-q-raises-no-error
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.pytest]
+    stem: The function under test is changed so that it no longer raises ValueError for a negative total. What happens to a test using pytest.raises(ValueError)?
+    options:
+      - text: The test fails, so you learn about the change
+        correct: true
+        why: pytest.raises fails with a message that no exception was raised. That is the point of testing the error path.
+      - text: The test passes, because no error means no problem
+        correct: false
+        why: The test expected an error. Its absence is a failure.
+      - text: The test is skipped
+        correct: false
+        why: pytest never skips a test on its own because of the outcome.
+      - text: The test raises ValueError itself
+        correct: false
+        why: It raises a failure of its own that says an exception was expected.
+  - id: py-06-q-tdd-order
+    pools: [mastery]
+    objective: 4
+    type: order
+    competencies: [py.pytest]
+    stem: Put the steps of a test-driven change in order.
+    steps:
+      - Write a small test and watch it fail
+      - Make the smallest change that makes it pass
+      - Run all the tests
+      - Tidy the code and run the tests again
+  - id: py-06-q-bug-no-assert
+    pools: [mastery]
+    objective: 1
+    type: bug
+    competencies: [py.pytest]
+    code: |
+      def test_exactly_fifty_is_free():
+          delivery_fee(50) == 0
+    buggyLine: 2
+    explanation: The comparison is evaluated but nothing checks it, so the test passes whatever the function returns. Write assert delivery_fee(50) == 0.
+
+  # ---- Chunk 2: fixtures and parametrize (objective 2) ----
+  - id: py-06-q-fixture-purpose
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: What is a pytest fixture?
+    options:
+      - text: A function that builds something tests need
+        correct: true
+        why: A test asks for a fixture by naming it as a parameter, and pytest calls the fixture and passes the result in.
+      - text: A test that is run before all the others
+        correct: false
+        why: A fixture is not a test. It prepares things that tests use.
+      - text: A function that checks the output of a test
+        correct: false
+        why: Checking is done with assert. A fixture prepares the input.
+      - text: A tool that repairs failing tests automatically
+        correct: false
+        why: Nothing in pytest repairs tests. Fixtures set up the objects a test needs.
+  - id: py-06-q-parametrize-purpose
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: What does @pytest.mark.parametrize do?
+    options:
+      - text: Runs one test function once for each set of values
+        correct: true
+        why: Each case is reported on its own, so a failure names the exact input that broke.
+      - text: Runs a test several times to check that it is not flaky
+        correct: false
+        why: Repeating a test needs a plugin. parametrize runs it with different data.
+      - text: Passes the same values to every test in the file
+        correct: false
+        why: It applies to one function. Sharing set-up between tests is what a fixture is for.
+      - text: Generates random inputs for the test
+        correct: false
+        why: The values are the ones you list. Random generation needs a different tool.
+  - id: py-06-q-fixture-fresh
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: A fixture creates a new Schedule. Two tests use it, and the first test books a slot. What does the second test see?
+    options:
+      - text: A fresh Schedule, with the slot not booked
+        correct: true
+        why: By default pytest calls a fixture again for each test, so tests do not affect each other.
+      - text: The same Schedule, with the slot booked
+        correct: false
+        why: This would happen with a module-level variable, and it is why shared state makes tests depend on order.
+      - text: An error, because a fixture can be used only once
+        correct: false
+        why: A fixture can be used by any number of tests.
+      - text: A Schedule that depends on the order the tests run in
+        correct: false
+        why: Fresh objects mean the order does not matter.
+  - id: py-06-q-parametrize-count
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: A test is decorated with parametrize and a list of 4 cases. How many tests does pytest report?
+    options:
+      - text: Four, one for each case
+        correct: true
+        why: Each case becomes its own test with its own pass or fail result.
+      - text: One, which runs all four cases
+        correct: false
+        why: This would hide which case failed. pytest reports them separately.
+      - text: Five, one for the function and one for each case
+        correct: false
+        why: The function itself is not a separate test.
+      - text: Zero, until you run them with a flag
+        correct: false
+        why: The cases are collected and run like any other test.
+  - id: py-06-q-fixture-by-name
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: 'A fixture is defined as def schedule(): .... How does a test use it?'
+    options:
+      - text: It names schedule as a parameter, as in def test_x(schedule)
+        correct: true
+        why: pytest matches the parameter name to the fixture and passes in the value it returns.
+      - text: It calls schedule() itself at the top of the test
+        correct: false
+        why: pytest refuses to run a fixture called directly. It fails with an error that tells you to request the fixture by name.
+      - text: It imports schedule from a special module
+        correct: false
+        why: Fixtures are found by name. No import is needed within the same file.
+      - text: 'It adds @pytest.mark.usefixtures("schedule") above the test'
+        correct: false
+        why: 'usefixtures runs a fixture but does not give the test its value. The parameter name does both.'
+  - id: py-06-q-tmp-path
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [py.pytest, py.files-json]
+    stem: A test writes a file. Which built-in fixture gives it a folder that is safe to use?
+    options:
+      - text: tmp_path, a new temporary folder for each test
+        correct: true
+        why: pytest creates the folder and keeps the files out of your project, so tests do not leave files behind.
+      - text: A fixed folder in the project named test_output
+        correct: false
+        why: A shared folder keeps files between runs and between tests, so tests can affect each other.
+      - text: The current working directory
+        correct: false
+        why: Writing there clutters the project and can overwrite real files.
+      - text: The home folder of the user
+        correct: false
+        why: A test must never write into a user's real files.
+  - id: py-06-q-independence
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: Why should each test work on its own, whatever order the tests run in?
+    options:
+      - text: Tests that depend on each other give confusing failures
+        correct: true
+        why: If test B only passes after test A, a failure in A breaks B, and running B alone fails for no clear reason.
+      - text: pytest always runs tests in random order
+        correct: false
+        why: By default pytest runs them in file order. Independence is still good practice, and plugins can randomise the order.
+      - text: Each test must have its own file
+        correct: false
+        why: Tests can share a file. They must not share state.
+      - text: Tests cannot use fixtures if they depend on each other
+        correct: false
+        why: Fixtures help to keep tests independent. The problem is shared state.
+  - id: py-06-q-parametrize-vs-loop
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.pytest]
+    stem: Why use parametrize instead of a for loop over the cases inside one test?
+    options:
+      - text: 'A loop stops at its first failure; parametrize does not'
+        correct: true
+        why: An assert that fails inside a loop ends the test, so you do not learn about the later cases.
+      - text: 'A loop inside a test is not allowed by pytest'
+        correct: false
+        why: It is allowed. It just gives less information.
+      - text: 'parametrize runs noticeably faster than a loop'
+        correct: false
+        why: Speed is about the same. The benefit is the reporting.
+      - text: 'A loop cannot contain an assert statement'
+        correct: false
+        why: assert works in a loop. The first failure ends the test.
+
+  # ---- Chunk 3: fakes, mocks and time (objectives 3, 4 and 5) ----
+  - id: py-06-q-fake-vs-mock
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [py.mocking]
+    stem: What is the difference between a fake and a mock?
+    options:
+      - text: A fake is a simple working replacement, and a mock records how it was called
+        correct: true
+        why: A fake behaves like the real thing in a simple way, for example a list that stores messages. A mock lets a test check which calls were made.
+      - text: A fake is a real service, and a mock is a copy of its code
+        correct: false
+        why: A fake is not the real service. It is a stand-in written for tests.
+      - text: A mock works in production, and a fake works only in tests
+        correct: false
+        why: Both are test tools. Neither belongs in production code.
+      - text: They are the same, and the names are just habits
+        correct: false
+        why: The two differ in what they offer. One behaves, and the other records calls.
+  - id: py-06-q-predict-fake-clock
+    pools: [check, mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [py.mocking]
+    code: |
+      class FakeClock:
+          def __init__(self, start):
+              self.t = start
+
+          def now(self):
+              return self.t
+
+          def advance(self, seconds):
+              self.t += seconds
+
+      clock = FakeClock(10)
+      clock.advance(5)
+      print(clock.now(), FakeClock(10).now())
+    investigate:
+      - Why does the second FakeClock still say 10?
+      - How would a test use this clock instead of waiting five real seconds?
+  - id: py-06-q-inject
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.mocking]
+    stem: Why does a function that takes its sender or clock as an argument make testing easier?
+    options:
+      - text: The test can pass in a stand-in and control it
+        correct: true
+        why: This is dependency injection. The function does not know whether it has the real thing or a fake.
+      - text: The function runs faster in production
+        correct: false
+        why: Passing an argument does not change speed. It changes who creates the dependency.
+      - text: The function no longer needs tests
+        correct: false
+        why: The function still needs tests. They become easier to write.
+      - text: The sender is created again for every call
+        correct: false
+        why: The caller decides when to create it. The function just uses what it is given.
+  - id: py-06-q-monkeypatch
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.mocking]
+    stem: What does monkeypatch.setattr do in a pytest test?
+    options:
+      - text: Replaces a name for this test, and restores it afterwards
+        correct: true
+        why: It is useful for code you cannot change to accept a dependency, because the replacement is undone when the test ends.
+      - text: Replaces a name for the rest of the program
+        correct: false
+        why: The change is undone at the end of the test, so other tests are not affected.
+      - text: Creates a mock that records calls
+        correct: false
+        why: monkeypatch swaps a name. It does not record anything by itself.
+      - text: Patches the function in the file on disk
+        correct: false
+        why: It changes the name in memory only, and only while the test runs.
+  - id: py-06-q-mock-calls
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.mocking]
+    stem: When is a mock, with an assertion on how it was called, a good choice?
+    options:
+      - text: 'When the call itself is the behaviour, such as sending one email'
+        correct: true
+        why: The call is the behaviour, and there may be no return value to check.
+      - text: When you want to test the result that a function returns
+        correct: false
+        why: A result can be checked with a plain assert, without a mock.
+      - text: When the code under test has no dependencies
+        correct: false
+        why: Without a dependency there is nothing to replace.
+      - text: Always, because mocks are more accurate than fakes
+        correct: false
+        why: Mocks tie a test to how the code works inside, which makes the test brittle.
+  - id: py-06-q-llm-test
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.mocking]
+    stem: How do you test code that calls an LLM?
+    options:
+      - text: Pass in a fake model that returns canned answers
+        correct: true
+        why: The test is then fast, free and repeatable, and it can include answers that are malformed or slow to arrive.
+      - text: Call the real model in every test and compare the text
+        correct: false
+        why: This is slow, costs money, and gives different answers each time, so the tests become flaky.
+      - text: Skip the tests, because the output is random
+        correct: false
+        why: The code around the model, such as parsing, retries and limits, is ordinary code and can be tested.
+      - text: Mock the Python language so that it always returns text
+        correct: false
+        why: That is not possible, and it is not what is needed. Replace the model call only.
+  - id: py-06-q-now-argument
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.mocking, py.datetime]
+    stem: A function decides whether a booking is within the next 24 hours. How do you test it without depending on the real time?
+    options:
+      - text: Give the function a now parameter and pass a fixed time
+        correct: true
+        why: The result depends only on the arguments, so the test gives the same answer every time.
+      - text: Run the test only in the morning
+        correct: false
+        why: The result would still change from day to day.
+      - text: Call datetime.now twice and average the results
+        correct: false
+        why: This still reads the real clock.
+      - text: Wait until the booking is within 24 hours
+        correct: false
+        why: Tests must not wait for real time. A fixed clock makes the wait unnecessary.
+  - id: py-06-q-flaky
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.pytest]
+    stem: A test passes on most runs and fails on some. What is the most likely cause?
+    options:
+      - text: 'It depends on the clock, the network or other changing input'
+        correct: true
+        why: A test should give the same result every time. Replace the changing thing with a fake you control.
+      - text: 'pytest itself is unreliable and gives random results'
+        correct: false
+        why: pytest runs the same code each time. The difference comes from the test or the code.
+      - text: 'The test is too short to be reliable'
+        correct: false
+        why: The length is not the cause. Uncontrolled inputs are.
+      - text: 'The test uses assert instead of raising errors'
+        correct: false
+        why: assert is how a test states what must be true. It does not cause random results.
+  - id: py-06-q-unit-vs-integration
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [py.pytest]
+    stem: What is the difference between a unit test and an integration test?
+    options:
+      - text: 'A unit test checks one piece alone; an integration test checks pieces together'
+        correct: true
+        why: Unit tests are fast and pinpoint the problem. Integration tests are slower, but they catch faults between the pieces.
+      - text: A unit test is for small functions, and an integration test is for big ones
+        correct: false
+        why: The difference is what is included, not the size of the function.
+      - text: Unit tests use mocks and integration tests never do
+        correct: false
+        why: An integration test can still replace some parts, such as a payment service, with fakes.
+      - text: They are the same, and only the file name differs
+        correct: false
+        why: They check different things, and a project usually needs both.
+  - id: py-06-q-good-test
+    pools: [mastery]
+    objective: 5
+    type: multiple
+    competencies: [py.pytest]
+    stem: Which are signs of a good test? Choose all that apply.
+    options:
+      - text: It is fast and gives the same result every time
+        correct: true
+        why: Slow or flaky tests get ignored, and then they protect nothing.
+      - text: It checks one behaviour and is named after it
+        correct: true
+        why: A failure then tells you what broke without reading the test body.
+      - text: It would fail if the code under test were wrong
+        correct: true
+        why: A test that passes whatever the code does proves nothing. Try breaking the code to check.
+      - text: It uses as many mocks as possible
+        correct: false
+        why: Many mocks tie the test to how the code works inside, so the test breaks when you only refactor.
+  - id: py-06-q-overmock
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.mocking]
+    stem: A test mocks every function that the code under test calls and checks each call. What is the risk?
+    options:
+      - text: The test breaks whenever the code is reorganised, though the behaviour is the same
+        correct: true
+        why: The test describes how the code works inside instead of what it does, so it makes changes harder.
+      - text: 'The test runs more slowly than a normal test'
+        correct: false
+        why: Mocks are usually fast. The cost is brittleness.
+      - text: The mocks hide the assert statements
+        correct: false
+        why: The asserts are still there. They check calls instead of results.
+      - text: pytest refuses to run tests with many mocks
+        correct: false
+        why: There is no such limit. The problem is the design of the test.
+  - id: py-06-q-fake-drift
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.mocking]
+    stem: Your fake sender always succeeds, but the real service sometimes times out. What does this mean for your tests?
+    options:
+      - text: Add a fake that can fail, and test the error path as well
+        correct: true
+        why: A fake only tests what it can do. Let it raise the errors the real service raises.
+      - text: Nothing, because the unit tests all pass
+        correct: false
+        why: They pass because the fake never fails, so the error handling is never tested.
+      - text: Replace the fake with the real service in every test
+        correct: false
+        why: That brings back the cost and unreliability that the fake removed. Keep a few integration tests for that.
+      - text: Remove the error handling from the code
+        correct: false
+        why: The real service does time out, so the handling is needed.

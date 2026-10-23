@@ -1,0 +1,185 @@
+id: py-06-make-normalise-phone
+lesson: py-06
+runtime: python
+kind: make
+pools:
+  - lesson
+title: 'Normalise a UK mobile number (test first)'
+difficulty: 3
+competencies:
+  - py.pytest
+  - py.exceptions
+timeoutMs: 5000
+packages: []
+prompt: |
+  Callers' numbers arrive in many forms. Write `normalise_uk_mobile(text)`, which returns the number in the form `+44` followed by the 10-digit national number, for example `+447700900123`. Work test first: look at the visible tests, write your own small tests, on your own computer or on paper, for each rule, and then make them pass.
+
+  - Spaces, hyphens and round brackets in the text are ignored.
+  - The text may start with `+44`, with `0044`, or with a single `0` (the national form). The rest must then be exactly 10 digits.
+  - Anything else raises `ValueError`: a different start, letters, or a wrong number of digits.
+
+  The examples use only the reserved fictional range `+44 7700 900000` to `+44 7700 900999`.
+starter: |
+  def normalise_uk_mobile(text: str) -> str:
+      ...
+visibleTests: |
+  def test_international_form():
+      assert normalise_uk_mobile("+44 7700 900123") == "+447700900123"
+
+  def test_national_form():
+      assert normalise_uk_mobile("07700 900123") == "+447700900123"
+hiddenTests: |
+  def raises_value_error(text):
+      try:
+          normalise_uk_mobile(text)
+      except ValueError:
+          return True
+      return False
+
+
+  def test_double_zero_form():
+      assert normalise_uk_mobile("0044 7700 900456") == "+447700900456"
+
+  def test_hyphens_and_brackets_are_ignored():
+      assert normalise_uk_mobile("(07700) 900-999") == "+447700900999"
+
+  def test_already_normalised_text_is_unchanged():
+      assert normalise_uk_mobile("+447700900000") == "+447700900000"
+
+  def test_too_few_digits_is_refused():
+      assert raises_value_error("07700 900")
+
+  def test_too_many_digits_is_refused():
+      assert raises_value_error("07700900123456")
+
+  def test_letters_are_refused():
+      assert raises_value_error("07700 90012A")
+
+  def test_other_country_code_is_refused():
+      assert raises_value_error("+1 555 0100")
+
+  def test_empty_text_is_refused():
+      assert raises_value_error("")
+
+  def test_plus_without_digits_is_refused():
+      assert raises_value_error("+44")
+feedback:
+  - test: test_national_form
+    message: 'A number that starts with a single 0 is in national form. Drop the 0 and put +44 in front of the other 10 digits.'
+  - test: test_double_zero_form
+    message: '0044 is another way to write +44. Handle it before the single leading zero, because the text starts with 0 as well.'
+  - test: test_hyphens_and_brackets_are_ignored
+    message: 'Remove spaces, hyphens and round brackets before you look at the digits.'
+  - test: test_too_few_digits_is_refused
+    message: 'After the prefix is removed the rest must be exactly 10 digits. Check the length, then raise ValueError.'
+  - test: test_too_many_digits_is_refused
+    message: 'The national number must have exactly 10 digits, not at least 10.'
+  - test: test_letters_are_refused
+    message: 'Check that the national number contains only digits, and raise ValueError if not.'
+  - test: test_other_country_code_is_refused
+    message: 'Only +44, 0044 and a leading 0 are accepted. Raise ValueError for any other start.'
+  - test: test_empty_text_is_refused
+    message: 'Empty text has no prefix, so it must raise ValueError.'
+  - test: test_plus_without_digits_is_refused
+    message: 'A prefix with no digits after it has 0 digits, not 10, so raise ValueError.'
+hints:
+  - 'What are the steps: clean the text, find the prefix, check the digits, build the result? Which step can fail?'
+  - "Remove the characters in ' -()'. Choose the national part by the prefix: +44, then 0044, then 0. If no prefix fits, raise. Then check the rest has exactly 10 digits and only digits."
+  - |-
+    cleaned = ''.join(ch for ch in text if ch not in ' -()')
+    if cleaned.startswith('+44'):
+        national = cleaned[____:]
+    elif cleaned.startswith('0044'):
+        national = cleaned[____:]
+    elif cleaned.startswith('0'):
+        national = cleaned[1:]
+referenceSolution: |
+  def normalise_uk_mobile(text: str) -> str:
+      cleaned = "".join(ch for ch in text if ch not in " -()")
+      if cleaned.startswith("+44"):
+          national = cleaned[3:]
+      elif cleaned.startswith("0044"):
+          national = cleaned[4:]
+      elif cleaned.startswith("0"):
+          national = cleaned[1:]
+      else:
+          raise ValueError("not a UK number")
+      if len(national) != 10 or not (national.isascii() and national.isdigit()):
+          raise ValueError("the national number must be 10 digits")
+      return "+44" + national
+wrongSolutions:
+  - label: 'Does not check the length of the number'
+    code: |
+      def normalise_uk_mobile(text: str) -> str:
+          cleaned = "".join(ch for ch in text if ch not in " -()")
+          if cleaned.startswith("+44"):
+              national = cleaned[3:]
+          elif cleaned.startswith("0044"):
+              national = cleaned[4:]
+          elif cleaned.startswith("0"):
+              national = cleaned[1:]
+          else:
+              raise ValueError("not a UK number")
+          if not national.isdigit():
+              raise ValueError("the national number must be digits")
+          return "+44" + national
+  - label: 'Does not accept the 0044 form'
+    code: |
+      def normalise_uk_mobile(text: str) -> str:
+          cleaned = "".join(ch for ch in text if ch not in " -()")
+          if cleaned.startswith("+44"):
+              national = cleaned[3:]
+          elif cleaned.startswith("0"):
+              national = cleaned[1:]
+          else:
+              raise ValueError("not a UK number")
+          if len(national) != 10 or not national.isdigit():
+              raise ValueError("the national number must be 10 digits")
+          return "+44" + national
+  - label: 'Does not remove hyphens and brackets'
+    code: |
+      def normalise_uk_mobile(text: str) -> str:
+          cleaned = text.replace(" ", "")
+          if cleaned.startswith("+44"):
+              national = cleaned[3:]
+          elif cleaned.startswith("0044"):
+              national = cleaned[4:]
+          elif cleaned.startswith("0"):
+              national = cleaned[1:]
+          else:
+              raise ValueError("not a UK number")
+          if len(national) != 10 or not national.isdigit():
+              raise ValueError("the national number must be 10 digits")
+          return "+44" + national
+  - label: 'Lets letters through'
+    code: |
+      def normalise_uk_mobile(text: str) -> str:
+          cleaned = "".join(ch for ch in text if ch not in " -()")
+          if cleaned.startswith("+44"):
+              national = cleaned[3:]
+          elif cleaned.startswith("0044"):
+              national = cleaned[4:]
+          elif cleaned.startswith("0"):
+              national = cleaned[1:]
+          else:
+              raise ValueError("not a UK number")
+          if len(national) != 10:
+              raise ValueError("the national number must be 10 digits")
+          return "+44" + national
+  - label: 'Treats a leading 0 before the 0044 form, so 0044 numbers lose too many digits'
+    code: |
+      def normalise_uk_mobile(text: str) -> str:
+          cleaned = "".join(ch for ch in text if ch not in " -()")
+          if cleaned.startswith("+44"):
+              national = cleaned[3:]
+          elif cleaned.startswith("0"):
+              national = cleaned[1:]
+          elif cleaned.startswith("0044"):
+              national = cleaned[4:]
+          else:
+              raise ValueError("not a UK number")
+          if len(national) != 10 or not national.isdigit():
+              raise ValueError("the national number must be 10 digits")
+          return "+44" + national
+explanation: |
+  Test first means the rules become examples before the code exists: the international form, the national form, the 0044 form, the characters to ignore, and each kind of bad input. The function then follows the same steps as the tests. It cleans the text, chooses the national part by the prefix (the `0044` check must come before the single `0` check, because `0044...` also starts with `0`), and finally checks the digits. Raising `ValueError` for bad input gives callers one clear thing to handle. Alternative: a regular expression such as `^(?:\+44|0044|0)(\d{10})$` after cleaning does the prefix and the length in one step, but the step-by-step version is easier to read and to extend.

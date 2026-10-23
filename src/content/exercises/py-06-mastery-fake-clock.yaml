@@ -1,0 +1,282 @@
+id: py-06-mastery-fake-clock
+lesson: py-06
+runtime: python
+kind: make
+pools:
+  - mastery
+title: 'Write a FakeClock for a rate limiter'
+difficulty: 3
+competencies:
+  - py.mocking
+  - py.classes
+timeoutMs: 5000
+packages: []
+prompt: |
+  `RateLimiter` allows at most `limit` calls in any window of `window_s` seconds. It reads the time from a function that you give it, so a test can control the time. Write `FakeClock`, a stand-in for the real clock:
+
+  - `FakeClock(start=0.0)` starts at the time `start`.
+  - `now()` returns the current fake time. It never changes on its own.
+  - `advance(seconds)` moves the time forward by that many seconds. A negative number raises `ValueError`.
+  - Each `FakeClock` has its own time.
+
+  Example: `RateLimiter(2, 10, FakeClock().now)` allows two calls, refuses the third, and allows another after the clock has advanced by 10 seconds.
+starter: |
+  class RateLimiter:
+      """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+      def __init__(self, limit, window_s, clock):
+          self._limit = limit
+          self._window_s = window_s
+          self._clock = clock
+          self._calls = []
+
+      def allow(self):
+          now = self._clock()
+          self._calls = [t for t in self._calls if now - t < self._window_s]
+          if len(self._calls) < self._limit:
+              self._calls.append(now)
+              return True
+          return False
+
+
+  class FakeClock:
+      ...
+visibleTests: |
+  def test_starts_at_zero_and_advances():
+      clock = FakeClock()
+      assert clock.now() == 0.0
+      clock.advance(5)
+      assert clock.now() == 5
+
+  def test_limiter_with_a_fake_clock():
+      clock = FakeClock()
+      limiter = RateLimiter(2, 10, clock.now)
+      assert [limiter.allow(), limiter.allow(), limiter.allow()] == [True, True, False]
+      clock.advance(10)
+      assert limiter.allow() is True
+hiddenTests: |
+  def raises_value_error(function, *args):
+      try:
+          function(*args)
+      except ValueError:
+          return True
+      return False
+
+
+  def test_custom_start_time():
+      assert FakeClock(100).now() == 100
+
+  def test_advance_adds_up():
+      clock = FakeClock(100)
+      clock.advance(2.5)
+      clock.advance(1.5)
+      assert clock.now() == 104
+
+  def test_time_does_not_move_on_its_own():
+      clock = FakeClock(7)
+      assert [clock.now(), clock.now()] == [7, 7]
+
+  def test_negative_advance_is_refused_and_changes_nothing():
+      clock = FakeClock(10)
+      assert raises_value_error(clock.advance, -1)
+      assert clock.now() == 10
+
+  def test_advance_by_zero_is_allowed():
+      clock = FakeClock(10)
+      clock.advance(0)
+      assert clock.now() == 10
+
+  def test_clocks_are_independent():
+      first = FakeClock(0)
+      second = FakeClock(0)
+      first.advance(50)
+      assert second.now() == 0
+
+  def test_limiter_refuses_until_the_window_has_passed():
+      clock = FakeClock()
+      limiter = RateLimiter(1, 10, clock.now)
+      assert limiter.allow() is True
+      clock.advance(9)
+      assert limiter.allow() is False
+      clock.advance(1)
+      assert limiter.allow() is True
+feedback:
+  - test: test_advance_adds_up
+    message: 'advance must add to the current time, not replace it. Keep the time in an attribute of the instance and add the seconds to it.'
+  - test: test_negative_advance_is_refused_and_changes_nothing
+    message: 'Check for a negative number first and raise ValueError, before you change the time.'
+  - test: test_clocks_are_independent
+    message: 'Store the time on self in __init__, not in the class body, so each clock has its own.'
+  - test: test_time_does_not_move_on_its_own
+    message: 'now() only reads the time. It must not change it.'
+  - test: test_custom_start_time
+    message: 'FakeClock takes the start time as its argument, with 0.0 as the default.'
+hints:
+  - 'What does a clock need to remember, and which two methods change or read it?'
+  - 'Store the current time on self in __init__. now() returns it, and advance(seconds) checks for a negative value and then adds to it.'
+  - |-
+    def __init__(self, start=0.0):
+        self._time = ____
+
+    def advance(self, seconds):
+        if seconds < 0:
+            raise ____("time cannot go backwards")
+        self._time += seconds
+referenceSolution: |
+  class RateLimiter:
+      """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+      def __init__(self, limit, window_s, clock):
+          self._limit = limit
+          self._window_s = window_s
+          self._clock = clock
+          self._calls = []
+
+      def allow(self):
+          now = self._clock()
+          self._calls = [t for t in self._calls if now - t < self._window_s]
+          if len(self._calls) < self._limit:
+              self._calls.append(now)
+              return True
+          return False
+
+
+  class FakeClock:
+      def __init__(self, start=0.0):
+          self._time = start
+
+      def now(self):
+          return self._time
+
+      def advance(self, seconds):
+          if seconds < 0:
+              raise ValueError("time cannot go backwards")
+          self._time += seconds
+wrongSolutions:
+  - label: 'Sets the time instead of adding to it'
+    code: |
+      class RateLimiter:
+          """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+          def __init__(self, limit, window_s, clock):
+              self._limit = limit
+              self._window_s = window_s
+              self._clock = clock
+              self._calls = []
+
+          def allow(self):
+              now = self._clock()
+              self._calls = [t for t in self._calls if now - t < self._window_s]
+              if len(self._calls) < self._limit:
+                  self._calls.append(now)
+                  return True
+              return False
+
+
+      class FakeClock:
+          def __init__(self, start=0.0):
+              self._time = start
+
+          def now(self):
+              return self._time
+
+          def advance(self, seconds):
+              if seconds < 0:
+                  raise ValueError("time cannot go backwards")
+              self._time = seconds
+  - label: 'Allows the time to go backwards'
+    code: |
+      class RateLimiter:
+          """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+          def __init__(self, limit, window_s, clock):
+              self._limit = limit
+              self._window_s = window_s
+              self._clock = clock
+              self._calls = []
+
+          def allow(self):
+              now = self._clock()
+              self._calls = [t for t in self._calls if now - t < self._window_s]
+              if len(self._calls) < self._limit:
+                  self._calls.append(now)
+                  return True
+              return False
+
+
+      class FakeClock:
+          def __init__(self, start=0.0):
+              self._time = start
+
+          def now(self):
+              return self._time
+
+          def advance(self, seconds):
+              self._time += seconds
+  - label: 'Shares one time between all clocks through a class attribute'
+    code: |
+      class RateLimiter:
+          """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+          def __init__(self, limit, window_s, clock):
+              self._limit = limit
+              self._window_s = window_s
+              self._clock = clock
+              self._calls = []
+
+          def allow(self):
+              now = self._clock()
+              self._calls = [t for t in self._calls if now - t < self._window_s]
+              if len(self._calls) < self._limit:
+                  self._calls.append(now)
+                  return True
+              return False
+
+
+      class FakeClock:
+          _time = 0.0
+
+          def __init__(self, start=0.0):
+              FakeClock._time = start
+
+          def now(self):
+              return FakeClock._time
+
+          def advance(self, seconds):
+              if seconds < 0:
+                  raise ValueError("time cannot go backwards")
+              FakeClock._time += seconds
+  - label: 'Moves the time every time it is read'
+    code: |
+      class RateLimiter:
+          """Allows at most `limit` calls in any window of `window_s` seconds."""
+
+          def __init__(self, limit, window_s, clock):
+              self._limit = limit
+              self._window_s = window_s
+              self._clock = clock
+              self._calls = []
+
+          def allow(self):
+              now = self._clock()
+              self._calls = [t for t in self._calls if now - t < self._window_s]
+              if len(self._calls) < self._limit:
+                  self._calls.append(now)
+                  return True
+              return False
+
+
+      class FakeClock:
+          def __init__(self, start=0.0):
+              self._time = start
+
+          def now(self):
+              self._time += 1
+              return self._time
+
+          def advance(self, seconds):
+              if seconds < 0:
+                  raise ValueError("time cannot go backwards")
+              self._time += seconds
+explanation: |
+  A fake clock is a small working replacement for the real one: it keeps a number, lets the test move it with `advance`, and never changes by itself. Because `RateLimiter` asks a function for the time, the test passes `clock.now` and then controls exactly when the window has passed, with no waiting and no flakiness. Keeping the time on `self` gives each clock its own value, and refusing a negative advance catches a test that tries to go back in time. Alternative: `monkeypatch.setattr(time, "time", ...)` replaces the real clock for one test, which is useful for code you cannot change. Passing the clock in is cleaner when you can.
