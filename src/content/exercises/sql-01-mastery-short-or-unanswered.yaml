@@ -1,0 +1,60 @@
+id: sql-01-mastery-short-or-unanswered
+lesson: sql-01
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: 'Short or unanswered calls'
+difficulty: 3
+competencies:
+  - sql.nulls
+  - sql.select
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    hour integer NOT NULL,
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO calls VALUES
+    (1, 'Amara', 11, 120, 'booking'),
+    (2, 'Bayu', 9, 45, 'billing'),
+    (3, 'Chen', 9, NULL, NULL),
+    (4, 'Dara', 9, 300, 'booking'),
+    (5, 'Esi', 16, 60, NULL),
+    (6, 'Farid', 10, 15, 'cancel'),
+    (7, 'Gita', 15, NULL, 'booking'),
+    (8, 'Hana', 12, 200, 'billing'),
+    (9, 'Ivo', 11, 90, 'booking'),
+    (10, 'Jun', 10, 30, 'cancel');
+prompt: |
+  The table `calls` has one row per call: `id`, `caller_name`, `hour` (0 to 23), `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if no reason was recorded). Keep the column names.
+
+  Select `caller_name` of the calls that lasted under 60 seconds, and of the calls that were not answered (`duration_s` is NULL), in `id` order.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT caller_name FROM calls WHERE duration_s < 60 OR duration_s IS NULL ORDER BY id;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Only tests duration_s < 60, so unanswered calls are missing'
+    code: |
+      SELECT caller_name FROM calls WHERE duration_s < 60 ORDER BY id;
+  - label: 'Uses <= 60, so a call of exactly 60 seconds is included'
+    code: |
+      SELECT caller_name FROM calls WHERE duration_s <= 60 OR duration_s IS NULL ORDER BY id;
+  - label: 'Uses AND between the two tests, which no row can satisfy'
+    code: |
+      SELECT caller_name FROM calls WHERE duration_s < 60 AND duration_s IS NULL ORDER BY id;
+hints:
+  - 'What does duration_s < 60 give for a row where duration_s is NULL, and so what happens to that row?'
+  - 'The comparison gives unknown for NULL, so those rows are dropped. Add a second condition that accepts them, joined with OR.'
+  - 'SELECT caller_name FROM calls WHERE duration_s < 60 ____ duration_s IS ____ ORDER BY id;'
+explanation: |
+  A NULL duration makes `duration_s < 60` unknown, and `WHERE` drops rows that are not true, so unanswered calls need their own test with `IS NULL`. `OR` keeps a row if either test is true. `AND` would need one value to be both below 60 and NULL, which is impossible.

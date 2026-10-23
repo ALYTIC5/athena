@@ -1,0 +1,60 @@
+id: sql-01-mastery-not-billing
+lesson: sql-01
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: 'Calls from hour 10 that are not about billing'
+difficulty: 3
+competencies:
+  - sql.nulls
+  - sql.select
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    hour integer NOT NULL,
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO calls VALUES
+    (1, 'Amara', 11, 120, 'booking'),
+    (2, 'Bayu', 9, 45, 'billing'),
+    (3, 'Chen', 9, NULL, NULL),
+    (4, 'Dara', 9, 300, 'booking'),
+    (5, 'Esi', 16, 60, NULL),
+    (6, 'Farid', 10, 15, 'cancel'),
+    (7, 'Gita', 15, NULL, 'booking'),
+    (8, 'Hana', 12, 200, 'billing'),
+    (9, 'Ivo', 11, 90, 'booking'),
+    (10, 'Jun', 10, 30, 'cancel');
+prompt: |
+  The table `calls` has one row per call: `id`, `caller_name`, `hour` (0 to 23), `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if no reason was recorded). Keep the column names.
+
+  Select `caller_name` and `reason` of the calls from hour 10 or later whose reason is not `'billing'`. Calls with no recorded reason (NULL) also count as not billing. Sort by `hour`, then by `id`.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT caller_name, reason FROM calls WHERE hour >= 10 AND (reason <> 'billing' OR reason IS NULL) ORDER BY hour, id;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: "Only tests reason <> 'billing', so rows with a NULL reason are dropped"
+    code: |
+      SELECT caller_name, reason FROM calls WHERE hour >= 10 AND reason <> 'billing' ORDER BY hour, id;
+  - label: 'Leaves out the brackets, so AND is applied before OR and the hour filter is lost for NULL reasons'
+    code: |
+      SELECT caller_name, reason FROM calls WHERE hour >= 10 AND reason <> 'billing' OR reason IS NULL ORDER BY hour, id;
+  - label: 'Keeps only the billing calls'
+    code: |
+      SELECT caller_name, reason FROM calls WHERE hour >= 10 AND reason = 'billing' ORDER BY hour, id;
+hints:
+  - "What does reason <> 'billing' give when reason is NULL?"
+  - 'It gives unknown, so those rows vanish. Accept them with a second test, and use brackets so that the hour condition applies to both.'
+  - "WHERE hour >= 10 AND (reason <> 'billing' ____ reason IS ____) ORDER BY hour, id;"
+explanation: |
+  `reason <> 'billing'` is unknown for a NULL reason, so the row is dropped, even though no reason is certainly not billing. Adding `OR reason IS NULL` brings those rows back. The brackets matter: `AND` is applied before `OR`, so without them the hour condition would only apply to the first test. Alternative: `reason IS DISTINCT FROM 'billing'` treats NULL as an ordinary value in the comparison, in one test.

@@ -1,0 +1,59 @@
+id: sql-01-order-limit
+lesson: sql-01
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'The four earliest calls'
+difficulty: 2
+competencies:
+  - sql.select
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    hour integer NOT NULL,
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO calls VALUES
+    (1, 'Amara', 11, 120, 'booking'),
+    (2, 'Bayu', 9, 45, 'billing'),
+    (3, 'Chen', 9, NULL, NULL),
+    (4, 'Dara', 9, 300, 'booking'),
+    (5, 'Esi', 16, 60, NULL),
+    (6, 'Farid', 10, 15, 'cancel'),
+    (7, 'Gita', 15, NULL, 'booking'),
+    (8, 'Hana', 12, 200, 'billing'),
+    (9, 'Ivo', 11, 90, 'booking'),
+    (10, 'Jun', 10, 30, 'cancel');
+prompt: |
+  The table `calls` has one row per call: `id`, `caller_name`, `hour` (0 to 23), `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if no reason was recorded). Keep the column names.
+
+  Select `caller_name` and `hour` of the 4 earliest calls, the lowest `hour` first. When two calls have the same hour, the lower `id` comes first.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT caller_name, hour FROM calls ORDER BY hour, id LIMIT 4;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Takes the first four ids instead of the earliest hours'
+    code: |
+      SELECT caller_name, hour FROM calls ORDER BY id LIMIT 4;
+  - label: 'Sorts the hours the wrong way round, so it returns the latest calls'
+    code: |
+      SELECT caller_name, hour FROM calls ORDER BY hour DESC, id LIMIT 4;
+  - label: 'Limits to three rows'
+    code: |
+      SELECT caller_name, hour FROM calls ORDER BY hour, id LIMIT 3;
+hints:
+  - 'Which column decides what earliest means, and what breaks a tie?'
+  - 'Sort by hour, then by id. ORDER BY accepts several columns, separated by commas. Then keep only the first four rows with LIMIT.'
+  - 'SELECT caller_name, hour FROM calls ORDER BY ____, ____ LIMIT ____;'
+explanation: |
+  `ORDER BY hour, id` sorts by hour, and uses `id` to order calls that have the same hour. `LIMIT 4` keeps the first four rows of the sorted result. LIMIT without ORDER BY would give four arbitrary rows, because a table has no built-in order.

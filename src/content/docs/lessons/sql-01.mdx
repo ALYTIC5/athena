@@ -1,0 +1,137 @@
+---
+title: Querying one table
+description: Selecting columns, filtering with WHERE, sorting and limiting rows, and handling NULL correctly in PostgreSQL.
+sidebar:
+  order: 65
+lessonId: sql-01
+week: 6
+track: sql
+durationMin: 45
+anatomy: short
+competencies: [sql.select, sql.nulls]
+prerequisites: [start-00]
+whyItMatters: >
+  SQL appears in 37% of the postings you are targeting, and every backend that stores bookings, calls or invoices
+  reads them back with queries like these. The mistakes in this lesson, a missing ORDER BY and a comparison with NULL
+  that never matches, return plausible but wrong rows without any error, so they are easy to ship and hard to notice.
+objectives:
+  - Select columns, filter rows with WHERE, and sort and limit a result
+  - Explain what NULL means and test for it with IS NULL and IS NOT NULL
+  - Predict which rows a condition keeps when NULLs are involved
+sources:
+  - title: "PostgreSQL documentation: select lists and DISTINCT"
+    url: https://www.postgresql.org/docs/current/queries-select-lists.html
+  - title: "PostgreSQL documentation: sorting rows (ORDER BY)"
+    url: https://www.postgresql.org/docs/current/queries-order.html
+  - title: "PostgreSQL documentation: LIMIT and OFFSET"
+    url: https://www.postgresql.org/docs/current/queries-limit.html
+  - title: "PostgreSQL documentation: comparison functions and operators"
+    url: https://www.postgresql.org/docs/current/functions-comparison.html
+  - title: "PostgreSQL documentation: lexical structure, constants and identifiers"
+    url: https://www.postgresql.org/docs/current/sql-syntax-lexical.html
+---
+
+## Why this matters
+
+SQL appears in 37% of the postings you are targeting, and every backend that stores bookings, calls or invoices reads them back with queries like these. The mistakes in this lesson, a missing `ORDER BY` and a comparison with `NULL` that never matches, return plausible but wrong rows without any error, so they are easy to ship and hard to notice.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Select columns, filter rows with `WHERE`, and sort and limit a result.
+2. Explain what `NULL` means and test for it with `IS NULL` and `IS NOT NULL`.
+3. Predict which rows a condition keeps when NULLs are involved.
+
+<Callout type="note" title="How the exercises work">
+
+Each query exercise runs your SQL in a PostgreSQL database inside your browser and compares the result with the expected one. All data is invented. The table in this lesson is `calls`: one row per call, with `id`, `caller_name`, `hour`, `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if none was recorded).
+
+</Callout>
+
+<Chunk n={1} title="Reading rows from one table">
+
+A **table** holds rows, and every row has the same columns. `SELECT` lists the columns you want, `FROM` names the table, `WHERE` keeps only the rows that match a condition, `ORDER BY` sorts the result, and `LIMIT` keeps the first `n` rows. Write the clauses in that order. Without `ORDER BY`, SQL promises no row order, so always sort before you `LIMIT`.
+
+`DISTINCT` removes repeated rows. Combine conditions with `AND`, `OR` and `NOT`. `AND` is applied before `OR`, so use brackets when you mix them. In PostgreSQL, text goes in single quotes (`'booking'`), and double quotes mean a column name. `SELECT *` returns every column, but a query that other code reads should name the columns it needs.
+
+**Worked example.** The two latest calls at hour 10 or later that were about a booking or a cancellation.
+
+```sql schema="sql-01-select-columns"
+SELECT caller_name, hour
+FROM calls
+WHERE hour >= 10 AND (reason = 'booking' OR reason = 'cancel')
+ORDER BY hour DESC, id
+LIMIT 2;
+```
+
+Each hour that has a call, once.
+
+```sql schema="sql-01-select-columns"
+SELECT DISTINCT hour FROM calls ORDER BY hour;
+```
+
+<Quiz lesson="sql-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A table keeps its rows in the order I inserted them." It promises no order. Only `ORDER BY` does.
+- "`LIMIT 3` gives the three biggest." It gives three rows. Sort first to choose which.
+- "`a OR b AND c` reads left to right." `AND` is applied first, so it means `a OR (b AND c)`.
+
+</Callout>
+
+</Chunk>
+
+## Write four queries
+
+<Exercise id="sql-01-select-columns" />
+
+<Exercise id="sql-01-where-and" />
+
+<Exercise id="sql-01-order-limit" />
+
+<Exercise id="sql-01-distinct-hours" />
+
+## NULL: the missing value
+
+**NULL** means no value is recorded: the data is unknown or missing. It is not zero, and it is not an empty string. A comparison with NULL, including `= NULL`, gives *unknown*, and `WHERE` keeps a row only when its condition is true. So `WHERE reason = NULL` returns no rows, and you test with `IS NULL` or `IS NOT NULL` instead.
+
+NULLs also hide inside other conditions. `reason <> 'billing'` is unknown for a NULL reason, so those rows are dropped; write `reason <> 'billing' OR reason IS NULL` to keep them. In PostgreSQL, NULL sorts as larger than any value, so `ORDER BY ... DESC` puts NULLs first. Add `NULLS LAST`, or filter them out.
+
+```sql schema="sql-01-null-reason"
+SELECT caller_name FROM calls WHERE reason IS NULL ORDER BY id;
+```
+
+The same idea written with `=` finds nothing, and it gives no error.
+
+```sql schema="sql-01-null-reason"
+SELECT caller_name FROM calls WHERE reason = NULL;
+```
+
+Sorting longest first, with the unanswered calls at the end.
+
+```sql schema="sql-01-null-reason"
+SELECT caller_name, duration_s FROM calls ORDER BY duration_s DESC NULLS LAST LIMIT 3;
+```
+
+<Callout type="misconception" title="Common misconceptions about NULL">
+
+- "`= NULL` finds the missing values." It never matches. Use `IS NULL`.
+- "`<> 'billing'` keeps every call that is not billing." It drops the rows where the reason is NULL.
+- "NULL equals NULL." It does not. The comparison is unknown.
+
+</Callout>
+
+<Exercise id="sql-01-null-reason" />
+
+<Exercise id="sql-01-null-longest" />
+
+## Mastery check
+
+<MasteryCheck lesson="sql-01" count={6} />
+
+## Further reading
+
+- [PostgreSQL documentation: sorting rows (ORDER BY)](https://www.postgresql.org/docs/current/queries-order.html)
+- [PostgreSQL documentation: comparison functions and operators](https://www.postgresql.org/docs/current/functions-comparison.html)
