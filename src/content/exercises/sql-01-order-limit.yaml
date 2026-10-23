@@ -56,4 +56,4 @@ hints:
   - 'Sort by hour, then by id. ORDER BY accepts several columns, separated by commas. Then keep only the first four rows with LIMIT.'
   - 'SELECT caller_name, hour FROM calls ORDER BY ____, ____ LIMIT ____;'
 explanation: |
-  `ORDER BY hour, id` sorts by hour, and uses `id` to order calls that have the same hour. `LIMIT 4` keeps the first four rows of the sorted result. LIMIT without ORDER BY would give four arbitrary rows, because a table has no built-in order.
+  `ORDER BY hour, id` sorts by hour, and uses `id` to order calls that have the same hour. `LIMIT 4` keeps the first four rows of the sorted result. LIMIT without ORDER BY would give four arbitrary rows, because a table has no built-in order. Alternative: write `ASC` after each column to be explicit. It is the default.

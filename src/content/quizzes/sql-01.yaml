@@ -14,13 +14,13 @@ items:
         why: ORDER BY sorts first, using id to break ties, and LIMIT then keeps the first two rows of the sorted result.
       - text: SELECT * FROM calls LIMIT 2 ORDER BY hour, id;
         correct: false
-        why: The clauses are in the wrong order. ORDER BY must come before LIMIT, and the query is a syntax error.
+        why: 'The clauses are in the wrong order. ORDER BY must come before LIMIT, so the query gives an error.'
       - text: SELECT * FROM calls ORDER BY hour DESC, id LIMIT 2;
         correct: false
         why: DESC puts the highest hour first, so this returns the two latest calls.
-      - text: SELECT * FROM calls WHERE hour = 2;
+      - text: 'SELECT * FROM calls ORDER BY id, hour LIMIT 2;'
         correct: false
-        why: WHERE hour = 2 keeps calls at hour 2. It does not choose the two lowest hours.
+        why: 'This sorts by id first, so the hours only break ties between equal ids, and there are none. It returns the first two ids, not the two lowest hours.'
   - id: sql-01-q-no-order
     pools: [check, mastery]
     chunk: 1
@@ -29,7 +29,7 @@ items:
     competencies: [sql.select]
     stem: A query has no ORDER BY clause. In which order does PostgreSQL return the rows?
     options:
-      - text: In no guaranteed order, so you should not rely on any
+      - text: 'In no guaranteed order'
         correct: true
         why: A table is a set of rows. The order you see can change after updates or with a different query plan.
       - text: In the order the rows were inserted
@@ -48,7 +48,7 @@ items:
     competencies: [sql.select]
     stem: "Which rows does WHERE hour = 9 OR hour = 10 AND reason = 'booking' keep?"
     options:
-      - text: Every call at hour 9, and calls at hour 10 whose reason is booking
+      - text: 'Calls at hour 9, and booking calls at hour 10'
         correct: true
         why: AND is applied before OR, so the condition reads hour = 9 OR (hour = 10 AND reason = 'booking').
       - text: Calls at hour 9 or 10 whose reason is booking
@@ -67,7 +67,7 @@ items:
     competencies: [sql.select]
     stem: What does SELECT DISTINCT reason FROM calls return?
     options:
-      - text: Each different reason once, with NULL as one more value if any call has no reason
+      - text: 'Each different reason once, NULL included'
         correct: true
         why: DISTINCT removes repeated rows. For this purpose NULLs count as equal to each other, so they collapse to one row.
       - text: Every reason, one row per call
@@ -78,7 +78,7 @@ items:
         why: DISTINCT keeps one copy of every value, including values that appear many times.
       - text: A count of the different reasons
         correct: false
-        why: Counting needs an aggregate such as COUNT, which comes in a later lesson.
+        why: 'Counting is done with a different feature, taught in a later lesson.'
   - id: sql-01-q-quotes
     pools: [mastery]
     objective: 1
@@ -86,7 +86,7 @@ items:
     competencies: [sql.select]
     stem: In PostgreSQL, what does WHERE reason = "booking" do?
     options:
-      - text: It fails, because double quotes name a column and there is no column called booking
+      - text: 'It fails, as double quotes name a column'
         correct: true
         why: Single quotes make a text value ('booking'). Double quotes mark an identifier such as a column or table name.
       - text: It works like WHERE reason = 'booking'
@@ -105,7 +105,7 @@ items:
     competencies: [sql.select]
     stem: A developer writes SELECT * FROM calls LIMIT 3 to get the three longest calls. What is wrong?
     options:
-      - text: There is no ORDER BY, so the three rows are arbitrary, not the longest
+      - text: 'There is no ORDER BY, so the rows are arbitrary'
         correct: true
         why: LIMIT only cuts the result off. Sort first with ORDER BY duration_s DESC to choose which rows are first.
       - text: LIMIT cannot be used without a WHERE clause
@@ -124,7 +124,7 @@ items:
     competencies: [sql.select]
     stem: Why do application queries usually list the columns instead of using SELECT *?
     options:
-      - text: The result stays the same when someone adds a column, and less data is moved
+      - text: 'The output stays stable when columns are added'
         correct: true
         why: Naming the columns makes the query's output explicit, so adding a column to the table does not change what your code receives.
       - text: SELECT * is not valid in PostgreSQL
@@ -148,7 +148,7 @@ items:
         why: IN tests whether the value is in a list, and it is a shorter way to write three equalities joined by OR.
       - text: WHERE hour = 9, 11, 15
         correct: false
-        why: A comma is not an operator in a condition, so this is a syntax error.
+        why: 'A comma is not an operator in a condition, so this gives an error.'
       - text: WHERE hour BETWEEN 9 AND 15
         correct: false
         why: BETWEEN keeps every hour from 9 to 15 inclusive, including 10, 12, 13 and 14.
@@ -164,7 +164,7 @@ items:
     competencies: [sql.nulls]
     stem: What does NULL mean in the reason column?
     options:
-      - text: No value is recorded, so the reason is unknown or missing
+      - text: 'No value is recorded, so it is unknown'
         correct: true
         why: NULL stands for a missing value. It is not a value you can compare with.
       - text: The reason is an empty text
@@ -183,7 +183,7 @@ items:
     competencies: [sql.nulls]
     stem: Two calls have a NULL reason. How many rows does SELECT * FROM calls WHERE reason = NULL return?
     options:
-      - text: None, because a comparison with NULL is never true
+      - text: 'None, as a comparison with NULL is never true'
         correct: true
         why: The comparison gives unknown, and WHERE keeps only rows where the condition is true.
       - text: Both rows, because NULL equals NULL
@@ -205,9 +205,9 @@ items:
       - text: WHERE reason IS NOT NULL
         correct: true
         why: IS NOT NULL is the test for a value that is present.
-      - text: WHERE reason <> NULL
+      - text: "WHERE reason = 'NOT NULL'"
         correct: false
-        why: A comparison with NULL is never true, so this returns no rows.
+        why: "This compares the reason with the text 'NOT NULL', which no call has, so it returns no rows. NOT NULL is a test, not a value."
       - text: WHERE reason != NULL
         correct: false
         why: A comparison with NULL is never true, so != NULL returns no rows, just like <> NULL.
@@ -221,16 +221,16 @@ items:
     competencies: [sql.nulls, sql.select]
     stem: Chen's call has a NULL duration. Is Chen's row kept by WHERE duration_s < 60?
     options:
-      - text: No, because NULL < 60 is unknown, and only true rows are kept
+      - text: 'No, since NULL < 60 is unknown'
         correct: true
         why: A comparison with NULL gives unknown. WHERE drops rows that are not true.
       - text: Yes, because NULL counts as zero
         correct: false
-        why: NULL is not zero. It is a missing value, and comparisons do not treat it as a number.
+        why: 'NULL is not a number, large or small. It is a missing value, and a comparison with it is unknown.'
       - text: Yes, because an unanswered call is shorter than 60 seconds
         correct: false
         why: SQL does not guess meaning. NULL is unknown, so the comparison is unknown.
-      - text: It depends on the sort order
+      - text: 'No, because NULL is treated as a very large number'
         correct: false
         why: Sorting happens after filtering and does not affect which rows are kept.
   - id: sql-01-q-not-equal-null
@@ -240,7 +240,7 @@ items:
     competencies: [sql.nulls]
     stem: Some calls have a NULL reason. A query uses WHERE reason <> 'billing'. What happens to those calls?
     options:
-      - text: They are left out, because NULL <> 'billing' is unknown
+      - text: 'They are left out, since the comparison is unknown'
         correct: true
         why: A call with no reason is not billing, but SQL cannot tell, so it drops the row. Add OR reason IS NULL to keep them.
       - text: They are kept, because they are not billing
@@ -278,7 +278,7 @@ items:
     competencies: [sql.nulls]
     stem: In PostgreSQL, ORDER BY duration_s DESC LIMIT 3 is meant to return the three longest calls, but some durations are NULL. What happens?
     options:
-      - text: The NULL rows come first, so they can fill the three rows
+      - text: 'NULL rows come first and can fill the top three'
         correct: true
         why: PostgreSQL sorts NULL as larger than any value, so it is first in DESC order. Use NULLS LAST or filter with IS NOT NULL.
       - text: The NULL rows come last, so the result is correct
@@ -297,7 +297,7 @@ items:
     competencies: [sql.nulls]
     stem: A list contains a NULL, as in WHERE hour NOT IN (9, NULL). Which calls does it keep?
     options:
-      - text: None, because the NULL makes the condition unknown for every other hour
+      - text: 'None, as the NULL makes every other row unknown'
         correct: true
         why: hour NOT IN (9, NULL) means hour <> 9 AND hour <> NULL. The second part is unknown, so no row is true.
       - text: Every call that is not at hour 9
@@ -306,6 +306,6 @@ items:
       - text: Only the calls at hour 9
         correct: false
         why: A call at hour 9 fails the first test, so it is not kept either.
-      - text: Only the calls with a NULL hour
+      - text: 'Only calls whose hour is not 9 and not NULL'
         correct: false
-        why: A NULL hour gives an unknown result as well.
+        why: 'The condition is unknown for every row, so no row is kept. A NULL hour is not even possible in this table.'

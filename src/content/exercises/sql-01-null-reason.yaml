@@ -56,4 +56,4 @@ hints:
   - 'NULL means unknown, and a comparison with an unknown value is not true. SQL has a special test for it, written with the word IS.'
   - 'SELECT caller_name FROM calls WHERE reason ____ ____ ORDER BY id;'
 explanation: |
-  A comparison with NULL, including `reason = NULL`, gives unknown, and `WHERE` keeps a row only when the condition is true, so `= NULL` returns nothing. `IS NULL` is the test that answers yes or no for a missing value. NULL is also not the empty string: `reason = ''` matches only rows where the reason is an empty text.
+  A comparison with NULL, including `reason = NULL`, gives unknown, and `WHERE` keeps a row only when the condition is true, so `= NULL` returns nothing. `IS NULL` is the test that answers yes or no for a missing value. NULL is also not the empty string: `reason = ''` matches only rows where the reason is an empty text. Alternative: `reason IS NOT DISTINCT FROM NULL` also matches NULL, but `IS NULL` is the usual short form.

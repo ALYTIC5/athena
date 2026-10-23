@@ -57,4 +57,4 @@ hints:
   - 'The comparison gives unknown for NULL, so those rows are dropped. Add a second condition that accepts them, joined with OR.'
   - 'SELECT caller_name FROM calls WHERE duration_s < 60 ____ duration_s IS ____ ORDER BY id;'
 explanation: |
-  A NULL duration makes `duration_s < 60` unknown, and `WHERE` drops rows that are not true, so unanswered calls need their own test with `IS NULL`. `OR` keeps a row if either test is true. `AND` would need one value to be both below 60 and NULL, which is impossible.
+  A NULL duration makes `duration_s < 60` unknown, and `WHERE` drops rows that are not true, so unanswered calls need their own test with `IS NULL`. `OR` keeps a row if either test is true. `AND` would need one value to be both below 60 and NULL, which is impossible. Alternative: `NOT (duration_s >= 60)` looks equivalent but still drops the NULL rows, because NOT unknown is unknown.

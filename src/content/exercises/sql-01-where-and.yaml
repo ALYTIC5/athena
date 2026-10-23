@@ -56,4 +56,4 @@ hints:
   - 'Join the two conditions with AND. At least means greater than or equal to, and so does or later.'
   - 'SELECT caller_name FROM calls WHERE duration_s ____ 60 ____ hour ____ 11 ORDER BY id;'
 explanation: |
-  `WHERE a AND b` keeps a row only when both conditions are true, and `>=` includes the boundary value. Rows where `duration_s` is NULL are left out too, because a comparison with NULL is never true (more about that below).
+  `WHERE a AND b` keeps a row only when both conditions are true, and `>=` includes the boundary value. Rows where `duration_s` is NULL are left out too, because a comparison with NULL is never true (more about that below). Alternative: `NOT (duration_s < 60 OR hour < 11)` selects the same rows when nothing is NULL, but the positive form is easier to read.
