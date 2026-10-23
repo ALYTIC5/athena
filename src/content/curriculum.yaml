@@ -86,7 +86,7 @@
     - id: sql-02
       title: 'Joins and aggregation'
       durationMin: 45
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Sliding window'

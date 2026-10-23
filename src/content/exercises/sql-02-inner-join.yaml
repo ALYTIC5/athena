@@ -1,0 +1,79 @@
+id: sql-02-inner-join
+lesson: sql-02
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: "Bookings with the customer's name"
+difficulty: 1
+competencies:
+  - sql.joins
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE customers (
+    id integer PRIMARY KEY,
+    name text NOT NULL
+  );
+  CREATE TABLE bookings (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL REFERENCES customers(id),
+    starts timestamp NOT NULL,
+    ends timestamp NOT NULL
+  );
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES customers(id),
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO customers VALUES
+    (1, 'Amara Okafor'),
+    (2, 'Jonas Weber'),
+    (3, 'Mei Tanaka'),
+    (4, 'Sofia Reyes'),
+    (5, 'Tomas Novak');
+  INSERT INTO bookings VALUES
+    (10, 1, '2026-11-02 09:00', '2026-11-02 10:00'),
+    (11, 1, '2026-11-02 09:30', '2026-11-02 10:30'),
+    (12, 1, '2026-11-09 09:00', '2026-11-09 10:00'),
+    (13, 3, '2026-11-03 14:00', '2026-11-03 15:00'),
+    (14, 3, '2026-11-03 15:00', '2026-11-03 16:00'),
+    (15, 2, '2026-11-02 09:15', '2026-11-02 09:45');
+  INSERT INTO calls VALUES
+    (1, 1, 120, 'booking'),
+    (2, 1, 45, 'billing'),
+    (3, 2, 300, 'cancel'),
+    (4, 3, NULL, 'booking'),
+    (5, 3, 200, 'booking'),
+    (6, NULL, 60, NULL),
+    (7, 4, 400, 'billing'),
+    (8, 4, 20, 'booking');
+prompt: |
+  Three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). Each booking and each call belongs to at most one customer.
+
+  Select the booking `id` and the customer's `name` for every booking, in booking `id` order.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT b.id, c.name FROM bookings b JOIN customers c ON c.id = b.customer_id ORDER BY b.id;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Joins on a condition that is always true, so every booking is paired with every customer'
+    code: |
+      SELECT b.id, c.name FROM bookings b JOIN customers c ON true ORDER BY b.id, c.name;
+  - label: 'Starts from customers with a left join, so customers without bookings add rows with a NULL id'
+    code: |
+      SELECT b.id, c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id ORDER BY b.id;
+  - label: 'Puts the columns in the wrong order'
+    code: |
+      SELECT c.name, b.id FROM bookings b JOIN customers c ON c.id = b.customer_id ORDER BY b.id;
+hints:
+  - 'Which column in bookings points at which column in customers?'
+  - 'Join the two tables with ON, comparing bookings.customer_id with customers.id. Give each table a short alias.'
+  - 'SELECT b.id, c.name FROM bookings b JOIN customers c ON c.id = b.____ ORDER BY b.id;'
+explanation: |
+  `JOIN ... ON` pairs each booking with the customer row whose `id` matches its `customer_id`. Without a useful ON condition every row is paired with every row, which is why the first wrong solution returns 30 rows. An inner join keeps only rows that have a match on both sides. Alternative: `USING` can shorten the join when both columns have the same name, but here they do not.

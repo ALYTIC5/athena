@@ -1,0 +1,342 @@
+lesson: sql-02
+items:
+  # ---- Chunk 1: joins (objective 1) ----
+  - id: sql-02-q-inner-vs-left
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [sql.joins]
+    stem: A customer has no bookings. What happens to that customer in an inner join and in a left join from customers to bookings?
+    options:
+      - text: 'Dropped by the inner join, kept by the left join'
+        correct: true
+        why: An inner join keeps only rows with a match on both sides. A left join keeps every row on the left and fills the right side with NULL.
+      - text: Kept by both joins, with NULLs on the booking side
+        correct: false
+        why: Only the left join keeps a row without a match. The inner join drops it.
+      - text: Kept by the inner join and dropped by the left join
+        correct: false
+        why: This swaps them. The left join exists to keep unmatched rows from the left table.
+      - text: Dropped by both joins, because there is no match
+        correct: false
+        why: A left join keeps the row even when nothing matches, and that is its purpose.
+  - id: sql-02-q-self-join-alias
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [sql.joins]
+    stem: Why does a self join, such as bookings joined to bookings, need table aliases?
+    options:
+      - text: 'The two copies need different names to tell apart'
+        correct: true
+        why: PostgreSQL refuses a table named twice, and a column such as id could mean either copy.
+      - text: Aliases make the join run faster than it would without them
+        correct: false
+        why: Aliases do not change speed. They only give each copy of the table its own name.
+      - text: A self join cannot be written without a subquery
+        correct: false
+        why: A self join is an ordinary join of a table with itself, and two aliases are enough.
+      - text: Aliases remove duplicate rows from the result of the join
+        correct: false
+        why: Aliases do not remove rows. A condition such as a.id < b.id removes the duplicate pairs.
+  - id: sql-02-q-left-is-null
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sql.joins, sql.nulls]
+    stem: Which query finds customers with no bookings?
+    options:
+      - text: SELECT c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL;
+        correct: true
+        why: The left join keeps every customer, and b.id is NULL only where no booking matched.
+      - text: SELECT c.name FROM customers c JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL;
+        correct: false
+        why: The inner join has already dropped the customers without bookings, so no row is left to test.
+      - text: SELECT c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id = NULL;
+        correct: false
+        why: A comparison with NULL using = is never true, so no rows are returned.
+      - text: SELECT c.name FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE c.id IS NULL;
+        correct: false
+        why: c.id is a primary key and is never NULL, so this returns no rows.
+  - id: sql-02-q-join-multiplies
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.joins]
+    stem: Amara has three bookings. How many rows does SELECT c.name FROM customers c JOIN bookings b ON b.customer_id = c.id return for her?
+    options:
+      - text: Three, one for each of her bookings
+        correct: true
+        why: A join produces one result row for each matching pair, so a customer with three bookings appears three times. DISTINCT or GROUP BY removes the repeats.
+      - text: One, because the name is the same each time
+        correct: false
+        why: SQL does not remove repeated rows unless you ask with DISTINCT or GROUP BY.
+      - text: Zero, because the query selects no booking columns
+        correct: false
+        why: The join still pairs the rows. It only matters which columns you select.
+      - text: Four, one for each booking and one for the customer
+        correct: false
+        why: There is one row per matching pair, so three pairs make three rows.
+  - id: sql-02-q-on-missing
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.joins]
+    stem: A join of 6 bookings with 5 customers uses the condition ON true. How many rows does it return?
+    options:
+      - text: 30, every booking paired with every customer
+        correct: true
+        why: Without a condition that links the two tables, every row of one is paired with every row of the other, giving 6 times 5 rows.
+      - text: 6, one for each booking
+        correct: false
+        why: That is what a correct ON condition gives when each booking has one customer.
+      - text: 5, one for each customer
+        correct: false
+        why: The join does not keep one row per customer. It keeps every pair.
+      - text: 11, the two tables put together
+        correct: false
+        why: A join combines columns, so rows are paired, not stacked. Stacking rows is what UNION does.
+  - id: sql-02-q-null-key
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.joins, sql.nulls]
+    stem: A call has customer_id NULL. What happens to it in calls JOIN customers ON customers.id = calls.customer_id?
+    options:
+      - text: It disappears, because NULL is not equal to any customer id
+        correct: true
+        why: The ON condition is unknown for a NULL, and a join keeps only pairs for which the condition is true.
+      - text: It is paired with every customer, since NULL matches anything
+        correct: false
+        why: NULL matches nothing, not even another NULL.
+      - text: It is paired with the first customer in the table
+        correct: false
+        why: A join never picks a row at random or by position. It pairs rows whose condition is true.
+      - text: The query fails with an error about NULL
+        correct: false
+        why: There is no error. The row simply finds no match.
+  - id: sql-02-q-left-where-trap
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.joins, sql.nulls]
+    stem: A query is customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.starts > '2026-11-01'. What happens to customers with no bookings?
+    options:
+      - text: 'They disappear, since b.starts is NULL and fails WHERE'
+        correct: true
+        why: WHERE runs after the join and keeps only rows where the condition is true, so the NULL-filled rows are removed and the left join acts like an inner join.
+      - text: They stay, because a left join keeps every customer
+        correct: false
+        why: The join keeps them, but the WHERE that follows removes them. Put the condition in ON to keep them.
+      - text: They stay, with NULL in the starts column
+        correct: false
+        why: The WHERE condition is unknown for NULL, so the row is not kept.
+      - text: The query fails because b.starts can be NULL
+        correct: false
+        why: There is no error. The NULL rows are filtered out quietly.
+  - id: sql-02-q-self-join-pairs
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sql.joins]
+    stem: In a self join of bookings a and b on the same customer, what does adding a.id < b.id achieve?
+    options:
+      - text: Each pair appears once, with no self-pairs
+        correct: true
+        why: Without it you get both (10, 11) and (11, 10), and also (10, 10). The strict comparison keeps one order only.
+      - text: It sorts the pairs by their ids in the output
+        correct: false
+        why: A condition in ON or WHERE filters rows. Sorting needs ORDER BY.
+      - text: It keeps only bookings that overlap in time
+        correct: false
+        why: Overlap needs a comparison of the start and end times. The ids say nothing about time.
+      - text: It joins bookings of different customers
+        correct: false
+        why: The customer condition is separate. a.id < b.id only affects which pairs are kept.
+
+  # ---- Aggregation (objectives 2 and 3) ----
+  - id: sql-02-q-group-by-rule
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sql.aggregation]
+    stem: 'What is wrong with SELECT c.name, b.id, COUNT(*) FROM customers c JOIN bookings b ON b.customer_id = c.id GROUP BY c.name;?'
+    options:
+      - text: b.id is neither in GROUP BY nor inside an aggregate
+        correct: true
+        why: Each group collapses to one row, so every selected column must be a grouping column or an aggregate. PostgreSQL rejects b.id here.
+      - text: COUNT(*) cannot be used together with a join
+        correct: false
+        why: Aggregates work on joined rows too. The problem is the ungrouped column.
+      - text: 'GROUP BY must list every table in the join'
+        correct: false
+        why: 'GROUP BY lists columns or expressions, not tables. The problem here is the ungrouped column b.id.'
+      - text: Nothing, because PostgreSQL picks one b.id for each group
+        correct: false
+        why: Some other databases do this, but PostgreSQL gives an error instead.
+  - id: sql-02-q-count-star-vs-column
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sql.aggregation, sql.nulls]
+    stem: What is the difference between COUNT(*) and COUNT(b.id) after a LEFT JOIN?
+    options:
+      - text: COUNT(*) counts rows, and COUNT(b.id) skips rows where b.id is NULL
+        correct: true
+        why: For a customer with no bookings the joined row has NULL in b.id, so COUNT(*) gives 1 and COUNT(b.id) gives 0.
+      - text: They always return the same number
+        correct: false
+        why: They differ whenever the column contains NULLs, as it does for unmatched left-join rows.
+      - text: COUNT(*) skips rows with NULL, and COUNT(b.id) counts every row
+        correct: false
+        why: This swaps them. COUNT(column) is the one that ignores NULLs.
+      - text: COUNT(b.id) counts the distinct ids and COUNT(*) does not
+        correct: false
+        why: Distinct counting needs COUNT(DISTINCT b.id). Neither of these removes repeats.
+  - id: sql-02-q-aggregates-null
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sql.aggregation, sql.nulls]
+    stem: A column holds the values 10, NULL and 20. What do SUM and AVG of that column return?
+    options:
+      - text: 30 and 15, because both ignore the NULL
+        correct: true
+        why: Aggregates other than COUNT(*) skip NULLs. AVG divides by the two values that exist, not by three.
+      - text: NULL and NULL, because one value is missing
+        correct: false
+        why: NULL is skipped, not passed on. The result is NULL only when every value is NULL, or when there are no rows.
+      - text: 30 and 10, because NULL counts as zero
+        correct: false
+        why: NULL is not treated as zero. If it were, the average would be 10.
+      - text: 30 and 15, but only for a column declared NOT NULL
+        correct: false
+        why: A column that is declared NOT NULL has no NULLs, so there would be nothing to skip. The aggregates skip NULLs whatever the declaration.
+  - id: sql-02-q-group-rows
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sql.aggregation]
+    stem: What does GROUP BY c.id do to the joined rows?
+    options:
+      - text: It collapses rows with the same c.id into one row
+        correct: true
+        why: The rows of each group are collapsed, and aggregates such as COUNT and SUM are calculated over each group.
+      - text: It sorts the rows by c.id before returning them
+        correct: false
+        why: Sorting needs ORDER BY. Grouping may happen to sort, but the order is not promised.
+      - text: It removes the rows where c.id is NULL
+        correct: false
+        why: Grouping does not remove rows. NULLs form a group of their own.
+      - text: It joins each row with the rows of the same c.id
+        correct: false
+        why: Joining is done by JOIN. GROUP BY collapses rows after the join.
+  - id: sql-02-q-having-purpose
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sql.aggregation]
+    stem: What is HAVING for?
+    options:
+      - text: Filtering groups by an aggregate, after GROUP BY
+        correct: true
+        why: HAVING sees the result of aggregates such as COUNT(*), which WHERE cannot see.
+      - text: Filtering rows before they are grouped
+        correct: false
+        why: That is WHERE. HAVING runs after the groups are made.
+      - text: Choosing which columns appear in the result
+        correct: false
+        why: Columns are chosen in the SELECT list.
+      - text: Sorting the groups by their size
+        correct: false
+        why: Sorting is ORDER BY. HAVING only keeps or drops groups.
+  - id: sql-02-q-where-aggregate
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sql.aggregation]
+    stem: What happens with SELECT c.id FROM customers c JOIN bookings b ON b.customer_id = c.id WHERE COUNT(*) >= 2 GROUP BY c.id;?
+    options:
+      - text: An error, because aggregates are not allowed in WHERE
+        correct: true
+        why: WHERE runs before the groups exist, so there is no count to test yet. Use HAVING COUNT(*) >= 2.
+      - text: It returns customers with two or more bookings
+        correct: false
+        why: That is what the HAVING version returns. The WHERE version does not run.
+      - text: It returns every customer, ignoring the condition
+        correct: false
+        why: The condition is not ignored. PostgreSQL rejects the query.
+      - text: It counts the customers instead of their bookings
+        correct: false
+        why: The query is rejected before anything is counted.
+  - id: sql-02-q-eval-order
+    pools: [mastery]
+    objective: 3
+    type: order
+    competencies: [sql.aggregation, sql.joins]
+    stem: Put these parts of a query in the order PostgreSQL logically applies them.
+    steps:
+      - FROM and JOIN build the rows
+      - WHERE keeps the matching rows
+      - GROUP BY collapses the rows into groups
+      - HAVING keeps the groups that pass
+      - SELECT computes the columns and ORDER BY sorts
+  - id: sql-02-q-where-or-having
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sql.aggregation]
+    stem: You want each customer's total call time, counting only calls with the reason billing, and only totals of 300 seconds or more. Where do the two conditions go?
+    options:
+      - text: reason = 'billing' in WHERE, and SUM(duration_s) >= 300 in HAVING
+        correct: true
+        why: The reason is a fact about single rows, so it is filtered before grouping. The total is a fact about a group, so it is filtered after.
+      - text: Both in WHERE, joined with AND, before the grouping happens
+        correct: false
+        why: WHERE cannot test an aggregate such as SUM, so the query is rejected.
+      - text: Both in HAVING, joined with AND, after the grouping happens
+        correct: false
+        why: reason is not grouped or aggregated, so HAVING cannot use it. The reason belongs in WHERE.
+      - text: SUM(duration_s) >= 300 in WHERE, and reason = 'billing' in HAVING
+        correct: false
+        why: This swaps them. The aggregate cannot be tested in WHERE.
+  - id: sql-02-q-left-count-zero
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sql.joins, sql.aggregation]
+    stem: You need every customer with the number of calls they made, showing 0 for customers with none. Which is right?
+    options:
+      - text: LEFT JOIN calls, then COUNT(k.id) with GROUP BY the customer
+        correct: true
+        why: The left join keeps customers with no calls, and COUNT(k.id) skips the NULL, giving 0.
+      - text: JOIN calls, then COUNT(*) with GROUP BY the customer
+        correct: false
+        why: The inner join drops customers without calls, so they would not appear at all.
+      - text: LEFT JOIN calls, then COUNT(*) with GROUP BY the customer
+        correct: false
+        why: COUNT(*) counts the NULL-filled row, so a customer with no calls shows 1.
+      - text: LEFT JOIN calls, then COUNT(c.id) with GROUP BY the customer
+        correct: false
+        why: c.id is never NULL, so this also gives 1 for a customer with no calls.
+  - id: sql-02-q-count-distinct
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sql.aggregation]
+    stem: A customer made 3 calls, all about booking, and 1 call about billing. What does COUNT(DISTINCT reason) give for that customer?
+    options:
+      - text: 2, the number of different reasons
+        correct: true
+        why: DISTINCT inside COUNT removes repeated values before counting, so booking counts once.
+      - text: 4, the number of calls
+        correct: false
+        why: COUNT(*) would give 4. DISTINCT removes the repeats.
+      - text: 3, the number of booking calls
+        correct: false
+        why: This counts only one reason and ignores billing.
+      - text: 1, because only one reason is most common
+        correct: false
+        why: COUNT(DISTINCT ...) does not look for the most common value. It counts the different ones.
