@@ -97,7 +97,7 @@
     - id: py-06
       title: 'Testing with pytest'
       durationMin: 120
-      status: planned
+      status: published
     - id: sql-03
       title: 'Designing schemas'
       durationMin: 45

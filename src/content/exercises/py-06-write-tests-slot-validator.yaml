@@ -1,0 +1,134 @@
+id: py-06-write-tests-slot-validator
+lesson: py-06
+runtime: python
+kind: write-tests
+pools:
+  - lesson
+title: 'Parametrised tests for a slot validator'
+difficulty: 2
+competencies:
+  - py.pytest
+timeoutMs: 20000
+estMin: 6
+packages: [pytest]
+prompt: |
+  `is_valid_slot(text)` says whether a text is a bookable slot. A slot is written `HH:MM` with two-digit hours from `00` to `23`, and minutes that are exactly `00` or `30`. Anything else is not a slot, and the function returns `False` for it, without raising an error.
+
+  Finish the two parametrised tests. `@pytest.mark.parametrize` runs one test function once for each value in the list, and reports each case separately. Replace the blanks with values, and add more values: your tests must pass on the correct function and fail on every buggy version, so they must cover the edges of each rule.
+starter: |
+  import pytest
+  from impl import is_valid_slot
+
+
+  @pytest.mark.parametrize("slot", ["09:00", "23:30", ____])
+  def test_valid_slots_are_accepted(slot):
+      assert is_valid_slot(slot) is True
+
+
+  @pytest.mark.parametrize("slot", ["24:00", ____, ____])
+  def test_invalid_slots_are_rejected(slot):
+      assert is_valid_slot(slot) is False
+implementations:
+  correct: |
+    def is_valid_slot(text):
+        if len(text) != 5 or text[2] != ":":
+            return False
+        hours, minutes = text[:2], text[3:]
+        if not (hours.isdigit() and minutes.isdigit()):
+            return False
+        return int(hours) <= 23 and minutes in ("00", "30")
+  buggy:
+    - label: 'Accepts hour 24'
+      code: |
+        def is_valid_slot(text):
+            if len(text) != 5 or text[2] != ":":
+                return False
+            hours, minutes = text[:2], text[3:]
+            if not (hours.isdigit() and minutes.isdigit()):
+                return False
+            return int(hours) <= 24 and minutes in ("00", "30")
+    - label: 'Accepts any minutes below 60'
+      code: |
+        def is_valid_slot(text):
+            if len(text) != 5 or text[2] != ":":
+                return False
+            hours, minutes = text[:2], text[3:]
+            if not (hours.isdigit() and minutes.isdigit()):
+                return False
+            return int(hours) <= 23 and int(minutes) < 60
+    - label: 'Rejects midnight'
+      code: |
+        def is_valid_slot(text):
+            if len(text) != 5 or text[2] != ":":
+                return False
+            hours, minutes = text[:2], text[3:]
+            if not (hours.isdigit() and minutes.isdigit()):
+                return False
+            return 1 <= int(hours) <= 23 and minutes in ("00", "30")
+    - label: 'Crashes on text that is not made of digits'
+      code: |
+        def is_valid_slot(text):
+            if len(text) != 5 or text[2] != ":":
+                return False
+            hours, minutes = text[:2], text[3:]
+            return int(hours) <= 23 and minutes in ("00", "30")
+    - label: 'Ignores spaces around the slot'
+      code: |
+        def is_valid_slot(text):
+            text = text.strip()
+            if len(text) != 5 or text[2] != ":":
+                return False
+            hours, minutes = text[:2], text[3:]
+            if not (hours.isdigit() and minutes.isdigit()):
+                return False
+            return int(hours) <= 23 and minutes in ("00", "30")
+    - label: 'Accepts an hour without its leading zero'
+      code: |
+        def is_valid_slot(text):
+            hours, separator, minutes = text.partition(":")
+            if not (hours.isdigit() and minutes.isdigit()):
+                return False
+            return int(hours) <= 23 and minutes in ("00", "30")
+hints:
+  - 'Each buggy version breaks one rule. Which inputs sit just inside and just outside each rule?'
+  - 'Valid slots to add: midnight and another half hour. Invalid ones: a minute value that is not 00 or 30, text that is not digits, a space around the slot, and an hour without its leading zero.'
+  - '@pytest.mark.parametrize("slot", ["24:00", "09:15", "ab:cd", " 09:00", "9:00", ____])'
+referenceSolution: |
+  import pytest
+  from impl import is_valid_slot
+
+
+  @pytest.mark.parametrize("slot", ["09:00", "23:30", "00:00", "12:30"])
+  def test_valid_slots_are_accepted(slot):
+      assert is_valid_slot(slot) is True
+
+
+  @pytest.mark.parametrize("slot", ["24:00", "09:15", "09:60", "ab:cd", " 09:00", "9:00", ""])
+  def test_invalid_slots_are_rejected(slot):
+      assert is_valid_slot(slot) is False
+wrongSolutions:
+  - label: 'Only checks slots that are valid'
+    code: |
+      import pytest
+      from impl import is_valid_slot
+
+
+      @pytest.mark.parametrize("slot", ["09:00", "23:30", "00:00"])
+      def test_valid_slots_are_accepted(slot):
+          assert is_valid_slot(slot) is True
+  - label: 'Rejects a few obvious cases but not the edges of each rule'
+    code: |
+      import pytest
+      from impl import is_valid_slot
+
+
+      @pytest.mark.parametrize("slot", ["09:00", "23:30"])
+      def test_valid_slots_are_accepted(slot):
+          assert is_valid_slot(slot) is True
+
+
+      @pytest.mark.parametrize("slot", ["24:00", ""])
+      def test_invalid_slots_are_rejected(slot):
+          assert is_valid_slot(slot) is False
+explanation: |
+  Each buggy version fails one rule, and a parametrised test is a cheap way to list the edges of every rule: the hour 24 just outside the range, a minute that is neither 00 nor 30, text that is not digits, a space around the slot, an hour without its leading zero, and midnight on the valid side. Each value is reported as its own test case, so a failure names the exact input. Valid cases and invalid cases go in separate tests because they assert different things. Alternative: one parametrised test with a second parameter for the expected result keeps the pairs together, which reads well when the cases are mixed.

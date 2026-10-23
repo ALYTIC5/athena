@@ -1,0 +1,21 @@
+lesson: py-06
+questions:
+  - id: py-06-iq-api-llm
+    competencies: [py.mocking, py.pytest]
+    question: How do you test code that calls an API or an LLM?
+    modelAnswer: I keep the call behind a small function or object and pass it in, so that a test can give the code a fake. The fake returns canned answers, and I make it fail in the ways the real service fails, such as a timeout, a malformed reply or an empty answer, so that I test the parsing, the retries and the limits around the call. Those tests are fast, free and repeatable. For code I cannot change, I use monkeypatch to swap the call for one test. I add a few integration tests against the real service, outside the normal test run, because a fake can drift from the real thing.
+    listenFor:
+      - passes the dependency in and uses a fake
+      - tests the error paths and odd replies as well as the normal one
+      - fast, free and repeatable tests
+      - keeps a few integration tests, because fakes can drift
+  - id: py-06-iq-good-test
+    competencies: [py.pytest]
+    question: What makes a good test?
+    modelAnswer: It is fast and gives the same result every time, so it does not depend on the clock, the network or the order of other tests. It checks one behaviour and has a name that says which, so a failure tells me what broke. It fails when the code is wrong, and I check that by breaking the code on purpose. It checks results, not how the code works inside, so refactoring does not break it. It covers the edges, such as the values on both sides of a boundary, empty input and the error cases.
+    listenFor:
+      - fast and repeatable
+      - one behaviour, with a clear name
+      - fails when the code is wrong
+      - tests behaviour, not internals
+      - edge cases and error paths

@@ -1,0 +1,218 @@
+id: py-06-mastery-recording-sender
+lesson: py-06
+runtime: python
+kind: make
+pools:
+  - mastery
+title: 'Write a fake sender that records messages and can fail'
+difficulty: 3
+competencies:
+  - py.mocking
+  - py.classes
+timeoutMs: 5000
+packages: []
+prompt: |
+  `notify_all(sender, numbers, text)` sends a message to each number and returns the list of numbers it could not reach, because `sender.send` raised `ConnectionError`. To test it without sending anything, write `RecordingSender`, a fake sender:
+
+  - `RecordingSender(fail_for=())` takes any collection of numbers for which sending fails.
+  - `send(to, text)` raises `ConnectionError` if `to` is in `fail_for`. Otherwise it records the pair `(to, text)`.
+  - The recorded pairs are in the list `sent`, in the order they were sent. Failed sends are not recorded.
+  - Each `RecordingSender` has its own `sent` list.
+
+  Use only reserved fictional numbers such as `+44 7700 900123`.
+starter: |
+  def notify_all(sender, numbers, text):
+      failed = []
+      for number in numbers:
+          try:
+              sender.send(number, text)
+          except ConnectionError:
+              failed.append(number)
+      return failed
+
+
+  class RecordingSender:
+      ...
+visibleTests: |
+  def test_records_what_was_sent():
+      sender = RecordingSender()
+      sender.send("+44 7700 900123", "Hello")
+      assert sender.sent == [("+44 7700 900123", "Hello")]
+
+  def test_notify_all_reports_failures():
+      sender = RecordingSender(fail_for=["+44 7700 900456"])
+      failed = notify_all(sender, ["+44 7700 900123", "+44 7700 900456"], "Hi")
+      assert failed == ["+44 7700 900456"]
+      assert sender.sent == [("+44 7700 900123", "Hi")]
+hiddenTests: |
+  def test_starts_empty():
+      assert RecordingSender().sent == []
+
+  def test_order_is_kept():
+      sender = RecordingSender()
+      for number in ["+44 7700 900001", "+44 7700 900002", "+44 7700 900003"]:
+          sender.send(number, "x")
+      assert [to for to, _ in sender.sent] == ["+44 7700 900001", "+44 7700 900002", "+44 7700 900003"]
+
+  def test_a_failing_number_raises_connection_error():
+      sender = RecordingSender(fail_for={"+44 7700 900456"})
+      try:
+          sender.send("+44 7700 900456", "Hi")
+      except ConnectionError:
+          pass
+      else:
+          raise AssertionError("expected ConnectionError")
+
+  def test_failed_sends_are_not_recorded():
+      sender = RecordingSender(fail_for=("+44 7700 900456",))
+      try:
+          sender.send("+44 7700 900456", "Hi")
+      except ConnectionError:
+          pass
+      assert sender.sent == []
+
+  def test_fail_for_accepts_a_set_a_list_or_a_tuple():
+      for collection in ({"+44 7700 900456"}, ["+44 7700 900456"], ("+44 7700 900456",)):
+          sender = RecordingSender(fail_for=collection)
+          assert notify_all(sender, ["+44 7700 900456"], "Hi") == ["+44 7700 900456"]
+
+  def test_two_senders_do_not_share_their_records():
+      first = RecordingSender()
+      second = RecordingSender()
+      first.send("+44 7700 900123", "Hi")
+      assert second.sent == []
+
+  def test_notify_all_with_no_failures_returns_an_empty_list():
+      sender = RecordingSender()
+      assert notify_all(sender, ["+44 7700 900123"], "Hi") == []
+feedback:
+  - test: test_failed_sends_are_not_recorded
+    message: 'Raise the ConnectionError before you record anything, so a failed send leaves no trace in sent.'
+  - test: test_a_failing_number_raises_connection_error
+    message: 'send must raise ConnectionError for a number in fail_for. notify_all catches only that error.'
+  - test: test_two_senders_do_not_share_their_records
+    message: 'Create the sent list in __init__, on self. A list in the class body is shared by every sender.'
+  - test: test_fail_for_accepts_a_set_a_list_or_a_tuple
+    message: 'Store fail_for in a form that supports the in test for any collection. Do not call methods that only a set has.'
+  - test: test_order_is_kept
+    message: 'Append each pair to sent in the order the calls come.'
+hints:
+  - 'What does the fake have to remember, and what does it do instead of really sending?'
+  - 'In __init__ store fail_for and start an empty sent list on self. In send, raise ConnectionError if the number is in fail_for, and otherwise append the pair.'
+  - |-
+    def __init__(self, fail_for=()):
+        self._fail_for = set(fail_for)
+        self.sent = ____
+
+    def send(self, to, text):
+        if to in self._fail_for:
+            raise ____(to)
+        self.sent.append((to, text))
+referenceSolution: |
+  def notify_all(sender, numbers, text):
+      failed = []
+      for number in numbers:
+          try:
+              sender.send(number, text)
+          except ConnectionError:
+              failed.append(number)
+      return failed
+
+
+  class RecordingSender:
+      def __init__(self, fail_for=()):
+          self._fail_for = set(fail_for)
+          self.sent = []
+
+      def send(self, to, text):
+          if to in self._fail_for:
+              raise ConnectionError(to)
+          self.sent.append((to, text))
+wrongSolutions:
+  - label: 'Records the message even when the send fails'
+    code: |
+      def notify_all(sender, numbers, text):
+          failed = []
+          for number in numbers:
+              try:
+                  sender.send(number, text)
+              except ConnectionError:
+                  failed.append(number)
+          return failed
+
+
+      class RecordingSender:
+          def __init__(self, fail_for=()):
+              self._fail_for = set(fail_for)
+              self.sent = []
+
+          def send(self, to, text):
+              self.sent.append((to, text))
+              if to in self._fail_for:
+                  raise ConnectionError(to)
+  - label: 'Raises the wrong kind of error'
+    code: |
+      def notify_all(sender, numbers, text):
+          failed = []
+          for number in numbers:
+              try:
+                  sender.send(number, text)
+              except ConnectionError:
+                  failed.append(number)
+          return failed
+
+
+      class RecordingSender:
+          def __init__(self, fail_for=()):
+              self._fail_for = set(fail_for)
+              self.sent = []
+
+          def send(self, to, text):
+              if to in self._fail_for:
+                  raise RuntimeError(to)
+              self.sent.append((to, text))
+  - label: 'Keeps the sent list in the class, so every sender shares it'
+    code: |
+      def notify_all(sender, numbers, text):
+          failed = []
+          for number in numbers:
+              try:
+                  sender.send(number, text)
+              except ConnectionError:
+                  failed.append(number)
+          return failed
+
+
+      class RecordingSender:
+          sent = []
+
+          def __init__(self, fail_for=()):
+              self._fail_for = set(fail_for)
+
+          def send(self, to, text):
+              if to in self._fail_for:
+                  raise ConnectionError(to)
+              self.sent.append((to, text))
+  - label: 'Only works when fail_for is a set'
+    code: |
+      def notify_all(sender, numbers, text):
+          failed = []
+          for number in numbers:
+              try:
+                  sender.send(number, text)
+              except ConnectionError:
+                  failed.append(number)
+          return failed
+
+
+      class RecordingSender:
+          def __init__(self, fail_for=()):
+              self._fail_for = fail_for
+              self.sent = []
+
+          def send(self, to, text):
+              if to in self._fail_for.union(()):
+                  raise ConnectionError(to)
+              self.sent.append((to, text))
+explanation: |
+  A fake sender does the minimum a real one would do from the code's point of view: it accepts `send(to, text)`, and it can be told to fail. Recording the pairs in `sent` lets the test check what would have been sent, and raising `ConnectionError` for chosen numbers lets the test check the error path, which is hard to trigger with a real service. Copying `fail_for` into a set makes the `in` test fast and works for any collection. The record is created in `__init__`, so each fake starts empty. Alternative: `unittest.mock.Mock` can record calls and raise errors without writing a class, using `side_effect`. A hand-written fake is clearer when the behaviour is more than a line or two.

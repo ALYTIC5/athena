@@ -1,0 +1,142 @@
+id: py-06-write-tests-reminder-due
+lesson: py-06
+runtime: python
+kind: write-tests
+pools:
+  - lesson
+title: 'Test a reminder rule with a fixed clock'
+difficulty: 3
+competencies:
+  - py.pytest
+  - py.mocking
+timeoutMs: 20000
+estMin: 8
+packages: [pytest]
+prompt: |
+  `reminder_due(start, now)` says whether a reminder should go out for a booking. It takes the current time as an argument, so your tests control the clock and never depend on the real time. A reminder is due when the booking starts after `now` and no later than 24 hours after `now`. A booking in the past, or one that starts exactly at `now`, is not due.
+
+  Write tests that pass on the correct function and fail on every buggy version. Both times are naive `datetime` values. The starter defines a fixed `NOW` and one test.
+starter: |
+  from datetime import datetime, timedelta
+
+  import pytest
+  from impl import reminder_due
+
+  NOW = datetime(2026, 11, 2, 9, 0)
+
+
+  def test_booking_in_five_hours_is_due():
+      assert reminder_due(NOW + timedelta(hours=5), NOW) is True
+implementations:
+  correct: |
+    from datetime import timedelta
+
+
+    def reminder_due(start, now):
+        return now < start <= now + timedelta(hours=24)
+  buggy:
+    - label: 'Leaves out a booking exactly 24 hours away'
+      code: |
+        from datetime import timedelta
+
+
+        def reminder_due(start, now):
+            return now < start < now + timedelta(hours=24)
+    - label: 'Sends reminders for bookings in the past'
+      code: |
+        from datetime import timedelta
+
+
+        def reminder_due(start, now):
+            return start <= now + timedelta(hours=24)
+    - label: 'Counts a booking that starts exactly now'
+      code: |
+        from datetime import timedelta
+
+
+        def reminder_due(start, now):
+            return now <= start <= now + timedelta(hours=24)
+    - label: 'Uses a 12 hour window'
+      code: |
+        from datetime import timedelta
+
+
+        def reminder_due(start, now):
+            return now < start <= now + timedelta(hours=12)
+    - label: 'Uses a 25 hour window'
+      code: |
+        from datetime import timedelta
+
+
+        def reminder_due(start, now):
+            return now < start <= now + timedelta(hours=25)
+hints:
+  - 'The rule has two edges, now and 24 hours from now. Which times sit exactly on each edge, and just outside it?'
+  - 'Write one test for each: a booking exactly at now, one exactly 24 hours away, one a minute after that, one in the past, and one well inside the window.'
+  - |-
+    def test_exactly_24_hours_away_is_due():
+        assert reminder_due(NOW + timedelta(hours=____), NOW) is ____
+referenceSolution: |
+  from datetime import datetime, timedelta
+
+  import pytest
+  from impl import reminder_due
+
+  NOW = datetime(2026, 11, 2, 9, 0)
+
+
+  def test_booking_in_five_hours_is_due():
+      assert reminder_due(NOW + timedelta(hours=5), NOW) is True
+
+
+  def test_booking_in_twenty_hours_is_due():
+      assert reminder_due(NOW + timedelta(hours=20), NOW) is True
+
+
+  def test_exactly_24_hours_away_is_due():
+      assert reminder_due(NOW + timedelta(hours=24), NOW) is True
+
+
+  def test_a_minute_beyond_24_hours_is_not_due():
+      assert reminder_due(NOW + timedelta(hours=24, minutes=1), NOW) is False
+
+
+  def test_booking_starting_now_is_not_due():
+      assert reminder_due(NOW, NOW) is False
+
+
+  def test_booking_in_the_past_is_not_due():
+      assert reminder_due(NOW - timedelta(hours=1), NOW) is False
+wrongSolutions:
+  - label: 'Only tests the booking that is clearly inside the window'
+    code: |
+      from datetime import datetime, timedelta
+
+      from impl import reminder_due
+
+      NOW = datetime(2026, 11, 2, 9, 0)
+
+
+      def test_booking_in_five_hours_is_due():
+          assert reminder_due(NOW + timedelta(hours=5), NOW) is True
+  - label: 'Tests the far edge and the past but not the moment now or the 12 hour window'
+    code: |
+      from datetime import datetime, timedelta
+
+      from impl import reminder_due
+
+      NOW = datetime(2026, 11, 2, 9, 0)
+
+
+      def test_exactly_24_hours_away_is_due():
+          assert reminder_due(NOW + timedelta(hours=24), NOW) is True
+
+
+      def test_a_minute_beyond_24_hours_is_not_due():
+          assert reminder_due(NOW + timedelta(hours=24, minutes=1), NOW) is False
+
+
+      def test_booking_in_the_past_is_not_due():
+          assert reminder_due(NOW - timedelta(hours=1), NOW) is False
+explanation: |
+  Because `now` is an argument, the tests use a fixed `NOW` and build every start time from it with `timedelta`, so they give the same result on every computer and at every time of day. Each buggy version moves one edge: the 24 hour edge (inclusive or not), the moment now, the past, or the length of the window. The tests that catch them sit exactly on the edge and just beyond it, and one test well inside the window shows the normal case. Alternative: if the function read the clock itself, you would need to replace the clock with `monkeypatch`. Passing the time in is simpler, and it is the approach this lesson recommends.
