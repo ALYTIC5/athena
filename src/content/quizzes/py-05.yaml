@@ -67,16 +67,16 @@ items:
     competencies: [py.classes]
     stem: A method def total(self) is called as booking.total(). Where does self come from?
     options:
-      - text: Python passes booking as the first argument automatically
+      - text: 'Python passes booking in automatically'
         correct: true
         why: Calling a method on an instance passes that instance as the first parameter.
       - text: You must write booking.total(booking) every time
         correct: false
         why: Python does this for you. Passing it again would be an extra argument and an error.
-      - text: Python passes the class, not the instance
+      - text: 'Python passes the class itself, not the instance'
         correct: false
         why: Methods called on an instance receive the instance. The class is passed only to special class methods.
-      - text: self is looked up as a global variable
+      - text: 'self is looked up as a global variable first'
         correct: false
         why: self is just a parameter name. It is filled in by the call.
   - id: py-05-q-mutable-default-dataclass
@@ -105,13 +105,13 @@ items:
     competencies: [py.classes]
     stem: What does field(default_factory=list) do?
     options:
-      - text: Calls list() to make a new list for each instance
+      - text: 'Calls list() for each new instance'
         correct: true
         why: The factory is called whenever a default is needed, so no two instances share the list.
       - text: Creates one list and shares it between instances
         correct: false
         why: That is what a plain default would do. The factory exists to avoid it.
-      - text: Turns the field into a read-only property
+      - text: 'Turns the field into a read-only property of the class'
         correct: false
         why: It only controls the default value. Use frozen=True to stop assignment.
       - text: Sorts the list when the instance is created
@@ -135,7 +135,7 @@ items:
         why: A list in a frozen field can still be changed in place. Only assigning to the field is refused.
       - text: It stops the class from being copied
         correct: false
-        why: A frozen instance can be copied, and used in sets and as a dict key.
+        why: 'A frozen instance can be copied, and it is hashable when its fields are hashable.'
   - id: py-05-q-dataclass-gives
     pools: [mastery]
     objective: 2
@@ -396,13 +396,13 @@ items:
     competencies: [py.packages]
     stem: Why do you create a virtual environment for each project?
     options:
-      - text: Each project gets its own installed packages and versions
+      - text: 'Each project gets its own packages'
         correct: true
         why: Two projects can need different versions of one library, and a project can be rebuilt without touching the system Python.
-      - text: It makes Python run faster
+      - text: 'It makes Python start and run faster'
         correct: false
         why: A virtual environment does not change speed. It isolates packages.
-      - text: It is the only way to run a script
+      - text: 'It is the only way to run a Python script'
         correct: false
         why: You can run a script with the system Python, but its packages would be shared by every project.
       - text: It lets the project work without installing anything
@@ -415,7 +415,7 @@ items:
     competencies: [py.packages]
     stem: What is the difference between a module and a package?
     options:
-      - text: A module is one Python file, and a package is a folder of modules
+      - text: 'A module is a file, and a package is a folder'
         correct: true
         why: A regular package is a folder that contains an __init__.py file and other modules.
       - text: A package is one file, and a module is a folder
@@ -424,7 +424,7 @@ items:
       - text: A module is installed with pip, and a package is not
         correct: false
         why: Both can be part of installed software. The difference is the structure.
-      - text: They are the same thing
+      - text: 'They are the same thing with two names'
         correct: false
         why: A package groups several modules under one name.
   - id: py-05-q-import-forms
@@ -453,16 +453,16 @@ items:
     competencies: [py.packages]
     stem: What does if __name__ == "__main__" do at the bottom of a module?
     options:
-      - text: Runs the code only when the file is run directly, not when it is imported
+      - text: 'Runs only when the file is run directly'
         correct: true
         why: When a file is imported, its __name__ is the module name. When it is run as a script, it is "__main__".
       - text: Runs the code every time the module is imported
         correct: false
         why: It is the opposite. The block is skipped on import.
-      - text: Stops the module from being imported
+      - text: 'Stops other files from importing the module'
         correct: false
         why: The module can still be imported. Only that block is skipped.
-      - text: Makes the module a package
+      - text: 'Turns the module into a package folder'
         correct: false
         why: A package is a folder. The guard only controls when code runs.
   - id: py-05-q-pinning
@@ -472,16 +472,16 @@ items:
     competencies: [py.packages]
     stem: What does pinning dependencies mean, and why do it?
     options:
-      - text: Recording exact versions, so every install gets the same code
+      - text: 'Recording exact versions of each package'
         correct: true
         why: Without pins, a new release can change behaviour between two installs of the same project.
-      - text: Installing every package on the system
+      - text: 'Installing every package available on the system'
         correct: false
         why: Pinning is about versions, not about how many packages are installed.
-      - text: Making packages impossible to uninstall
+      - text: 'Making packages impossible to uninstall later'
         correct: false
         why: Packages can still be removed. Pins only record versions.
-      - text: Keeping packages in the project folder
+      - text: 'Keeping all packages inside the project folder'
         correct: false
         why: That describes a virtual environment. Pinning records versions.
   - id: py-05-q-pyproject
@@ -494,32 +494,32 @@ items:
       - text: The project's name, Python version and dependencies
         correct: true
         why: It is the standard place for project metadata, and tools such as pip and uv read it.
-      - text: The compiled code of the project
+      - text: 'The compiled code of the whole project'
         correct: false
-        why: Compiled code is produced when the program runs or when it is built. It is not stored in this file.
-      - text: The passwords the project needs
+        why: 'Source code lives in .py files. This file holds metadata.'
+      - text: 'The passwords and keys the project needs'
         correct: false
         why: Secrets never go in the repository, as sec-01 taught.
-      - text: The tests and their results
+      - text: 'The tests and the results of the last run'
         correct: false
         why: Tests are separate files. The file may name the test tool.
   - id: py-05-q-venv-git
     pools: [mastery]
     objective: 5
     type: single
-    competencies: [py.packages, git.commits]
+    competencies: [py.packages]
     stem: Should the .venv folder be committed to Git?
     options:
-      - text: No, add it to .gitignore and share the dependency list instead
+      - text: 'No, add it to .gitignore'
         correct: true
         why: The folder is large, specific to one computer, and can be rebuilt from the dependency list.
-      - text: Yes, so everyone gets the same packages
+      - text: 'Yes, so that everyone gets the same packages'
         correct: false
         why: A committed environment is large and tied to one machine. A pinned list gives the same result.
-      - text: Only the bin or Scripts folder inside it
+      - text: 'Only the bin or Scripts folder inside it, since it is small'
         correct: false
         why: These folders are part of the same environment, and they depend on the computer.
-      - text: Yes, but only on the main branch
+      - text: 'Yes, but only on the main branch of the repository'
         correct: false
         why: The branch does not matter. The environment is a build output.
   - id: py-05-q-venv-order
@@ -540,18 +540,18 @@ items:
     competencies: [py.packages]
     stem: What is uv?
     options:
-      - text: A tool that manages environments and installs dependencies
+      - text: 'A tool that manages environments and packages'
         correct: true
         why: It does the work of venv and pip in one tool, and reads pyproject.toml. Many teams use it for speed and simplicity.
-      - text: A new version of Python
+      - text: 'A new release of the Python language'
         correct: false
         why: It is a separate tool that works with Python, not a language version.
-      - text: A type checker
+      - text: 'A type checker like mypy'
         correct: false
         why: Type checkers include mypy and pyright. uv installs packages.
       - text: A built-in module of the standard library
         correct: false
-        why: It is installed separately, like pip.
+        why: 'It is installed separately and is not part of the standard library.'
   - id: py-05-q-no-global-pip
     pools: [mastery]
     objective: 5
@@ -559,7 +559,7 @@ items:
     competencies: [py.packages]
     stem: You run pip install requests with no environment active. What is the risk?
     options:
-      - text: The package goes into the shared Python, where it can clash with other projects
+      - text: 'It goes into the shared Python and can clash'
         correct: true
         why: Different projects may need different versions, and one install can break another project.
       - text: Nothing is installed, because pip needs an environment
@@ -568,6 +568,6 @@ items:
       - text: The package is installed only for this folder
         correct: false
         why: Without an environment, the install is not tied to a folder.
-      - text: pip refuses to run without one
+      - text: 'pip installs it only for the current terminal session'
         correct: false
-        why: pip runs. Some systems warn or refuse for a system Python, but the safe habit is an environment.
+        why: 'Packages installed this way stay in the Python installation, not in the terminal session, and every project that uses that Python sees them.'

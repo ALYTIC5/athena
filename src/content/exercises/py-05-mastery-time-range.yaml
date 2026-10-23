@@ -14,7 +14,7 @@ packages: []
 prompt: |
   `TimeRange` is a frozen dataclass with two fields, `start` and `end`, in minutes after midnight. Complete it:
 
-  - A range must end after it starts. Creating one with `end` less than or equal to `start` raises `ValueError`.
+  - A range must end after it starts. A dataclass runs `__post_init__` after `__init__`, so check there: creating a range with `end` less than or equal to `start` raises `ValueError`.
   - `duration()` returns `end - start`.
   - `overlaps(other)` returns `True` if the two ranges share any time. Ranges that only touch, where one ends exactly when the other starts, do not overlap.
   - The methods need type hints.

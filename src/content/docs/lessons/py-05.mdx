@@ -28,6 +28,8 @@ sources:
     url: https://docs.python.org/3/library/dataclasses.html
   - title: "typing: support for type hints"
     url: https://docs.python.org/3/library/typing.html
+  - title: "annotationlib: working with annotations"
+    url: https://docs.python.org/3/library/annotationlib.html
   - title: "Python tutorial: modules and packages"
     url: https://docs.python.org/3/tutorial/modules.html
   - title: "Python tutorial: virtual environments and packages"
@@ -62,7 +64,7 @@ You know functions, decorators and exceptions from py-03 and py-04, and the muta
 
 A **class** bundles data with the functions that work on it. `__init__` sets up each new **instance** (an object made from the class), and `self` is that instance. A name set with `self.x = ...` belongs to one instance. A name assigned in the class body is a **class attribute**: one object shared by every instance, which is the mutable default bug again when the value is a list.
 
-A **dataclass** writes `__init__`, `__repr__` and `__eq__` from its annotated fields. A mutable default such as `[]` raises a `ValueError`, so use `field(default_factory=list)`, which makes a new list for each instance. `frozen=True` makes assigning to a field raise an error. Prefer **composition**: give an object the other objects it needs, instead of making it a subclass of them.
+A **dataclass** writes `__init__`, `__repr__` and `__eq__` from its annotated fields. A mutable default such as `[]` raises a `ValueError`, so use `field(default_factory=list)`, which makes a new list for each instance. `frozen=True` makes assigning to a field raise an error. A dataclass runs `__post_init__` after `__init__`, so use it to check values. Prefer **composition**: give an object the other objects it needs, instead of making it a subclass (a class that inherits its parent's methods).
 
 **Worked example.** A plain class, then a frozen dataclass.
 
@@ -87,7 +89,6 @@ monday = Day("2026-11-02")
 monday.add("Amara")
 print(monday.bookings)                        # ['Amara']
 print(Booking("b1", "Amara"))                 # Booking(id='b1', guest='Amara', notes=[])
-print(Booking("b1", "Amara") == Booking("b1", "Amara"))   # True: equality compares the fields
 ```
 
 A plain default is refused:
@@ -118,7 +119,7 @@ class Bad:
 
 <Chunk n={2} title="Type hints and what checks them">
 
-A **type hint** says what type a value should have: `name: str`, `-> bool`, `list[str]`, `dict[str, int]`. A value that may be missing is `str | None`. Python ignores hints when the program runs. A **type checker** such as mypy or pyright reads them and reports mismatches before the program is run, and editors use them for completion.
+A **type hint** says what type a value should have: `name: str`, `-> bool`, `list[str]`, `dict[str, int]`. A value that may be missing is `str | None`. Python stores hints on the function as `__annotations__` and ignores them when the program runs. A **type checker** such as mypy or pyright reads them and reports mismatches before the program is run, and editors use them for completion.
 
 A `typing.Protocol` describes the methods an object needs, such as `send(to, text)`, whatever its class. That lets a test pass a simple fake. Hints cost little and pay off in functions that other code calls.
 
@@ -188,7 +189,7 @@ pyproject.toml
 python -m venv .venv                    # create the environment
 source .venv/bin/activate               # activate it (on Windows: .venv\Scripts\activate)
 pip install "httpx==0.27.2"             # install one pinned version
-pip freeze > requirements.txt           # record every installed version
+pip freeze > requirements.txt           # requirements.txt now holds the exact pins
 ```
 
 ```toml

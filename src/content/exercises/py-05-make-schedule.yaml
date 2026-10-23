@@ -9,7 +9,6 @@ difficulty: 3
 competencies:
   - py.classes
   - py.typing
-  - py.exceptions
 timeoutMs: 5000
 packages: []
 prompt: |

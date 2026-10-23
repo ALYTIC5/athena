@@ -89,8 +89,9 @@ hiddenTests: |
   def test_two_services_use_their_own_senders():
       first, second = FakeSender(), FakeSender()
       ReminderService(first).remind([Booking("Amara", "09:00", "+44 7700 900123")])
-      ReminderService(second)
-      assert len(first.sent) == 1 and second.sent == []
+      ReminderService(second).remind([Booking("Bayu", "10:00", "+44 7700 900456")])
+      assert len(first.sent) == 1 and len(second.sent) == 1
+      assert first.sent[0][0] != second.sent[0][0]
 
   def test_errors_from_the_sender_reach_the_caller():
       class Broken:
