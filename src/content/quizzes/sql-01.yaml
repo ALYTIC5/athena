@@ -232,7 +232,7 @@ items:
         why: SQL does not guess meaning. NULL is unknown, so the comparison is unknown.
       - text: 'Yes, because NULL < 60 is true for missing values'
         correct: false
-        why: Sorting happens after filtering and does not affect which rows are kept.
+        why: NULL < 60 is unknown, not true, and WHERE keeps only rows where the condition is true.
   - id: sql-01-q-not-equal-null
     pools: [mastery]
     objective: 3
