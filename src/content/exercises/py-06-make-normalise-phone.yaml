@@ -12,7 +12,7 @@ competencies:
 timeoutMs: 5000
 packages: []
 prompt: |
-  Callers' numbers arrive in many forms. Write `normalise_uk_mobile(text)`, which returns the number in the form `+44` followed by the 10-digit national number, for example `+447700900123`. Work test first: look at the visible tests, write your own small tests in your editor for each rule, and then make them pass.
+  Callers' numbers arrive in many forms. Write `normalise_uk_mobile(text)`, which returns the number in the form `+44` followed by the 10-digit national number, for example `+447700900123`. Work test first: look at the visible tests, write your own small tests, on your own computer or on paper, for each rule, and then make them pass.
 
   - Spaces, hyphens and round brackets in the text are ignored.
   - The text may start with `+44`, with `0044`, or with a single `0` (the national form). The rest must then be exactly 10 digits.
@@ -104,7 +104,7 @@ referenceSolution: |
           national = cleaned[1:]
       else:
           raise ValueError("not a UK number")
-      if len(national) != 10 or not national.isdigit():
+      if len(national) != 10 or not (national.isascii() and national.isdigit()):
           raise ValueError("the national number must be 10 digits")
       return "+44" + national
 wrongSolutions:

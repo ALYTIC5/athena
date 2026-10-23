@@ -115,7 +115,7 @@ def test_negative_total_is_refused():
 
 A **fixture** is a function marked `@pytest.fixture` that builds something tests need. A test asks for it by naming it as a parameter, and pytest calls the fixture again for each test, so every test gets a fresh object. `@pytest.mark.parametrize` runs one test function once for each set of values, and reports each case on its own. Use it when the steps are the same and only the data changes.
 
-Tests must not depend on each other or on the order they run in. Shared state between tests gives failures that are hard to understand, and a fixture is the safe way to share set-up.
+pytest also provides built-in fixtures, such as `tmp_path`, a fresh temporary folder for each test. Tests must not depend on each other or on the order they run in. Shared state between tests gives failures that are hard to understand, and a fixture is the safe way to share set-up.
 
 **Worked example.** A fixture and a parametrised test.
 
@@ -155,7 +155,7 @@ Now write the tests yourself. This exercise has a function with several rules an
 
 <Chunk n={3} title="Fakes, mocks and the clock">
 
-Code that calls an API, an LLM or the clock is hard to test: it is slow, it costs money and its answer changes. Pass the dependency in as an argument (**dependency injection**) so a test can give the code a stand-in. A **fake** is a simple working replacement, such as a list that records messages. A **mock** records how it was called, so a test can check the calls, and a stub returns canned answers.
+Code that calls an API, an LLM or the clock is hard to test: it is slow, it costs money and its answer changes. Pass the dependency in as an argument (**dependency injection**) so a test can give the code a stand-in. A **fake** is a simple working replacement, such as a dict that stands in for a database. A **mock** (for example `unittest.mock.Mock`) records how it was called, so a test can check the calls, and a stub returns canned answers.
 
 `monkeypatch.setattr` replaces a name for the length of one test, which helps when you cannot change the code. For time, pass `now` or a clock function, and use a fake clock. A **unit test** checks one piece alone, and an **integration test** checks pieces working together. You need both, with many fast unit tests and fewer slow integration tests.
 
@@ -184,6 +184,8 @@ print(is_expired(100, clock, 60))   # True: exactly the lifetime, with no waitin
 And a test that replaces the call to a model, so that no network is used.
 
 ```python nocheck="needs pytest"
+from assistant import summarise                 # summarise calls assistant.call_model
+
 def test_summary_uses_the_model(monkeypatch):
     monkeypatch.setattr("assistant.call_model", lambda prompt: "CANNED ANSWER")   # no network, no cost
     assert summarise("a long text") == "CANNED ANSWER"

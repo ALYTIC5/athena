@@ -193,7 +193,7 @@ wrongSolutions:
               if to in self._fail_for:
                   raise ConnectionError(to)
               self.sent.append((to, text))
-  - label: 'Only works when fail_for is a set'
+  - label: 'Calls a method that only a set has, so a list or a tuple breaks it'
     code: |
       def notify_all(sender, numbers, text):
           failed = []

@@ -44,7 +44,7 @@ cards:
     type: explain
     competencies: [py.mocking]
     front: What is the difference between a fake and a mock?
-    back: A fake is a simple working replacement, such as a list that records messages. A mock records how it was called, so a test can check the calls. Prefer fakes and results, and use mocks when the call itself is the behaviour.
+    back: A fake is a simple working replacement, such as a list that records messages. A mock records how it was called, so a test can check the calls. A fake that also records what it was sent, like a recording sender, is a hybrid. Prefer fakes and results, and use mocks when the call itself is the behaviour.
   - id: py-06-c-inject
     type: explain
     competencies: [py.mocking]

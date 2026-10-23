@@ -4,7 +4,7 @@ runtime: python
 kind: make
 pools:
   - mastery
-title: 'Write a FakeClock and use it to test a rate limiter'
+title: 'Write a FakeClock for a rate limiter'
 difficulty: 3
 competencies:
   - py.mocking

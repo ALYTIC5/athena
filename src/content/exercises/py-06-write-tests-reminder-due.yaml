@@ -119,7 +119,7 @@ wrongSolutions:
 
       def test_booking_in_five_hours_is_due():
           assert reminder_due(NOW + timedelta(hours=5), NOW) is True
-  - label: 'Tests the far edge and the past but not the moment now or the 12 hour window'
+  - label: 'Tests the far edge and the past but not the moment now'
     code: |
       from datetime import datetime, timedelta
 

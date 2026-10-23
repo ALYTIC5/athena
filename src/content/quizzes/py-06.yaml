@@ -84,7 +84,7 @@ items:
         why: Both are far from the boundary, so they pass even when the comparison is off by one.
       - text: 50 and 51
         correct: false
-        why: Both are on the same side of the rule, so a comparison using > would pass both.
+        why: Both are on the waived side, so a threshold set too low, such as >= 49, still passes. 50 does catch >, but you need 49 to see the other side.
       - text: 0 and 100
         correct: false
         why: These test the extremes, not the point where the behaviour changes.
@@ -258,10 +258,10 @@ items:
         why: pytest matches the parameter name to the fixture and passes in the value it returns.
       - text: It calls schedule() itself at the top of the test
         correct: false
-        why: That would work as a plain function call, but it would not be a fixture, and pytest could not manage it.
+        why: pytest refuses to run a fixture called directly. It fails with an error that tells you to request the fixture by name.
       - text: It imports schedule from a special module
         correct: false
-        why: Fixtures are found by name. No import is needed within the same file or a conftest.py.
+        why: Fixtures are found by name. No import is needed within the same file.
       - text: It adds a decorator that says use fixture schedule
         correct: false
         why: There is no such decorator for the common case. The parameter name is enough.
