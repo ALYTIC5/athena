@@ -1,0 +1,282 @@
+id: py-05-make-schedule
+lesson: py-05
+runtime: python
+kind: make
+pools:
+  - lesson
+title: 'A Schedule that prevents double-booking'
+difficulty: 3
+competencies:
+  - py.classes
+  - py.typing
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write a class `Schedule` that keeps one guest for each time slot and never allows two guests in the same slot. `DoubleBookingError` is already defined for you.
+
+  - `Schedule()` starts empty. Every schedule has its own bookings.
+  - `book(slot, guest)` records the guest for the slot. If the slot is already booked, raise `DoubleBookingError` and keep the first guest. If `slot` or `guest` is empty or only spaces, raise `ValueError`.
+  - `cancel(slot)` removes the booking. Cancelling a slot that is not booked raises `KeyError`.
+  - `guest_at(slot)` returns the guest, or `None` if the slot is free.
+  - `slots()` returns a new list of the booked slots, sorted.
+  - Every parameter and every return value of these four methods needs a type hint.
+
+  Example: after `schedule.book("09:00", "Amara")`, `schedule.guest_at("09:00")` is `"Amara"`, and booking `"09:00"` again raises `DoubleBookingError`.
+starter: |
+  class DoubleBookingError(Exception):
+      """Raised when a slot is already booked."""
+
+
+  class Schedule:
+      ...
+visibleTests: |
+  def test_book_and_look_up():
+      schedule = Schedule()
+      schedule.book("09:00", "Amara")
+      assert schedule.guest_at("09:00") == "Amara"
+      assert schedule.guest_at("10:00") is None
+
+  def test_double_booking_is_refused_and_the_first_guest_stays():
+      schedule = Schedule()
+      schedule.book("09:00", "Amara")
+      try:
+          schedule.book("09:00", "Bayu")
+      except DoubleBookingError:
+          pass
+      else:
+          raise AssertionError("expected DoubleBookingError")
+      assert schedule.guest_at("09:00") == "Amara"
+hiddenTests: |
+  import inspect
+
+
+  def raises(error, function, *args):
+      try:
+          function(*args)
+      except error:
+          return True
+      return False
+
+
+  def test_cancel_frees_the_slot():
+      schedule = Schedule()
+      schedule.book("09:00", "Amara")
+      schedule.cancel("09:00")
+      assert schedule.guest_at("09:00") is None
+      schedule.book("09:00", "Bayu")
+      assert schedule.guest_at("09:00") == "Bayu"
+
+  def test_cancel_of_an_unbooked_slot_raises_key_error():
+      assert raises(KeyError, Schedule().cancel, "09:00")
+
+  def test_empty_slot_or_guest_is_refused():
+      schedule = Schedule()
+      assert raises(ValueError, schedule.book, "", "Amara")
+      assert raises(ValueError, schedule.book, "09:00", "   ")
+      assert schedule.slots() == []
+
+  def test_slots_are_sorted():
+      schedule = Schedule()
+      for slot in ["11:00", "09:00", "10:00"]:
+          schedule.book(slot, "guest")
+      assert schedule.slots() == ["09:00", "10:00", "11:00"]
+
+  def test_slots_returns_a_new_list():
+      schedule = Schedule()
+      schedule.book("09:00", "Amara")
+      result = schedule.slots()
+      result.append("23:00")
+      assert schedule.slots() == ["09:00"]
+
+  def test_schedules_are_independent():
+      first = Schedule()
+      second = Schedule()
+      first.book("09:00", "Amara")
+      assert second.guest_at("09:00") is None
+      assert second.slots() == []
+
+  def test_one_guest_can_hold_two_slots():
+      schedule = Schedule()
+      schedule.book("09:00", "Amara")
+      schedule.book("10:00", "Amara")
+      assert schedule.slots() == ["09:00", "10:00"]
+
+  def test_double_booking_error_is_an_exception_type():
+      assert issubclass(DoubleBookingError, Exception)
+
+  def test_every_method_has_type_hints():
+      for name in ["book", "cancel", "guest_at", "slots"]:
+          signature = inspect.signature(getattr(Schedule, name))
+          for parameter in list(signature.parameters.values())[1:]:
+              assert parameter.annotation is not inspect.Parameter.empty, name + " needs a hint for " + parameter.name
+          assert signature.return_annotation is not inspect.Signature.empty, name + " needs a return hint"
+feedback:
+  - test: test_double_booking_is_refused_and_the_first_guest_stays
+    message: 'Check whether the slot is already booked before you store the guest, and raise DoubleBookingError without changing anything.'
+  - test: test_schedules_are_independent
+    message: 'Create the dictionary in __init__, on self. A dictionary in the class body is shared by every Schedule.'
+  - test: test_every_method_has_type_hints
+    message: 'Add a type hint to every parameter after self and a return hint to each of the four methods, for example slot: str and -> None.'
+  - test: test_cancel_of_an_unbooked_slot_raises_key_error
+    message: 'Cancelling a slot that is not booked must raise KeyError. Deleting a missing key from a dict does this for you, while pop with a default hides it.'
+  - test: test_slots_returns_a_new_list
+    message: "Return a new list, for example sorted(self._booked). Returning the dictionary's own keys would let callers change or depend on the internal state."
+  - test: test_empty_slot_or_guest_is_refused
+    message: 'Reject a slot or a guest that is empty after strip() with a ValueError, before you store anything.'
+hints:
+  - "What does a Schedule need to remember, and which collection answers 'who is in this slot?' quickly?"
+  - 'Keep a dict from slot to guest in __init__ (self._booked). In book, check the slot is free before you store. Use annotations on each method, and sort the keys for slots().'
+  - |-
+    def book(self, slot: str, guest: str) -> None:
+        if slot in self._booked:
+            raise ____(slot)
+        self._booked[slot] = guest
+referenceSolution: |
+  class DoubleBookingError(Exception):
+      """Raised when a slot is already booked."""
+
+
+  class Schedule:
+      def __init__(self) -> None:
+          self._booked: dict[str, str] = {}
+
+      def book(self, slot: str, guest: str) -> None:
+          if not slot.strip() or not guest.strip():
+              raise ValueError("slot and guest must not be empty")
+          if slot in self._booked:
+              raise DoubleBookingError(slot)
+          self._booked[slot] = guest
+
+      def cancel(self, slot: str) -> None:
+          del self._booked[slot]
+
+      def guest_at(self, slot: str) -> str | None:
+          return self._booked.get(slot)
+
+      def slots(self) -> list[str]:
+          return sorted(self._booked)
+wrongSolutions:
+  - label: 'Overwrites the first guest instead of refusing the second'
+    code: |
+      class DoubleBookingError(Exception):
+          """Raised when a slot is already booked."""
+
+
+      class Schedule:
+          def __init__(self) -> None:
+              self._booked: dict[str, str] = {}
+
+          def book(self, slot: str, guest: str) -> None:
+              if not slot.strip() or not guest.strip():
+                  raise ValueError("slot and guest must not be empty")
+              self._booked[slot] = guest
+
+          def cancel(self, slot: str) -> None:
+              del self._booked[slot]
+
+          def guest_at(self, slot: str) -> str | None:
+              return self._booked.get(slot)
+
+          def slots(self) -> list[str]:
+              return sorted(self._booked)
+  - label: 'Keeps the bookings in a class attribute, so every Schedule shares them'
+    code: |
+      class DoubleBookingError(Exception):
+          """Raised when a slot is already booked."""
+
+
+      class Schedule:
+          _booked: dict[str, str] = {}
+
+          def book(self, slot: str, guest: str) -> None:
+              if not slot.strip() or not guest.strip():
+                  raise ValueError("slot and guest must not be empty")
+              if slot in self._booked:
+                  raise DoubleBookingError(slot)
+              self._booked[slot] = guest
+
+          def cancel(self, slot: str) -> None:
+              del self._booked[slot]
+
+          def guest_at(self, slot: str) -> str | None:
+              return self._booked.get(slot)
+
+          def slots(self) -> list[str]:
+              return sorted(self._booked)
+  - label: 'Leaves out the type hints'
+    code: |
+      class DoubleBookingError(Exception):
+          """Raised when a slot is already booked."""
+
+
+      class Schedule:
+          def __init__(self):
+              self._booked = {}
+
+          def book(self, slot, guest):
+              if not slot.strip() or not guest.strip():
+                  raise ValueError("slot and guest must not be empty")
+              if slot in self._booked:
+                  raise DoubleBookingError(slot)
+              self._booked[slot] = guest
+
+          def cancel(self, slot):
+              del self._booked[slot]
+
+          def guest_at(self, slot):
+              return self._booked.get(slot)
+
+          def slots(self):
+              return sorted(self._booked)
+  - label: 'Hides the error when cancelling a slot that is not booked'
+    code: |
+      class DoubleBookingError(Exception):
+          """Raised when a slot is already booked."""
+
+
+      class Schedule:
+          def __init__(self) -> None:
+              self._booked: dict[str, str] = {}
+
+          def book(self, slot: str, guest: str) -> None:
+              if not slot.strip() or not guest.strip():
+                  raise ValueError("slot and guest must not be empty")
+              if slot in self._booked:
+                  raise DoubleBookingError(slot)
+              self._booked[slot] = guest
+
+          def cancel(self, slot: str) -> None:
+              self._booked.pop(slot, None)
+
+          def guest_at(self, slot: str) -> str | None:
+              return self._booked.get(slot)
+
+          def slots(self) -> list[str]:
+              return sorted(self._booked)
+  - label: "Returns the dictionary's keys view instead of a sorted list"
+    code: |
+      class DoubleBookingError(Exception):
+          """Raised when a slot is already booked."""
+
+
+      class Schedule:
+          def __init__(self) -> None:
+              self._booked: dict[str, str] = {}
+
+          def book(self, slot: str, guest: str) -> None:
+              if not slot.strip() or not guest.strip():
+                  raise ValueError("slot and guest must not be empty")
+              if slot in self._booked:
+                  raise DoubleBookingError(slot)
+              self._booked[slot] = guest
+
+          def cancel(self, slot: str) -> None:
+              del self._booked[slot]
+
+          def guest_at(self, slot: str) -> str | None:
+              return self._booked.get(slot)
+
+          def slots(self) -> list[str]:
+              return self._booked.keys()
+explanation: |
+  The class owns one dict, created in `__init__`, so each `Schedule` has its own state. `book` checks before it stores, so a refused booking changes nothing. `cancel` uses `del`, which raises `KeyError` for a missing slot, and `slots` returns `sorted(...)`, which is a new list that callers cannot use to reach the internal dict. The annotations document the contract, and a type checker such as mypy or pyright can then check every call to these methods before the program runs. Python itself does not enforce them. Alternative: store the bookings in a `dataclass` with a `field(default_factory=dict)`. That removes the `__init__`, but the methods still need to be written, and the attribute becomes part of the public constructor.

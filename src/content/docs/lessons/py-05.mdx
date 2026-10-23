@@ -1,0 +1,241 @@
+---
+title: Classes, types and packages
+description: Writing classes and dataclasses, adding type hints and checking them with a type checker, and organising code into modules and packages with virtual environments and pinned dependencies.
+sidebar:
+  order: 70
+lessonId: py-05
+week: 7
+track: py
+durationMin: 120
+anatomy: full
+competencies: [py.classes, py.typing, py.packages]
+prerequisites: [py-04]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting, and every real project is more than one script: it has
+  classes that model bookings and calls, type hints that tools check, and packages with pinned dependencies that
+  another person can install. These are what turn a script that works on your machine into code a team can review,
+  test and run, and they are what interviewers mean by "write production-quality Python".
+objectives:
+  - Write a class with an __init__ and methods, and explain instance attributes versus class attributes
+  - Use dataclasses, including field(default_factory=...) and frozen=True
+  - Add type hints, and explain that Python does not enforce them when the program runs
+  - Organise code into a module and a package, and import from it
+  - Explain virtual environments and pinned dependencies
+sources:
+  - title: "Python tutorial: classes"
+    url: https://docs.python.org/3/tutorial/classes.html
+  - title: "dataclasses: data classes"
+    url: https://docs.python.org/3/library/dataclasses.html
+  - title: "typing: support for type hints"
+    url: https://docs.python.org/3/library/typing.html
+  - title: "annotationlib: working with annotations"
+    url: https://docs.python.org/3/library/annotationlib.html
+  - title: "Python tutorial: modules and packages"
+    url: https://docs.python.org/3/tutorial/modules.html
+  - title: "Python tutorial: virtual environments and packages"
+    url: https://docs.python.org/3/tutorial/venv.html
+  - title: "Python Packaging User Guide: writing your pyproject.toml"
+    url: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+---
+
+<WarmUp lesson="py-05" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting, and every real project is more than one script: it has classes that model bookings and calls, type hints that tools check, and packages with pinned dependencies that another person can install. These are what turn a script that works on your machine into code a team can review, test and run, and they are what interviewers mean by "write production-quality Python".
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Write a class with an `__init__` and methods, and explain instance attributes versus class attributes.
+2. Use dataclasses, including `field(default_factory=...)` and `frozen=True`.
+3. Add type hints, and explain that Python does not enforce them when the program runs.
+4. Organise code into a module and a package, and import from it.
+5. Explain virtual environments and pinned dependencies.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know functions, decorators and exceptions from py-03 and py-04, and the mutable default argument bug from py-01. The browser cannot run a type checker or a package manager, so the exercises check your classes by running them, and the questions check what you know about hints and environments. Try the commands in chunk 3 on your own computer.
+
+</Callout>
+
+<Chunk n={1} title="Classes and dataclasses">
+
+A **class** bundles data with the functions that work on it. `__init__` sets up each new **instance** (an object made from the class), and `self` is that instance. A name set with `self.x = ...` belongs to one instance. A name assigned in the class body is a **class attribute**: one object shared by every instance, which is the mutable default bug again when the value is a list.
+
+A **dataclass** writes `__init__`, `__repr__` and `__eq__` from its annotated fields. A mutable default such as `[]` raises a `ValueError`, so use `field(default_factory=list)`, which makes a new list for each instance. `frozen=True` makes assigning to a field raise an error. A dataclass runs `__post_init__` after `__init__`, so use it to check values.
+
+Prefer **composition**: give an object the other objects it needs, instead of making it a subclass (a class that inherits its parent's methods).
+
+**Worked example.** A plain class, then a frozen dataclass.
+
+```python
+from dataclasses import dataclass, field
+
+class Day:
+    def __init__(self, date: str) -> None:
+        self.date = date                      # belongs to this one instance
+        self.bookings: list[str] = []         # a new list for each Day
+
+    def add(self, guest: str) -> None:
+        self.bookings.append(guest)
+
+@dataclass(frozen=True)                       # __init__, __repr__ and __eq__ are written for us
+class Call:
+    id: str
+    caller: str
+    tags: list[str] = field(default_factory=list)
+
+monday = Day("2026-11-02")
+monday.add("Amara")
+print(monday.bookings)                        # ['Amara']
+print(Call("c1", "Amara"))                    # Call(id='c1', caller='Amara', tags=[])
+```
+
+A plain default is refused:
+
+```python nocheck="raises ValueError on purpose"
+from dataclasses import dataclass
+
+@dataclass
+class Bad:
+    notes: list[str] = []    # ValueError: mutable default <class 'list'> for field notes is not allowed
+```
+
+<Predict lesson="py-05" item="py-05-q-predict-class-attr" />
+
+<Exercise id="py-05-faded-booking" />
+
+<Quiz lesson="py-05" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A list in the class body is private to each object." It is one list, shared by all instances.
+- "`frozen=True` makes the whole object unchangeable." Assigning to a field is refused, but a list inside it can still be changed in place.
+- "I need a subclass to reuse behaviour." Often a plain object passed in (composition) is simpler to change and to test.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Type hints and what checks them">
+
+A **type hint** says what type a value should have: `name: str`, `-> bool`, `list[str]`, `dict[str, int]`. A value that may be missing is `str | None`. Python stores hints on the function as `__annotations__` and ignores them when the program runs. A **type checker** such as mypy or pyright reads them and reports mismatches before the program is run, and editors use them for completion.
+
+A `typing.Protocol` describes the methods an object needs, such as `send(to, text)`, whatever its class. That lets a test pass a simple fake. Hints cost little and pay off in functions that other code calls.
+
+**Worked example.** Hints on a function that may return `None`, and a protocol.
+
+```python
+from typing import Protocol
+
+class Sender(Protocol):                         # any object with this method matches
+    def send(self, to: str, text: str) -> None: ...
+
+def guest_at(slots: dict[str, str], slot: str) -> str | None:
+    return slots.get(slot)                      # None when the slot is free
+
+def remind(sender: Sender, guest: str | None) -> bool:
+    if guest is None:                           # the checker makes us handle None first
+        return False
+    sender.send(guest, "See you soon")
+    return True
+
+class Print:
+    def send(self, to: str, text: str) -> None:
+        print(to, text)
+
+print(remind(Print(), guest_at({"09:00": "Amara"}, "09:00")))   # Amara See you soon, then True
+print(remind(Print(), guest_at({}, "09:00")))                    # False
+```
+
+<Callout type="note" title="Annotations in Python 3.14">
+
+Since Python 3.14, annotations are evaluated only when something asks for them. A hint can refer to a class that is defined later without quoting its name. Older versions need the quotes, as in `"TimeRange"`.
+
+</Callout>
+
+<Predict lesson="py-05" item="py-05-q-predict-hints" />
+
+<Quiz lesson="py-05" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "A wrong type raises an error at run time." Python does not check hints, so a wrong call runs until something in the body fails.
+- "Hints convert values." They never change a value.
+- "`-> str` is fine for a function that sometimes returns `None`." A checker reports it. Write `str | None`.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Modules, packages and virtual environments">
+
+A **module** is one `.py` file, and a **package** is a folder of modules, usually with an `__init__.py` file. You import with `from bookings.schedule import Schedule`. Code under `if __name__ == "__main__":` runs only when the file is run directly, not when it is imported.
+
+A **virtual environment** is a folder with its own installed packages, so each project has its own versions. `pyproject.toml` records the project's name, Python version and dependencies. **Pinning** records exact versions, so every install gets the same code. `uv` is a tool that creates environments and installs dependencies, and it reads `pyproject.toml`.
+
+**Worked example.** A small package, an environment and a pyproject file. These are commands for your own computer, so they are not run here.
+
+```text
+bookings/                 # a package: a folder of modules
+    __init__.py
+    schedule.py           # a module
+    reminders.py
+pyproject.toml
+.gitignore                # lists .venv, so the environment is not committed
+```
+
+```bash
+python -m venv .venv                    # create the environment
+source .venv/bin/activate               # activate it (on Windows: .venv\Scripts\activate)
+pip install "httpx==0.27.2"             # install one pinned version
+pip freeze > requirements.txt           # requirements.txt now holds the exact pins
+```
+
+```toml
+[project]
+name = "bookings"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.27"]
+```
+
+<Quiz lesson="py-05" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "`pip install` is safe without an environment." It changes the shared Python, which other projects use too.
+- "Committing `.venv` shares my setup." It is large and tied to one computer. Share the dependency list instead.
+- "A version range is the same as a pin." A range lets a new release in. A pin records exactly what you tested.
+
+</Callout>
+
+</Chunk>
+
+<SessionBreak />
+
+## Find the bug
+
+Every `Day` in this scheduler shows the same bookings. The failing test shows the symptom.
+
+<Exercise id="py-05-debug-shared-bookings" />
+
+## Write it yourself
+
+<Exercise id="py-05-make-schedule" />
+
+<ExplainBack lesson="py-05" exercise="py-05-make-schedule" />
+
+## Mastery check
+
+<MasteryCheck lesson="py-05" count={6} />
+
+<InterviewCorner lesson="py-05" />
+
+## Further reading
+
+- [Python tutorial: classes](https://docs.python.org/3/tutorial/classes.html)
+- [dataclasses: data classes](https://docs.python.org/3/library/dataclasses.html)
+- [Python tutorial: virtual environments and packages](https://docs.python.org/3/tutorial/venv.html)

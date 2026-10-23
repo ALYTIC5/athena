@@ -1,0 +1,201 @@
+id: py-05-mastery-time-range
+lesson: py-05
+runtime: python
+kind: make
+pools:
+  - mastery
+title: 'A frozen TimeRange that knows when it overlaps'
+difficulty: 3
+competencies:
+  - py.classes
+  - py.typing
+timeoutMs: 5000
+packages: []
+prompt: |
+  `TimeRange` is a frozen dataclass with two fields, `start` and `end`, in minutes after midnight. Complete it:
+
+  - A range must end after it starts. A dataclass runs `__post_init__` after `__init__`, so check there: creating a range with `end` less than or equal to `start` raises `ValueError`.
+  - `duration()` returns `end - start`.
+  - `overlaps(other)` returns `True` if the two ranges share any time. Ranges that only touch, where one ends exactly when the other starts, do not overlap.
+  - The methods need type hints.
+
+  Example: 09:00 to 10:00 is `TimeRange(540, 600)`. It overlaps `TimeRange(570, 630)` but not `TimeRange(600, 660)`.
+starter: |
+  from dataclasses import dataclass
+
+
+  @dataclass(frozen=True)
+  class TimeRange:
+      start: int
+      end: int
+visibleTests: |
+  def test_duration():
+      assert TimeRange(540, 600).duration() == 60
+
+  def test_overlap_and_touching():
+      assert TimeRange(540, 600).overlaps(TimeRange(570, 630)) is True
+      assert TimeRange(540, 600).overlaps(TimeRange(600, 660)) is False
+hiddenTests: |
+  import inspect
+
+
+  def raises(error, function, *args):
+      try:
+          function(*args)
+      except error:
+          return True
+      return False
+
+
+  def test_end_must_be_after_start():
+      assert raises(ValueError, TimeRange, 600, 540)
+      assert raises(ValueError, TimeRange, 540, 540)
+
+  def test_a_range_inside_another_overlaps():
+      assert TimeRange(540, 720).overlaps(TimeRange(600, 630)) is True
+      assert TimeRange(600, 630).overlaps(TimeRange(540, 720)) is True
+
+  def test_overlap_is_symmetric():
+      a, b = TimeRange(540, 600), TimeRange(570, 630)
+      assert a.overlaps(b) == b.overlaps(a)
+
+  def test_identical_ranges_overlap():
+      assert TimeRange(540, 600).overlaps(TimeRange(540, 600)) is True
+
+  def test_ranges_far_apart_do_not_overlap():
+      assert TimeRange(540, 600).overlaps(TimeRange(900, 960)) is False
+
+  def test_touching_on_either_side_does_not_overlap():
+      assert TimeRange(600, 660).overlaps(TimeRange(540, 600)) is False
+
+  def test_it_is_frozen():
+      r = TimeRange(540, 600)
+      try:
+          r.end = 700
+      except AttributeError:
+          return
+      raise AssertionError("expected the assignment to be refused")
+
+  def test_it_can_be_used_in_a_set_and_compared():
+      assert len({TimeRange(540, 600), TimeRange(540, 600), TimeRange(600, 660)}) == 2
+
+  def test_methods_have_type_hints():
+      for name in ["duration", "overlaps"]:
+          signature = inspect.signature(getattr(TimeRange, name))
+          assert signature.return_annotation is not inspect.Signature.empty, name
+      parameter = inspect.signature(TimeRange.overlaps).parameters["other"]
+      assert parameter.annotation is not inspect.Parameter.empty
+feedback:
+  - test: test_end_must_be_after_start
+    message: 'Check the values in __post_init__, which a dataclass calls after __init__. A range with end equal to start has no length, so it is invalid too.'
+  - test: test_overlap_and_touching
+    message: 'Two ranges overlap when each one starts before the other ends. Use strict comparisons, so that ranges that only touch do not overlap.'
+  - test: test_a_range_inside_another_overlaps
+    message: 'A range inside another overlaps it. Compare both starts with both ends instead of only checking whether one start lies inside the other.'
+  - test: test_it_is_frozen
+    message: 'Keep frozen=True on the decorator. Do not assign to attributes in __post_init__; only check them.'
+  - test: test_methods_have_type_hints
+    message: 'Add a return hint to both methods and a hint for the parameter other.'
+hints:
+  - 'When do two ranges not overlap? Think about where one ends and the other starts.'
+  - 'Two ranges overlap when self starts before other ends and other starts before self ends, using < and not <=. Validate in __post_init__.'
+  - |-
+    def overlaps(self, other: 'TimeRange') -> bool:
+        return self.start < other.____ and other.start < self.____
+referenceSolution: |
+  from dataclasses import dataclass
+
+
+  @dataclass(frozen=True)
+  class TimeRange:
+      start: int
+      end: int
+
+      def __post_init__(self) -> None:
+          if self.end <= self.start:
+              raise ValueError("end must be after start")
+
+      def duration(self) -> int:
+          return self.end - self.start
+
+      def overlaps(self, other: "TimeRange") -> bool:
+          return self.start < other.end and other.start < self.end
+wrongSolutions:
+  - label: 'Counts ranges that only touch as overlapping'
+    code: |
+      from dataclasses import dataclass
+
+
+      @dataclass(frozen=True)
+      class TimeRange:
+          start: int
+          end: int
+
+          def __post_init__(self) -> None:
+              if self.end <= self.start:
+                  raise ValueError("end must be after start")
+
+          def duration(self) -> int:
+              return self.end - self.start
+
+          def overlaps(self, other: "TimeRange") -> bool:
+              return self.start <= other.end and other.start <= self.end
+  - label: 'Only checks whether the other range starts inside this one, so a range that contains the other is missed'
+    code: |
+      from dataclasses import dataclass
+
+
+      @dataclass(frozen=True)
+      class TimeRange:
+          start: int
+          end: int
+
+          def __post_init__(self) -> None:
+              if self.end <= self.start:
+                  raise ValueError("end must be after start")
+
+          def duration(self) -> int:
+              return self.end - self.start
+
+          def overlaps(self, other: "TimeRange") -> bool:
+              return self.start < other.start < self.end
+  - label: 'Allows a range of zero length'
+    code: |
+      from dataclasses import dataclass
+
+
+      @dataclass(frozen=True)
+      class TimeRange:
+          start: int
+          end: int
+
+          def __post_init__(self) -> None:
+              if self.end < self.start:
+                  raise ValueError("end must be after start")
+
+          def duration(self) -> int:
+              return self.end - self.start
+
+          def overlaps(self, other: "TimeRange") -> bool:
+              return self.start < other.end and other.start < self.end
+  - label: 'Is not frozen'
+    code: |
+      from dataclasses import dataclass
+
+
+      @dataclass
+      class TimeRange:
+          start: int
+          end: int
+
+          def __post_init__(self) -> None:
+              if self.end <= self.start:
+                  raise ValueError("end must be after start")
+
+          def duration(self) -> int:
+              return self.end - self.start
+
+          def overlaps(self, other: "TimeRange") -> bool:
+              return self.start < other.end and other.start < self.end
+explanation: |
+  Two ranges are separate when one ends before or exactly when the other starts. Negating that gives the overlap test: each range starts before the other ends, with strict comparisons, so ranges that only touch do not count. That single expression also covers one range inside another and identical ranges. `__post_init__` runs after the generated `__init__`, so it is the place to validate fields, and in a frozen dataclass it must only read them. The string `"TimeRange"` in the hint of `overlaps` is a forward reference: before Python 3.14 the class does not exist yet while its own body is being run (see the callout in chunk 2). Alternative: `datetime` ranges would work the same way. Integers keep the exercise free of time zones.

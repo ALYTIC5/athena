@@ -82,7 +82,7 @@
     - id: py-05
       title: 'Classes, types and packages'
       durationMin: 120
-      status: planned
+      status: published
     - id: sql-02
       title: 'Joins and aggregation'
       durationMin: 45

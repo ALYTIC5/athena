@@ -1,0 +1,102 @@
+id: py-05-debug-shared-bookings
+lesson: py-05
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: 'Two days share one booking list'
+difficulty: 2
+competencies:
+  - py.classes
+timeoutMs: 5000
+packages: []
+prompt: |
+  A `Day` keeps the guests booked for one date. Booking a guest on Monday makes the same guest appear on Tuesday. Find the cause and fix it, so that every `Day` has its own list of bookings from the moment it is created. Do not change how `Day` is created or how `add` is called.
+starter: |
+  class Day:
+      bookings = []
+
+      def __init__(self, date: str) -> None:
+          self.date = date
+
+      def add(self, guest: str) -> None:
+          self.bookings.append(guest)
+visibleTests: |
+  def test_days_do_not_share_bookings():
+      monday = Day("2026-11-02")
+      tuesday = Day("2026-11-03")
+      monday.add("Amara")
+      assert tuesday.bookings == []
+
+  def test_booking_is_recorded():
+      monday = Day("2026-11-02")
+      monday.add("Amara")
+      monday.add("Bayu")
+      assert monday.bookings == ["Amara", "Bayu"]
+hiddenTests: |
+  def test_each_day_has_its_own_list_from_the_start():
+      monday = Day("2026-11-02")
+      tuesday = Day("2026-11-03")
+      assert monday.bookings is not tuesday.bookings
+
+  def test_many_days_stay_separate():
+      days = [Day(f"2026-11-{n:02d}") for n in range(2, 6)]
+      days[0].add("Sofia")
+      assert [d.bookings for d in days] == [["Sofia"], [], [], []]
+
+  def test_date_is_kept():
+      assert Day("2026-11-02").date == "2026-11-02"
+feedback:
+  - test: test_days_do_not_share_bookings
+    message: 'Both days read the same list, because `bookings = []` in the class body is created once for the class, not once for each day. Create the list for each instance in __init__.'
+  - test: test_each_day_has_its_own_list_from_the_start
+    message: 'Each day needs its own list as soon as it is created. Building a new list inside add is too late, because until then the day still reads the shared class attribute.'
+hints:
+  - 'Where is the list created: once for the class, or once for each Day?'
+  - 'A variable in the class body is shared by every instance. Create the list inside __init__, on self, so that each Day gets its own.'
+  - |-
+    def __init__(self, date: str) -> None:
+        self.date = date
+        self.bookings = ____
+referenceSolution: |
+  class Day:
+      def __init__(self, date: str) -> None:
+          self.date = date
+          self.bookings: list[str] = []
+
+      def add(self, guest: str) -> None:
+          self.bookings.append(guest)
+wrongSolutions:
+  - label: 'Assigns the shared list to self, which is still the same list'
+    code: |
+      class Day:
+          bookings = []
+
+          def __init__(self, date: str) -> None:
+              self.date = date
+              self.bookings = self.bookings
+
+          def add(self, guest: str) -> None:
+              self.bookings.append(guest)
+  - label: 'Builds a new list only inside add, so a day that has not been booked yet still reads the shared list'
+    code: |
+      class Day:
+          bookings = []
+
+          def __init__(self, date: str) -> None:
+              self.date = date
+
+          def add(self, guest: str) -> None:
+              self.bookings = self.bookings + [guest]
+  - label: 'Moves the list into the class body again with a type hint'
+    code: |
+      class Day:
+          bookings: list[str] = []
+
+          def __init__(self, date: str) -> None:
+              self.date = date
+
+          def add(self, guest: str) -> None:
+              self.bookings.append(guest)
+explanation: |
+  A name assigned in the class body is a class attribute: one object that every instance can see. `self.bookings.append(...)` finds it through the instance and changes that one list, so every `Day` is affected. Assigning `self.bookings = []` in `__init__` makes a new list for each instance, and attribute lookup finds the instance's own list first. The second wrong solution only creates a private list once `add` has run, and the third just adds a type hint to the same mistake. Alternative: a dataclass with `bookings: list[str] = field(default_factory=list)` creates the list per instance, and it refuses a plain `[]` default with a `ValueError` for this reason.

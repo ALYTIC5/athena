@@ -1,0 +1,67 @@
+lesson: py-05
+cards:
+  - id: py-05-c-init-self
+    type: explain
+    competencies: [py.classes]
+    front: What do __init__ and self do in a class?
+    back: Python calls __init__ on each new instance to set it up, and passes that instance as self. Methods get the instance as their first parameter, so they can read and change its attributes.
+  - id: py-05-c-class-attribute
+    type: explain
+    competencies: [py.classes]
+    front: Why is a list defined in a class body a bug, and how do you fix it?
+    back: A name assigned in the class body is a class attribute, one object shared by every instance. Create the list in __init__ with self.items = [], so each instance has its own.
+  - id: py-05-c-dataclass
+    type: explain
+    competencies: [py.classes]
+    front: What does @dataclass give you, and what does it refuse?
+    back: It writes __init__, __repr__ and __eq__ from the annotated fields. It refuses a plain mutable default such as [] with a ValueError, and wants field(default_factory=list) so each instance gets its own list.
+  - id: py-05-c-frozen
+    type: basic
+    competencies: [py.classes]
+    front: What does frozen=True do, and what does it not do?
+    back: Assigning to a field raises FrozenInstanceError, and the instance gets a __hash__. It does not freeze what a field refers to, so a list inside can still be changed.
+  - id: py-05-c-dataclass-vs-dict
+    type: explain
+    competencies: [py.classes]
+    front: When do you choose a dataclass over a dict?
+    back: When the fields are known and used in several places. A dataclass documents them, helps editors and type checkers, and fails on a misspelt attribute. A dict is better for keys that are only known at run time.
+  - id: py-05-c-composition
+    type: explain
+    competencies: [py.classes]
+    front: What does composition over inheritance mean?
+    back: Give an object the other objects it needs, for example a sender passed into a service, instead of making it a subclass. It is easier to change and to test with a fake.
+  - id: py-05-c-hints-runtime
+    type: explain
+    competencies: [py.typing]
+    front: Does Python enforce type hints, and why write them?
+    back: No, hints are ignored when the program runs. Type checkers such as mypy and pyright, and editors, read them to report mismatches before the program is run, and they document what functions expect and return.
+  - id: py-05-c-union-none
+    type: basic
+    competencies: [py.typing]
+    front: How do you hint a value that may be None, and what does the checker then require?
+    back: Write str | None. The checker makes you handle the None case, for example with if name is not None, before you use the value as a str.
+  - id: py-05-c-protocol
+    type: basic
+    competencies: [py.typing]
+    front: What is a typing.Protocol?
+    back: A description of the methods an object needs, for example send(to, text). Any object with those methods matches for a type checker, whatever its class, so a test can pass a simple fake.
+  - id: py-05-c-module-package
+    type: basic
+    competencies: [py.packages]
+    front: What are a module and a package?
+    back: A module is one .py file, and a package is a folder of modules, usually with an __init__.py file. You import from them with a dotted path such as from bookings.schedule import Schedule.
+  - id: py-05-c-main-guard
+    type: basic
+    competencies: [py.packages]
+    front: What does if __name__ == "__main__" do?
+    back: The block runs only when the file is run directly, and not when the file is imported. When a file is imported, its __name__ is the module's name.
+  - id: py-05-c-venv
+    type: explain
+    competencies: [py.packages]
+    front: Why use a virtual environment, and what do you do with it?
+    back: It gives each project its own installed packages, so versions do not clash. Create it with python -m venv .venv, activate it, install the dependencies, and add .venv to .gitignore.
+  - id: py-05-c-pin
+    type: explain
+    competencies: [py.packages]
+    front: What does pinning dependencies mean, and where do you record them?
+    back: Recording exact versions so that every install gets the same code, for example from pip freeze or a lock file. The project's needs and metadata go in pyproject.toml, and tools such as pip and uv read it.
