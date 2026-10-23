@@ -1,0 +1,174 @@
+id: sql-03-normalise
+lesson: sql-03
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'Split a messy table into two'
+difficulty: 3
+competencies:
+  - sql.normalisation
+  - sql.schema
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE calls_raw (
+    call_id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    caller_phone text NOT NULL,
+    reason text,
+    duration_s integer
+  );
+  INSERT INTO calls_raw VALUES
+    (1, 'Amara Okafor', '+44 7700 900123', 'booking', 120),
+    (2, 'Bayu Singh', '+44 7700 900456', 'billing', 45),
+    (3, 'Amara Okafor', '+44 7700 900123', 'cancel', 30),
+    (4, 'Chen Wei', '+44 7700 900789', 'booking', 200),
+    (5, 'Bayu Singh', '+44 7700 900456', 'booking', 60);
+prompt: |
+  `calls_raw` repeats each caller's name and phone number on every call, so a changed phone number would need many updates. Split it into two tables, and leave `calls_raw` as it is:
+
+  - `callers`: `id` (generated identity primary key), `name` (required) and `phone` (required, unique). One row for each different caller, filled from `calls_raw`.
+  - `calls`: `id` (an integer primary key that keeps the `call_id` of each raw row), `caller_id` (required, a foreign key to `callers`), `reason` and `duration_s`. It has no name or phone column. One row for each raw call, filled from `calls_raw`.
+
+  Callers are identified by their phone number.
+starter: |
+  CREATE TABLE callers (
+    ...
+  );
+
+  INSERT INTO callers ...
+
+  CREATE TABLE calls (
+    ...
+  );
+
+  INSERT INTO calls ...
+referenceSolution: |
+  CREATE TABLE callers (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL,
+    phone text NOT NULL UNIQUE
+  );
+
+  INSERT INTO callers (name, phone)
+  SELECT DISTINCT caller_name, caller_phone FROM calls_raw;
+
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_id integer NOT NULL REFERENCES callers(id),
+    reason text,
+    duration_s integer
+  );
+
+  INSERT INTO calls (id, caller_id, reason, duration_s)
+  SELECT r.call_id, c.id, r.reason, r.duration_s
+  FROM calls_raw r
+  JOIN callers c ON c.phone = r.caller_phone;
+compare: none
+checks:
+  - 'SELECT count(*) = 3 FROM callers'
+  - 'SELECT count(*) = 5 FROM calls'
+  - 'SELECT count(*) = 5 FROM calls c JOIN callers r ON r.id = c.caller_id'
+  - "SELECT count(*) = 2 FROM calls c JOIN callers r ON r.id = c.caller_id WHERE r.name = 'Amara Okafor'"
+  - 'SELECT sum(duration_s) = 455 FROM calls'
+  - "SELECT count(*) = 0 FROM information_schema.columns WHERE table_name = 'calls' AND column_name IN ('caller_name', 'caller_phone', 'name', 'phone')"
+  - "SELECT count(*) >= 1 FROM information_schema.table_constraints WHERE table_name = 'calls' AND constraint_type = 'FOREIGN KEY'"
+  - sql: "INSERT INTO callers (name, phone) VALUES ('Someone Else', '+44 7700 900123');"
+    expectError: '23505'
+  - 'SELECT count(*) = 5 FROM calls_raw'
+wrongSolutions:
+  - label: 'Copies every raw row into callers, so a caller appears twice'
+    code: |
+      CREATE TABLE callers (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        name text NOT NULL,
+        phone text NOT NULL
+      );
+
+      INSERT INTO callers (name, phone)
+      SELECT caller_name, caller_phone FROM calls_raw;
+
+      CREATE TABLE calls (
+        id integer PRIMARY KEY,
+        caller_id integer NOT NULL REFERENCES callers(id),
+        reason text,
+        duration_s integer
+      );
+
+      INSERT INTO calls (id, caller_id, reason, duration_s)
+      SELECT r.call_id, (SELECT min(c.id) FROM callers c WHERE c.phone = r.caller_phone), r.reason, r.duration_s
+      FROM calls_raw r;
+  - label: "Keeps the caller's name and phone in calls, so the facts are still repeated"
+    code: |
+      CREATE TABLE callers (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        name text NOT NULL,
+        phone text NOT NULL UNIQUE
+      );
+
+      INSERT INTO callers (name, phone)
+      SELECT DISTINCT caller_name, caller_phone FROM calls_raw;
+
+      CREATE TABLE calls (
+        id integer PRIMARY KEY,
+        caller_id integer NOT NULL REFERENCES callers(id),
+        caller_name text,
+        caller_phone text,
+        reason text,
+        duration_s integer
+      );
+
+      INSERT INTO calls (id, caller_id, caller_name, caller_phone, reason, duration_s)
+      SELECT r.call_id, c.id, r.caller_name, r.caller_phone, r.reason, r.duration_s
+      FROM calls_raw r
+      JOIN callers c ON c.phone = r.caller_phone;
+  - label: 'Has no foreign key from calls to callers'
+    code: |
+      CREATE TABLE callers (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        name text NOT NULL,
+        phone text NOT NULL UNIQUE
+      );
+
+      INSERT INTO callers (name, phone)
+      SELECT DISTINCT caller_name, caller_phone FROM calls_raw;
+
+      CREATE TABLE calls (
+        id integer PRIMARY KEY,
+        caller_id integer NOT NULL,
+        reason text,
+        duration_s integer
+      );
+
+      INSERT INTO calls (id, caller_id, reason, duration_s)
+      SELECT r.call_id, c.id, r.reason, r.duration_s
+      FROM calls_raw r
+      JOIN callers c ON c.phone = r.caller_phone;
+  - label: 'Never copies the raw calls into the new calls table'
+    code: |
+      CREATE TABLE callers (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        name text NOT NULL,
+        phone text NOT NULL UNIQUE
+      );
+
+      INSERT INTO callers (name, phone)
+      SELECT DISTINCT caller_name, caller_phone FROM calls_raw;
+
+      CREATE TABLE calls (
+        id integer PRIMARY KEY,
+        caller_id integer NOT NULL REFERENCES callers(id),
+        reason text,
+        duration_s integer
+      );
+hints:
+  - 'Which facts belong to the caller, and which belong to a single call? Each fact should live in one place.'
+  - 'Create callers first and fill it with SELECT DISTINCT from the raw table. Then create calls with a foreign key, and fill it by joining the raw table to callers on the phone number.'
+  - |-
+    INSERT INTO callers (name, phone) SELECT ____ caller_name, caller_phone FROM calls_raw;
+    ...
+    FROM calls_raw r JOIN callers c ON c.phone = r.____
+explanation: |
+  The caller's name and phone depend on the caller, not on the call, so they move to `callers`, one row per caller. `SELECT DISTINCT` collapses the repeated rows, and `UNIQUE (phone)` stops the same caller being added twice. `calls` keeps only facts about a call and points to its caller with a foreign key, found by joining on the phone number. Now a changed phone number is one update, a caller can exist before their first call, and deleting a call does not lose the caller. Alternative: add the new tables and then drop the old columns with `ALTER TABLE`, which is how a live database is usually migrated, in steps, so that nothing breaks while the new structure is built.

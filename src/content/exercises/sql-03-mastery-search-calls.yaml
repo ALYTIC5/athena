@@ -1,0 +1,115 @@
+id: sql-03-mastery-search-calls
+lesson: sql-03
+runtime: python
+kind: make
+pools:
+  - mastery
+title: 'A search that cannot be hijacked'
+difficulty: 3
+competencies:
+  - sql.parameters
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write `search_calls(db, reason, min_seconds)`. It returns the ids, in ascending order, of the calls whose `reason` equals `reason` and whose `duration_s` is at least `min_seconds`. `db` is an `sqlite3` connection to a database with the table `calls (id, reason, duration_s)`.
+
+  Both arguments come from users, so neither may ever be pasted into the SQL text. Use `?` placeholders for both, and return a plain list of integers.
+starter: |
+  def search_calls(db, reason, min_seconds):
+      ...
+visibleTests: |
+  import sqlite3
+
+
+  def make_db():
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE calls (id INTEGER PRIMARY KEY, reason TEXT, duration_s INTEGER)")
+      db.executemany(
+          "INSERT INTO calls (id, reason, duration_s) VALUES (?, ?, ?)",
+          [(1, "booking", 120), (2, "billing", 45), (3, "cancel", 300), (4, "booking", 20)],
+      )
+      return db
+
+
+  def test_filters_by_reason_and_length():
+      assert search_calls(make_db(), "booking", 100) == [1]
+
+  def test_returns_all_matching_calls_in_order():
+      assert search_calls(make_db(), "booking", 0) == [1, 4]
+hiddenTests: |
+  import sqlite3
+
+
+  def make_db():
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE calls (id INTEGER PRIMARY KEY, reason TEXT, duration_s INTEGER)")
+      db.executemany(
+          "INSERT INTO calls (id, reason, duration_s) VALUES (?, ?, ?)",
+          [(1, "booking", 120), (2, "billing", 45), (3, "cancel", 300), (4, "booking", 20)],
+      )
+      return db
+
+
+  def test_hostile_reason_is_data():
+      assert search_calls(make_db(), "x' OR '1'='1", 0) == []
+
+  def test_hostile_length_is_data():
+      assert search_calls(make_db(), "booking", "0 OR 1=1") == []
+
+  def test_apostrophe_in_reason():
+      assert search_calls(make_db(), "O'Brien", 0) == []
+
+  def test_second_statement_is_not_run():
+      db = make_db()
+      assert search_calls(db, "x'; DROP TABLE calls; --", 0) == []
+      assert db.execute("SELECT count(*) FROM calls").fetchone()[0] == 4
+
+  def test_boundary_is_inclusive():
+      assert search_calls(make_db(), "billing", 45) == [2]
+
+  def test_nothing_matches():
+      assert search_calls(make_db(), "cancel", 1000) == []
+
+  def test_result_is_a_list_of_integers():
+      result = search_calls(make_db(), "booking", 0)
+      assert isinstance(result, list) and all(isinstance(n, int) for n in result)
+feedback:
+  - test: test_hostile_reason_is_data
+    message: 'Pass the reason as a parameter, with a ? in the SQL, instead of putting it in the text.'
+  - test: test_hostile_length_is_data
+    message: 'The number is user input too. Use a ? for it as well, and pass both values as a tuple.'
+  - test: test_result_is_a_list_of_integers
+    message: 'fetchall gives a list of tuples. Return only the ids, as a list of integers.'
+  - test: test_filters_by_reason_and_length
+    message: 'Keep the calls with the given reason and at least that many seconds, ordered by id.'
+hints:
+  - 'How many values come from the user, and how many placeholders do you need?'
+  - 'Use two ? placeholders, pass (reason, min_seconds) as the second argument of execute, and build the list of ids from the rows.'
+  - 'rows = db.execute("SELECT id FROM calls WHERE reason = ? AND duration_s >= ____ ORDER BY id", (reason, ____)).fetchall()'
+referenceSolution: |
+  def search_calls(db, reason, min_seconds):
+      rows = db.execute(
+          "SELECT id FROM calls WHERE reason = ? AND duration_s >= ? ORDER BY id",
+          (reason, min_seconds),
+      ).fetchall()
+      return [row[0] for row in rows]
+wrongSolutions:
+  - label: 'Puts both values into the SQL with an f-string'
+    code: |
+      def search_calls(db, reason, min_seconds):
+          query = f"SELECT id FROM calls WHERE reason = '{reason}' AND duration_s >= {min_seconds} ORDER BY id"
+          return [row[0] for row in db.execute(query).fetchall()]
+  - label: 'Uses a placeholder for the reason but pastes the number into the SQL'
+    code: |
+      def search_calls(db, reason, min_seconds):
+          query = f"SELECT id FROM calls WHERE reason = ? AND duration_s >= {min_seconds} ORDER BY id"
+          return [row[0] for row in db.execute(query, (reason,)).fetchall()]
+  - label: 'Returns the rows instead of a list of ids'
+    code: |
+      def search_calls(db, reason, min_seconds):
+          return db.execute(
+              "SELECT id FROM calls WHERE reason = ? AND duration_s >= ? ORDER BY id",
+              (reason, min_seconds),
+          ).fetchall()
+explanation: |
+  Every value that comes from a user goes through a placeholder, including numbers: a number that arrives as text can carry a command just as well as a string can, and the second wrong solution shows the leak. `execute` takes the SQL with the holes and the tuple of values separately, so neither value can change the command. `fetchall` returns tuples, so the ids are picked out with a list comprehension. Alternative: `db.execute(...).fetchall()` can be replaced with a generator over the cursor to avoid building the whole list for big results. Placeholders stand for values only, never for table or column names.
