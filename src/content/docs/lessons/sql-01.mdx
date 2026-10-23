@@ -53,7 +53,7 @@ Each query exercise runs your SQL in a PostgreSQL database inside your browser a
 
 A **table** holds rows, and every row has the same columns. `SELECT` lists the columns you want, `FROM` names the table, `WHERE` keeps only the rows that match a condition, `ORDER BY` sorts the result, and `LIMIT` keeps the first `n` rows. Write the clauses in that order. Without `ORDER BY`, SQL promises no row order, so always sort before you `LIMIT`.
 
-`DISTINCT` removes repeated rows. Combine conditions with `AND`, `OR` and `NOT`; `AND` is applied before `OR`, so use brackets (parentheses) when you mix them. Compare with `=`, `<>` (not equal), `<`, `<=`, `>` and `>=`, and test a list with `IN (9, 11)`.
+`DISTINCT` removes repeated rows. Combine conditions with `AND`, `OR` and `NOT`; `AND` is applied before `OR`, so use brackets (parentheses) when you mix them. Compare with `=`, `<>` (not equal, also written `!=`), `<`, `<=`, `>` and `>=`, and test a list with `IN (9, 11)`.
 
 In PostgreSQL, text goes in single quotes (`'booking'`), and double quotes mean an identifier such as a column name. `SELECT *` returns every column, but a query that other code reads should name the columns it needs.
 
@@ -102,7 +102,7 @@ SELECT DISTINCT reason FROM calls ORDER BY reason;   -- billing, booking, cancel
 
 NULLs also hide inside other conditions. `reason <> 'billing'` is unknown for a NULL reason, so those rows are dropped; write `reason <> 'billing' OR reason IS NULL` to keep them. In PostgreSQL, NULL sorts as larger than any value, so `ORDER BY ... DESC` puts NULLs first. Add `NULLS LAST`, or filter them out.
 
-A few more rules follow from the same idea. `NOT unknown` is still unknown. `x NOT IN (9, NULL)` keeps no rows, because the NULL makes every test unknown. `a IS DISTINCT FROM b` compares like `<>` but treats NULL as an ordinary value, so it keeps NULL rows. `!=` means the same as `<>`.
+A few more rules follow from the same idea. `NOT unknown` is still unknown. `x NOT IN (9, NULL)` keeps no rows, because the NULL makes every test unknown. `a IS DISTINCT FROM b` compares like `<>` but treats NULL as an ordinary value, so it keeps NULL rows.
 
 ```sql schema="sql-01-null-reason"
 SELECT caller_name FROM calls WHERE duration_s IS NULL ORDER BY id;   -- Chen, Gita

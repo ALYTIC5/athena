@@ -67,7 +67,7 @@ items:
     competencies: [sql.select]
     stem: What does SELECT DISTINCT reason FROM calls return?
     options:
-      - text: 'Each different reason once, NULL included'
+      - text: 'Each different reason once, with NULL as a value'
         correct: true
         why: DISTINCT removes repeated rows. For this purpose NULLs count as equal to each other, so they collapse to one row.
       - text: Every reason, one row per call
@@ -86,7 +86,7 @@ items:
     competencies: [sql.select]
     stem: In PostgreSQL, what does WHERE reason = "booking" do?
     options:
-      - text: 'It fails, as double quotes name a column'
+      - text: 'It fails, because double quotes name a column'
         correct: true
         why: Single quotes make a text value ('booking'). Double quotes mark an identifier such as a column or table name.
       - text: It works like WHERE reason = 'booking'
@@ -183,7 +183,7 @@ items:
     competencies: [sql.nulls]
     stem: Two calls have a NULL reason. How many rows does SELECT * FROM calls WHERE reason = NULL return?
     options:
-      - text: 'None, as a comparison with NULL is never true'
+      - text: 'None, because a comparison with NULL is never true'
         correct: true
         why: The comparison gives unknown, and WHERE keeps only rows where the condition is true.
       - text: Both rows, because NULL equals NULL
@@ -221,16 +221,16 @@ items:
     competencies: [sql.nulls, sql.select]
     stem: Chen's call has a NULL duration. Is Chen's row kept by WHERE duration_s < 60?
     options:
-      - text: 'No, since NULL < 60 is unknown'
+      - text: 'No, because NULL < 60 is unknown'
         correct: true
         why: A comparison with NULL gives unknown. WHERE drops rows that are not true.
       - text: Yes, because NULL counts as zero
         correct: false
-        why: 'NULL is not a number, large or small. It is a missing value, and a comparison with it is unknown.'
+        why: 'A comparison with NULL is never true. NULL is not treated as large or small in a comparison, it is unknown.'
       - text: Yes, because an unanswered call is shorter than 60 seconds
         correct: false
         why: SQL does not guess meaning. NULL is unknown, so the comparison is unknown.
-      - text: 'No, because NULL is treated as a very large number'
+      - text: 'Yes, because NULL < 60 is true for missing values'
         correct: false
         why: Sorting happens after filtering and does not affect which rows are kept.
   - id: sql-01-q-not-equal-null
@@ -240,7 +240,7 @@ items:
     competencies: [sql.nulls]
     stem: Some calls have a NULL reason. A query uses WHERE reason <> 'billing'. What happens to those calls?
     options:
-      - text: 'They are left out, since the comparison is unknown'
+      - text: 'They are left out, because the comparison is unknown'
         correct: true
         why: A call with no reason is not billing, but SQL cannot tell, so it drops the row. Add OR reason IS NULL to keep them.
       - text: They are kept, because they are not billing
@@ -257,20 +257,20 @@ items:
     objective: 3
     type: single
     competencies: [sql.nulls, sql.select]
-    stem: You want calls under 60 seconds and also unanswered calls (NULL duration). Which WHERE clause is right?
+    stem: You want the calls that lasted under 30 seconds, and also the calls with no recorded reason. Which WHERE clause is right?
     options:
-      - text: WHERE duration_s < 60 OR duration_s IS NULL
+      - text: WHERE duration_s < 30 OR reason IS NULL
         correct: true
-        why: The second test accepts the rows where the first is unknown, and OR keeps a row if either is true.
-      - text: WHERE duration_s < 60
+        why: OR keeps a row if either test is true, and IS NULL is the test that works for a missing reason.
+      - text: WHERE duration_s < 30 AND reason IS NULL
         correct: false
-        why: This leaves out the unanswered calls, because their comparison is unknown.
-      - text: WHERE duration_s < 60 AND duration_s IS NULL
+        why: AND keeps only calls that are both short and without a reason, which is a smaller set than the question asks for.
+      - text: WHERE duration_s < 30 OR reason = NULL
         correct: false
-        why: No value is both below 60 and NULL, so no rows match.
-      - text: WHERE duration_s < 60 OR duration_s = NULL
+        why: = NULL is never true, so the second test finds nothing and the query works like the first test alone.
+      - text: WHERE duration_s < 30 OR reason IS NOT NULL
         correct: false
-        why: = NULL is never true, so this works like the first test alone.
+        why: IS NOT NULL keeps the calls that do have a reason, which is the opposite of what is asked.
   - id: sql-01-q-order-null
     pools: [mastery]
     objective: 3
@@ -297,7 +297,7 @@ items:
     competencies: [sql.nulls]
     stem: A list contains a NULL, as in WHERE hour NOT IN (9, NULL). Which calls does it keep?
     options:
-      - text: 'None, as the NULL makes every other row unknown'
+      - text: 'None, because no row can make the condition true'
         correct: true
         why: hour NOT IN (9, NULL) means hour <> 9 AND hour <> NULL. The second part is unknown, so no row is true.
       - text: Every call that is not at hour 9
