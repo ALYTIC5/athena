@@ -1,0 +1,309 @@
+id: py-05-mastery-reminder-service
+lesson: py-05
+runtime: python
+kind: make
+pools:
+  - mastery
+title: 'A ReminderService that uses whatever sender it is given'
+difficulty: 3
+competencies:
+  - py.classes
+  - py.typing
+timeoutMs: 5000
+packages: []
+prompt: |
+  A reminder service should not know how messages are sent, so tests can use a fake sender. `Sender` is a `Protocol`: any object with a `send(to, text)` method counts as a sender. Complete `ReminderService`:
+
+  - `ReminderService(sender)` keeps the sender it is given. It never creates a sender itself.
+  - `remind(bookings)` sends one message for each booking that has a phone number (not empty, and not only spaces), in the order given: `sender.send(booking.phone, text)` where `text` is `Reminder: <guest>, your appointment is at <slot>.`
+  - It returns how many messages it sent. It does not change the bookings.
+  - If `send` raises an error, let it go on to the caller.
+  - Add type hints to `__init__` and `remind`.
+
+  Example: for `Booking("Amara", "09:00", "+44 7700 900123")` the text is `Reminder: Amara, your appointment is at 09:00.`
+starter: |
+  from dataclasses import dataclass
+  from typing import Protocol
+
+
+  @dataclass(frozen=True)
+  class Booking:
+      guest: str
+      slot: str
+      phone: str
+
+
+  class Sender(Protocol):
+      def send(self, to: str, text: str) -> None: ...
+
+
+  class ReminderService:
+      ...
+visibleTests: |
+  class FakeSender:
+      def __init__(self):
+          self.sent = []
+
+      def send(self, to, text):
+          self.sent.append((to, text))
+
+
+  def test_sends_a_reminder_for_a_booking():
+      sender = FakeSender()
+      count = ReminderService(sender).remind([Booking("Amara", "09:00", "+44 7700 900123")])
+      assert count == 1
+      assert sender.sent == [("+44 7700 900123", "Reminder: Amara, your appointment is at 09:00.")]
+
+  def test_bookings_without_a_phone_number_are_skipped():
+      sender = FakeSender()
+      count = ReminderService(sender).remind([Booking("Bayu", "10:00", "")])
+      assert count == 0
+      assert sender.sent == []
+hiddenTests: |
+  import inspect
+
+
+  class FakeSender:
+      def __init__(self):
+          self.sent = []
+
+      def send(self, to, text):
+          self.sent.append((to, text))
+
+
+  def test_order_is_kept_and_only_phone_numbers_count():
+      sender = FakeSender()
+      bookings = [
+          Booking("Amara", "09:00", "+44 7700 900123"),
+          Booking("Bayu", "10:00", "   "),
+          Booking("Chen", "11:00", "+44 7700 900456"),
+      ]
+      assert ReminderService(sender).remind(bookings) == 2
+      assert [to for to, _ in sender.sent] == ["+44 7700 900123", "+44 7700 900456"]
+
+  def test_empty_list():
+      sender = FakeSender()
+      assert ReminderService(sender).remind([]) == 0
+      assert sender.sent == []
+
+  def test_two_services_use_their_own_senders():
+      first, second = FakeSender(), FakeSender()
+      ReminderService(first).remind([Booking("Amara", "09:00", "+44 7700 900123")])
+      ReminderService(second)
+      assert len(first.sent) == 1 and second.sent == []
+
+  def test_errors_from_the_sender_reach_the_caller():
+      class Broken:
+          def send(self, to, text):
+              raise ConnectionError("offline")
+
+      try:
+          ReminderService(Broken()).remind([Booking("Amara", "09:00", "+44 7700 900123")])
+      except ConnectionError:
+          return
+      raise AssertionError("expected ConnectionError")
+
+  def test_earlier_messages_are_sent_before_an_error():
+      class FailsSecond:
+          def __init__(self):
+              self.sent = []
+
+          def send(self, to, text):
+              if len(self.sent) == 1:
+                  raise ConnectionError("offline")
+              self.sent.append(to)
+
+      sender = FailsSecond()
+      bookings = [
+          Booking("Amara", "09:00", "+44 7700 900123"),
+          Booking("Chen", "11:00", "+44 7700 900456"),
+      ]
+      try:
+          ReminderService(sender).remind(bookings)
+      except ConnectionError:
+          pass
+      assert sender.sent == ["+44 7700 900123"]
+
+  def test_bookings_are_not_changed():
+      bookings = [Booking("Amara", "09:00", "+44 7700 900123")]
+      ReminderService(FakeSender()).remind(bookings)
+      assert bookings == [Booking("Amara", "09:00", "+44 7700 900123")]
+
+  def test_type_hints_are_present():
+      for name in ["__init__", "remind"]:
+          signature = inspect.signature(getattr(ReminderService, name))
+          for parameter in list(signature.parameters.values())[1:]:
+              assert parameter.annotation is not inspect.Parameter.empty, name
+      assert inspect.signature(ReminderService.remind).return_annotation is not inspect.Signature.empty
+feedback:
+  - test: test_bookings_without_a_phone_number_are_skipped
+    message: 'Skip a booking whose phone is empty after strip(). Only count the messages you actually sent.'
+  - test: test_sends_a_reminder_for_a_booking
+    message: "The message is exactly 'Reminder: <guest>, your appointment is at <slot>.' and it goes to the booking's phone number."
+  - test: test_errors_from_the_sender_reach_the_caller
+    message: 'Do not catch the error from send. Let it go on to the caller.'
+  - test: test_order_is_kept_and_only_phone_numbers_count
+    message: 'Return the number of messages sent, not the number of bookings, and keep the order.'
+  - test: test_type_hints_are_present
+    message: 'Add a hint for the sender parameter and for the bookings parameter, and a return hint for remind.'
+hints:
+  - 'What should the service remember, and what should it ask the sender to do?'
+  - 'Store the sender in __init__. In remind, loop over the bookings, skip the ones without a phone, call self._sender.send(phone, text) and count each call.'
+  - |-
+    def __init__(self, sender: ____) -> None:
+        self._sender = sender
+
+    def remind(self, bookings: list[Booking]) -> int:
+        sent = 0
+        ...
+referenceSolution: |
+  from dataclasses import dataclass
+  from typing import Protocol
+
+
+  @dataclass(frozen=True)
+  class Booking:
+      guest: str
+      slot: str
+      phone: str
+
+
+  class Sender(Protocol):
+      def send(self, to: str, text: str) -> None: ...
+
+
+  class ReminderService:
+      def __init__(self, sender: Sender) -> None:
+          self._sender = sender
+
+      def remind(self, bookings: list[Booking]) -> int:
+          sent = 0
+          for booking in bookings:
+              if not booking.phone.strip():
+                  continue
+              text = f"Reminder: {booking.guest}, your appointment is at {booking.slot}."
+              self._sender.send(booking.phone, text)
+              sent += 1
+          return sent
+wrongSolutions:
+  - label: 'Sends to bookings without a phone number as well'
+    code: |
+      from dataclasses import dataclass
+      from typing import Protocol
+
+
+      @dataclass(frozen=True)
+      class Booking:
+          guest: str
+          slot: str
+          phone: str
+
+
+      class Sender(Protocol):
+          def send(self, to: str, text: str) -> None: ...
+
+
+      class ReminderService:
+          def __init__(self, sender: Sender) -> None:
+              self._sender = sender
+
+          def remind(self, bookings: list[Booking]) -> int:
+              sent = 0
+              for booking in bookings:
+                  text = f"Reminder: {booking.guest}, your appointment is at {booking.slot}."
+                  self._sender.send(booking.phone, text)
+                  sent += 1
+              return sent
+  - label: 'Returns the number of bookings instead of the number of messages sent'
+    code: |
+      from dataclasses import dataclass
+      from typing import Protocol
+
+
+      @dataclass(frozen=True)
+      class Booking:
+          guest: str
+          slot: str
+          phone: str
+
+
+      class Sender(Protocol):
+          def send(self, to: str, text: str) -> None: ...
+
+
+      class ReminderService:
+          def __init__(self, sender: Sender) -> None:
+              self._sender = sender
+
+          def remind(self, bookings: list[Booking]) -> int:
+              for booking in bookings:
+                  if not booking.phone.strip():
+                      continue
+                  text = f"Reminder: {booking.guest}, your appointment is at {booking.slot}."
+                  self._sender.send(booking.phone, text)
+              return len(bookings)
+  - label: 'Swallows errors from the sender'
+    code: |
+      from dataclasses import dataclass
+      from typing import Protocol
+
+
+      @dataclass(frozen=True)
+      class Booking:
+          guest: str
+          slot: str
+          phone: str
+
+
+      class Sender(Protocol):
+          def send(self, to: str, text: str) -> None: ...
+
+
+      class ReminderService:
+          def __init__(self, sender: Sender) -> None:
+              self._sender = sender
+
+          def remind(self, bookings: list[Booking]) -> int:
+              sent = 0
+              for booking in bookings:
+                  if not booking.phone.strip():
+                      continue
+                  text = f"Reminder: {booking.guest}, your appointment is at {booking.slot}."
+                  try:
+                      self._sender.send(booking.phone, text)
+                  except Exception:
+                      continue
+                  sent += 1
+              return sent
+  - label: 'Leaves out the type hints'
+    code: |
+      from dataclasses import dataclass
+      from typing import Protocol
+
+
+      @dataclass(frozen=True)
+      class Booking:
+          guest: str
+          slot: str
+          phone: str
+
+
+      class Sender(Protocol):
+          def send(self, to: str, text: str) -> None: ...
+
+
+      class ReminderService:
+          def __init__(self, sender):
+              self._sender = sender
+
+          def remind(self, bookings):
+              sent = 0
+              for booking in bookings:
+                  if not booking.phone.strip():
+                      continue
+                  text = f"Reminder: {booking.guest}, your appointment is at {booking.slot}."
+                  self._sender.send(booking.phone, text)
+                  sent += 1
+              return sent
+explanation: |
+  `ReminderService` receives its sender from outside, which is composition: it uses an object with a `send` method and does not care how it works. The `Sender` protocol tells a type checker what shape is needed, and Python itself never checks it, so a test can pass a simple fake with the same method. That is why this service is easy to test without sending a real message. The loop skips bookings without a phone number, counts only the messages it sent, and does not catch errors, so a problem with the real sender is visible to the caller. Alternative: inheriting from a base sender class would also work, but then every test has to subclass it. A protocol only asks for the method.

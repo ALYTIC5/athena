@@ -1,0 +1,573 @@
+lesson: py-05
+items:
+  # ---- Chunk 1: classes and dataclasses (objectives 1 and 2) ----
+  - id: py-05-q-self-init
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [py.classes]
+    stem: In a class, what are __init__ and self for?
+    options:
+      - text: __init__ sets up a new object, and self is that object
+        correct: true
+        why: Python calls __init__ when you create an instance, and passes the new object as self so the method can store attributes on it.
+      - text: __init__ deletes an object, and self is the class
+        correct: false
+        why: Objects are not deleted by __init__, and self is the instance, not the class.
+      - text: __init__ is called once for the class, and self is a global
+        correct: false
+        why: It runs once for each new instance, and self is an ordinary parameter that refers to that instance.
+      - text: __init__ returns the new object, and self is its type
+        correct: false
+        why: __init__ should return nothing. Python creates the object, then calls __init__ on it.
+  - id: py-05-q-predict-class-attr
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [py.classes]
+    code: |
+      class Day:
+          bookings = []
+
+          def add(self, guest):
+              self.bookings.append(guest)
+
+      a = Day()
+      b = Day()
+      a.add("Amara")
+      print(b.bookings, a.bookings is b.bookings)
+    investigate:
+      - Why does b show Amara although only a was changed?
+      - Where would you create the list so that each Day has its own?
+  - id: py-05-q-instance-vs-class
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.classes]
+    stem: What is the difference between a name set with self.x = 1 in __init__ and a name set as x = 1 in the class body?
+    options:
+      - text: The first belongs to one instance, and the second is shared by all
+        correct: true
+        why: A class attribute is one object that every instance can read. An instance attribute is stored on each object separately.
+      - text: The first is shared by all instances, and the second belongs to one
+        correct: false
+        why: This is the wrong way round. self.x stores the value on that one instance.
+      - text: Both are shared, but only the first can be changed
+        correct: false
+        why: An instance attribute is not shared, and both can be changed.
+      - text: There is no difference, because the two forms mean the same
+        correct: false
+        why: They differ when the value is mutable, because a class attribute is a single object that all instances share.
+  - id: py-05-q-methods
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [py.classes]
+    stem: A method def total(self) is called as booking.total(). Where does self come from?
+    options:
+      - text: Python passes booking as the first argument automatically
+        correct: true
+        why: Calling a method on an instance passes that instance as the first parameter.
+      - text: You must write booking.total(booking) every time
+        correct: false
+        why: Python does this for you. Passing it again would be an extra argument and an error.
+      - text: Python passes the class, not the instance
+        correct: false
+        why: Methods called on an instance receive the instance. The class is passed only to special class methods.
+      - text: self is looked up as a global variable
+        correct: false
+        why: self is just a parameter name. It is filled in by the call.
+  - id: py-05-q-mutable-default-dataclass
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [py.classes]
+    stem: 'A dataclass field is written notes: list[str] = []. What happens?'
+    options:
+      - text: Python raises a ValueError when the class is defined
+        correct: true
+        why: A shared mutable default would be the bug from py-01, so dataclasses refuse it and ask for default_factory.
+      - text: It works, and each instance gets its own empty list
+        correct: false
+        why: Without default_factory, all instances would share one list. Dataclasses stop you before that happens.
+      - text: It works, and all instances share one list
+        correct: false
+        why: A normal class would allow this. A dataclass raises an error to protect you.
+      - text: The field is ignored when creating instances
+        correct: false
+        why: The field is not ignored. The definition fails with an error.
+  - id: py-05-q-default-factory
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.classes]
+    stem: What does field(default_factory=list) do?
+    options:
+      - text: Calls list() to make a new list for each instance
+        correct: true
+        why: The factory is called whenever a default is needed, so no two instances share the list.
+      - text: Creates one list and shares it between instances
+        correct: false
+        why: That is what a plain default would do. The factory exists to avoid it.
+      - text: Turns the field into a read-only property
+        correct: false
+        why: It only controls the default value. Use frozen=True to stop assignment.
+      - text: Sorts the list when the instance is created
+        correct: false
+        why: The factory only creates an empty list. It does not sort anything.
+  - id: py-05-q-frozen
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [py.classes]
+    stem: What does @dataclass(frozen=True) do?
+    options:
+      - text: Assigning to a field after creation raises an error
+        correct: true
+        why: The raised error is dataclasses.FrozenInstanceError, a kind of AttributeError. A frozen dataclass also gets a __hash__.
+      - text: It makes the fields private, so other code cannot read them
+        correct: false
+        why: Fields stay readable. Python has no real private attributes.
+      - text: It freezes the objects that the fields refer to
+        correct: false
+        why: A list in a frozen field can still be changed in place. Only assigning to the field is refused.
+      - text: It stops the class from being copied
+        correct: false
+        why: A frozen instance can be copied, and used in sets and as a dict key.
+  - id: py-05-q-dataclass-gives
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.classes]
+    stem: Which methods does @dataclass write for you from the annotated fields?
+    options:
+      - text: __init__, __repr__ and __eq__
+        correct: true
+        why: These are the three by default. Others, such as ordering, can be switched on with arguments.
+      - text: __init__ and __del__
+        correct: false
+        why: A dataclass does not write __del__, which runs when an object is deleted.
+      - text: __iter__ and __len__
+        correct: false
+        why: A dataclass is not a collection, so it does not get these.
+      - text: Only __init__
+        correct: false
+        why: It also writes __repr__ and __eq__, which is why two dataclass instances with equal fields compare equal.
+  - id: py-05-q-predict-dataclass
+    pools: [mastery]
+    objective: 2
+    type: predict
+    competencies: [py.classes]
+    code: |
+      from dataclasses import dataclass, field
+
+      @dataclass
+      class Booking:
+          id: str
+          notes: list[str] = field(default_factory=list)
+
+      a = Booking("b1")
+      b = Booking("b1")
+      a.notes.append("late")
+      print(a == b, b)
+    investigate:
+      - Why are a and b no longer equal?
+      - What does the printed text of b show about its fields?
+  - id: py-05-q-composition
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [py.classes]
+    stem: A ReminderService needs to send messages. What does composition over inheritance suggest?
+    options:
+      - text: Give the service a sender object to use, instead of subclassing a sender
+        correct: true
+        why: The service has a sender, which is easier to replace with a fake in tests than a parent class.
+      - text: Make ReminderService a subclass of every sender it might use
+        correct: false
+        why: A class that is a sender, a scheduler and a logger at once is hard to change and test.
+      - text: Copy the sender's code into ReminderService
+        correct: false
+        why: Copying code makes two versions to maintain. Composition reuses the existing object.
+      - text: Use global variables to share the sender
+        correct: false
+        why: Globals hide the dependency. Passing the sender in makes it visible.
+  - id: py-05-q-dict-vs-dataclass
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [py.classes]
+    stem: When is a dataclass better than a dict for a booking?
+    options:
+      - text: When the fields are known and you want hints, checks and clear errors
+        correct: true
+        why: A dataclass documents the fields, helps editors and type checkers, and fails if you misspell an attribute.
+      - text: When the keys are not known until the program runs
+        correct: false
+        why: Unknown keys fit a dict better. A dataclass needs its fields in the class.
+      - text: When you need to loop over keys and values
+        correct: false
+        why: A dict does that directly. Dataclass fields are meant for a fixed set of attributes.
+      - text: Never, because dicts are faster to write
+        correct: false
+        why: A dict is quick for a throwaway value. A dataclass pays off once the same shape is used in many places.
+  - id: py-05-q-bug-class-attr
+    pools: [mastery]
+    objective: 1
+    type: bug
+    competencies: [py.classes]
+    code: |
+      class Cart:
+          items = []
+
+          def add(self, item):
+              self.items.append(item)
+    buggyLine: 2
+    explanation: items is created once, in the class body, and every Cart shares it. Create the list in __init__ with self.items = [] so that each cart has its own.
+
+  # ---- Chunk 2: type hints (objective 3) ----
+  - id: py-05-q-hints-runtime
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: 'A function is written def double(n: int) -> int. What happens when it is called as double("ab")?'
+    options:
+      - text: It runs and returns "abab", because hints are not enforced
+        correct: true
+        why: Python ignores annotations when it runs. A type checker such as mypy or pyright would report the call before the program is run.
+      - text: It raises a TypeError, because "ab" is not an int
+        correct: false
+        why: Python does not check hints at run time. The TypeError only appears if the body itself fails.
+      - text: It converts "ab" to an int automatically
+        correct: false
+        why: Hints never convert values. int("ab") would fail, but nothing calls it.
+      - text: It returns None, because the types do not match
+        correct: false
+        why: The function runs normally. Hints do not change what it returns.
+  - id: py-05-q-predict-hints
+    pools: [check, mastery]
+    chunk: 2
+    objective: 3
+    type: predict
+    competencies: [py.typing]
+    code: |
+      def double(n: int) -> int:
+          return n * 2
+
+      print(double("ab"), double.__annotations__)
+    investigate:
+      - Why does the call work although "ab" is not an int?
+      - Where are the hints kept, and who reads them?
+  - id: py-05-q-type-checker
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: What does a type checker such as mypy or pyright do?
+    options:
+      - text: Reads your hints and reports mismatches without running the program
+        correct: true
+        why: It analyses the code. That is why it can find mistakes in paths your tests never run.
+      - text: Converts values to the hinted types at run time
+        correct: false
+        why: Checkers do not run the code, and Python does not convert values because of hints.
+      - text: Makes the program faster by using the types
+        correct: false
+        why: Standard Python ignores hints when it runs, so they do not change the speed.
+      - text: Stops wrong calls while the program is running
+        correct: false
+        why: It checks before the program is run. At run time the hints are only information.
+  - id: py-05-q-union-none
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: A function returns a guest's name, or None if the slot is free. Which return hint is right?
+    options:
+      - text: '-> str | None'
+        correct: true
+        why: The vertical bar means either type. A checker then makes you handle the None before you use the name.
+      - text: '-> str'
+        correct: false
+        why: This promises a name every time, so the None case would be a checker error.
+      - text: '-> None'
+        correct: false
+        why: This says the function never returns a value.
+      - text: '-> str or None'
+        correct: false
+        why: The word or is not valid in a hint. Use the bar, or typing.Optional[str].
+  - id: py-05-q-collection-hints
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: Which hint describes a dict that maps slot names to guest names?
+    options:
+      - text: dict[str, str]
+        correct: true
+        why: The first type is the key and the second is the value. Built-in collections accept type arguments in square brackets.
+      - text: dict(str, str)
+        correct: false
+        why: Round brackets would call dict. Hints use square brackets.
+      - text: list[str, str]
+        correct: false
+        why: A list holds one kind of item and takes one type argument. A dict maps keys to values.
+      - text: str[dict]
+        correct: false
+        why: This is the wrong way round. The container comes first.
+  - id: py-05-q-protocol
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.typing, py.classes]
+    stem: What is a typing.Protocol used for?
+    options:
+      - text: Describing the methods an object must have, whatever its class
+        correct: true
+        why: Any object with a matching send method fits a Sender protocol, which is structural typing, also called duck typing for checkers.
+      - text: Forcing a class to inherit from a base class at run time
+        correct: false
+        why: A protocol is for checkers. It does not require inheritance.
+      - text: Making methods private
+        correct: false
+        why: Protocols do not control access. They describe a shape.
+      - text: Checking the values passed to a function while it runs
+        correct: false
+        why: Python does not use protocols at run time unless you ask for it with extra tools.
+  - id: py-05-q-none-check
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: A variable has the hint str | None. Why does a checker complain about name.upper()?
+    options:
+      - text: The value could be None, which has no upper method
+        correct: true
+        why: Check with if name is not None first, and the checker then knows it is a str.
+      - text: upper only works on hinted variables
+        correct: false
+        why: Hints do not decide which methods exist. upper is a method of str.
+      - text: Hints cannot be used with methods
+        correct: false
+        why: They can. The checker is following the None case.
+      - text: The checker does not know what upper does
+        correct: false
+        why: It knows the str methods. The problem is that the value may not be a str.
+  - id: py-05-q-why-hints
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [py.typing]
+    stem: Why are type hints worth writing if Python ignores them when it runs?
+    options:
+      - text: Editors and checkers use them to find bugs and document the code
+        correct: true
+        why: They show what a function expects and returns, and let tools catch mismatches early.
+      - text: They make the code run faster
+        correct: false
+        why: Standard Python does not use them for speed.
+      - text: They are required for the code to run
+        correct: false
+        why: Code without hints runs the same.
+      - text: They convert arguments to the right types
+        correct: false
+        why: Python never converts because of a hint.
+  - id: py-05-q-bug-hint
+    pools: [mastery]
+    objective: 3
+    type: bug
+    competencies: [py.typing]
+    code: |
+      def guest_at(slots: dict[str, str], slot: str) -> str:
+          return slots.get(slot)
+    buggyLine: 2
+    explanation: dict.get returns None for a missing key, so the function can return None, but the hint promises a str. Change the hint to str | None, or decide what to do when the slot is free.
+
+  # ---- Chunk 3: modules, packages and environments (objectives 4 and 5) ----
+  - id: py-05-q-venv-purpose
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 5
+    type: single
+    competencies: [py.packages]
+    stem: Why do you create a virtual environment for each project?
+    options:
+      - text: Each project gets its own installed packages and versions
+        correct: true
+        why: Two projects can need different versions of one library, and a project can be rebuilt without touching the system Python.
+      - text: It makes Python run faster
+        correct: false
+        why: A virtual environment does not change speed. It isolates packages.
+      - text: It is the only way to run a script
+        correct: false
+        why: You can run a script with the system Python, but its packages would be shared by every project.
+      - text: It lets the project work without installing anything
+        correct: false
+        why: You still install packages. They go into the environment.
+  - id: py-05-q-package-layout
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [py.packages]
+    stem: What is the difference between a module and a package?
+    options:
+      - text: A module is one Python file, and a package is a folder of modules
+        correct: true
+        why: A regular package is a folder that contains an __init__.py file and other modules.
+      - text: A package is one file, and a module is a folder
+        correct: false
+        why: This is the wrong way round. A module is a single .py file.
+      - text: A module is installed with pip, and a package is not
+        correct: false
+        why: Both can be part of installed software. The difference is the structure.
+      - text: They are the same thing
+        correct: false
+        why: A package groups several modules under one name.
+  - id: py-05-q-import-forms
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.packages]
+    stem: A package bookings has a module schedule with a class Schedule. Which line imports the class?
+    options:
+      - text: from bookings.schedule import Schedule
+        correct: true
+        why: The dotted path names the package, then the module, and the name after import is taken from the module.
+      - text: import Schedule from bookings
+        correct: false
+        why: This is not Python syntax. In Python, from comes first.
+      - text: from Schedule import bookings.schedule
+        correct: false
+        why: The order is reversed. The package comes first.
+      - text: import bookings.Schedule
+        correct: false
+        why: Schedule is a class inside the module schedule. You cannot import a class as a module.
+  - id: py-05-q-main-guard
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [py.packages]
+    stem: What does if __name__ == "__main__" do at the bottom of a module?
+    options:
+      - text: Runs the code only when the file is run directly, not when it is imported
+        correct: true
+        why: When a file is imported, its __name__ is the module name. When it is run as a script, it is "__main__".
+      - text: Runs the code every time the module is imported
+        correct: false
+        why: It is the opposite. The block is skipped on import.
+      - text: Stops the module from being imported
+        correct: false
+        why: The module can still be imported. Only that block is skipped.
+      - text: Makes the module a package
+        correct: false
+        why: A package is a folder. The guard only controls when code runs.
+  - id: py-05-q-pinning
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [py.packages]
+    stem: What does pinning dependencies mean, and why do it?
+    options:
+      - text: Recording exact versions, so every install gets the same code
+        correct: true
+        why: Without pins, a new release can change behaviour between two installs of the same project.
+      - text: Installing every package on the system
+        correct: false
+        why: Pinning is about versions, not about how many packages are installed.
+      - text: Making packages impossible to uninstall
+        correct: false
+        why: Packages can still be removed. Pins only record versions.
+      - text: Keeping packages in the project folder
+        correct: false
+        why: That describes a virtual environment. Pinning records versions.
+  - id: py-05-q-pyproject
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.packages]
+    stem: What does a pyproject.toml file hold for a project?
+    options:
+      - text: The project's name, Python version and dependencies
+        correct: true
+        why: It is the standard place for project metadata, and tools such as pip and uv read it.
+      - text: The compiled code of the project
+        correct: false
+        why: Compiled code is produced when the program runs or when it is built. It is not stored in this file.
+      - text: The passwords the project needs
+        correct: false
+        why: Secrets never go in the repository, as sec-01 taught.
+      - text: The tests and their results
+        correct: false
+        why: Tests are separate files. The file may name the test tool.
+  - id: py-05-q-venv-git
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.packages, git.commits]
+    stem: Should the .venv folder be committed to Git?
+    options:
+      - text: No, add it to .gitignore and share the dependency list instead
+        correct: true
+        why: The folder is large, specific to one computer, and can be rebuilt from the dependency list.
+      - text: Yes, so everyone gets the same packages
+        correct: false
+        why: A committed environment is large and tied to one machine. A pinned list gives the same result.
+      - text: Only the bin or Scripts folder inside it
+        correct: false
+        why: These folders are part of the same environment, and they depend on the computer.
+      - text: Yes, but only on the main branch
+        correct: false
+        why: The branch does not matter. The environment is a build output.
+  - id: py-05-q-venv-order
+    pools: [mastery]
+    objective: 5
+    type: order
+    competencies: [py.packages]
+    stem: Put these steps for starting a new project in order.
+    steps:
+      - Create the environment with python -m venv .venv
+      - Activate it
+      - Install the dependencies with pip install
+      - Run the program
+  - id: py-05-q-uv
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.packages]
+    stem: What is uv?
+    options:
+      - text: A tool that manages environments and installs dependencies
+        correct: true
+        why: It does the work of venv and pip in one tool, and reads pyproject.toml. Many teams use it for speed and simplicity.
+      - text: A new version of Python
+        correct: false
+        why: It is a separate tool that works with Python, not a language version.
+      - text: A type checker
+        correct: false
+        why: Type checkers include mypy and pyright. uv installs packages.
+      - text: A built-in module of the standard library
+        correct: false
+        why: It is installed separately, like pip.
+  - id: py-05-q-no-global-pip
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [py.packages]
+    stem: You run pip install requests with no environment active. What is the risk?
+    options:
+      - text: The package goes into the shared Python, where it can clash with other projects
+        correct: true
+        why: Different projects may need different versions, and one install can break another project.
+      - text: Nothing is installed, because pip needs an environment
+        correct: false
+        why: pip installs into whichever Python it belongs to, which may be the shared one.
+      - text: The package is installed only for this folder
+        correct: false
+        why: Without an environment, the install is not tied to a folder.
+      - text: pip refuses to run without one
+        correct: false
+        why: pip runs. Some systems warn or refuse for a system Python, but the safe habit is an environment.

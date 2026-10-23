@@ -1,0 +1,103 @@
+id: py-05-faded-booking
+lesson: py-05
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: 'A Booking dataclass that cannot be changed'
+difficulty: 1
+competencies:
+  - py.classes
+timeoutMs: 5000
+estMin: 6
+packages: []
+prompt: |
+  Write the dataclass `Booking`. It has an `id` and a `guest` (both text) and a list of `notes` that starts empty for every booking. A booking must not be changeable after it is created: assigning to one of its attributes must raise an error.
+
+  Fill in the two blanks: the argument that makes a dataclass unchangeable, and the function that gives a field a new empty list for each instance.
+starter: |
+  from dataclasses import dataclass, field
+
+
+  @dataclass(____)
+  class Booking:
+      id: str
+      guest: str
+      notes: list[str] = ____(default_factory=list)
+visibleTests: |
+  def test_fields_and_defaults():
+      booking = Booking("b1", "Amara")
+      assert (booking.id, booking.guest, booking.notes) == ("b1", "Amara", [])
+
+  def test_assignment_is_refused():
+      booking = Booking("b1", "Amara")
+      try:
+          booking.guest = "Bayu"
+      except AttributeError:
+          return
+      raise AssertionError("expected the assignment to be refused")
+hiddenTests: |
+  def test_each_booking_has_its_own_notes_list():
+      first = Booking("b1", "Amara")
+      second = Booking("b2", "Bayu")
+      first.notes.append("window seat")
+      assert second.notes == []
+
+  def test_notes_can_be_given():
+      assert Booking("b1", "Amara", ["late"]).notes == ["late"]
+
+  def test_equal_bookings_compare_equal():
+      assert Booking("b1", "Amara") == Booking("b1", "Amara")
+      assert Booking("b1", "Amara") != Booking("b2", "Amara")
+
+  def test_repr_shows_the_fields():
+      assert "b1" in repr(Booking("b1", "Amara"))
+
+  def test_id_cannot_be_changed_either():
+      booking = Booking("b1", "Amara")
+      try:
+          booking.id = "b9"
+      except AttributeError:
+          return
+      raise AssertionError("expected the assignment to be refused")
+feedback:
+  - test: test_assignment_is_refused
+    message: 'The dataclass is still changeable. A dataclass becomes unchangeable (frozen) with an argument to the decorator.'
+  - test: test_each_booking_has_its_own_notes_list
+    message: 'Every booking must get a new list. Use field with a default_factory, which calls list for each new instance.'
+hints:
+  - 'Which two features are asked for: protection against assignment, and a new list per booking?'
+  - 'The decorator accepts an argument that freezes the class, and the function field creates a field with a default_factory.'
+  - '@dataclass(____)   and   notes: list[str] = ____(default_factory=list)   where the first blank is frozen=True and the second is field'
+referenceSolution: |
+  from dataclasses import dataclass, field
+
+
+  @dataclass(frozen=True)
+  class Booking:
+      id: str
+      guest: str
+      notes: list[str] = field(default_factory=list)
+wrongSolutions:
+  - label: 'Gives the list a plain default, which dataclasses refuse with a ValueError'
+    code: |
+      from dataclasses import dataclass
+
+
+      @dataclass(frozen=True)
+      class Booking:
+          id: str
+          guest: str
+          notes: list[str] = []
+  - label: 'Leaves the dataclass changeable'
+    code: |
+      from dataclasses import dataclass, field
+
+
+      @dataclass
+      class Booking:
+          id: str
+          guest: str
+          notes: list[str] = field(default_factory=list)
+explanation: |
+  `@dataclass` writes `__init__`, `__repr__` and `__eq__` from the annotated fields. `frozen=True` makes assignment raise `FrozenInstanceError`, a kind of `AttributeError`. A plain default such as `[]` would be one list shared by every instance, which is the mutable default argument bug from py-01, so dataclasses refuse it with a `ValueError`. `field(default_factory=list)` calls `list()` for each new booking instead. Frozen protects the attributes, not what they point to: you can still append to `notes`. Alternative: `tuple[str, ...]` with a default of `()` is fully unchangeable, but then you cannot add notes in place.
