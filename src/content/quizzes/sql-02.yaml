@@ -31,7 +31,7 @@ items:
     options:
       - text: 'The two copies need different names to tell apart'
         correct: true
-        why: Without aliases, a column such as id could mean either copy, and PostgreSQL reports that the reference is ambiguous.
+        why: PostgreSQL refuses a table named twice, and a column such as id could mean either copy.
       - text: Aliases make the join run faster than it would without them
         correct: false
         why: Aliases do not change speed. They only give each copy of the table its own name.
@@ -143,7 +143,7 @@ items:
     competencies: [sql.joins]
     stem: In a self join of bookings a and b on the same customer, what does adding a.id < b.id achieve?
     options:
-      - text: Each pair appears once, and no booking pairs with itself
+      - text: Each pair appears once, with no self-pairs
         correct: true
         why: Without it you get both (10, 11) and (11, 10), and also (10, 10). The strict comparison keeps one order only.
       - text: It sorts the pairs by their ids in the output
@@ -211,9 +211,9 @@ items:
       - text: 30 and 10, because NULL counts as zero
         correct: false
         why: NULL is not treated as zero. If it were, the average would be 10.
-      - text: 30 and 15, but only if you add WHERE x IS NOT NULL
+      - text: 30 and 15, but only for a column declared NOT NULL
         correct: false
-        why: The extra condition does no harm, but it is not needed, because the aggregates skip NULLs.
+        why: A column that is declared NOT NULL has no NULLs, so there would be nothing to skip. The aggregates skip NULLs whatever the declaration.
   - id: sql-02-q-group-rows
     pools: [mastery]
     objective: 2
@@ -221,10 +221,10 @@ items:
     competencies: [sql.aggregation]
     stem: What does GROUP BY c.id do to the joined rows?
     options:
-      - text: It gathers rows with the same c.id into one result row each
+      - text: It collapses rows with the same c.id into one row
         correct: true
         why: The rows of each group are collapsed, and aggregates such as COUNT and SUM are calculated over each group.
-      - text: It sorts the rows by c.id
+      - text: It sorts the rows by c.id before returning them
         correct: false
         why: Sorting needs ORDER BY. Grouping may happen to sort, but the order is not promised.
       - text: It removes the rows where c.id is NULL
@@ -288,18 +288,18 @@ items:
     objective: 3
     type: single
     competencies: [sql.aggregation]
-    stem: You want each customer's total of booking calls, but only calls with the reason booking, and only totals of 100 seconds or more. Where do the two conditions go?
+    stem: You want each customer's total call time, counting only calls with the reason billing, and only totals of 300 seconds or more. Where do the two conditions go?
     options:
-      - text: reason = 'booking' in WHERE, and SUM(duration_s) >= 100 in HAVING
+      - text: reason = 'billing' in WHERE, and SUM(duration_s) >= 300 in HAVING
         correct: true
         why: The reason is a fact about single rows, so it is filtered before grouping. The total is a fact about a group, so it is filtered after.
-      - text: Both in WHERE, joined with AND
+      - text: Both in WHERE, joined with AND, before the grouping happens
         correct: false
         why: WHERE cannot test an aggregate such as SUM, so the query is rejected.
-      - text: Both in HAVING, joined with AND
+      - text: Both in HAVING, joined with AND, after the grouping happens
         correct: false
         why: reason is not grouped or aggregated, so HAVING cannot use it. The reason belongs in WHERE.
-      - text: SUM(duration_s) >= 100 in WHERE, and reason in HAVING
+      - text: SUM(duration_s) >= 300 in WHERE, and reason = 'billing' in HAVING
         correct: false
         why: This swaps them. The aggregate cannot be tested in WHERE.
   - id: sql-02-q-left-count-zero
@@ -307,20 +307,20 @@ items:
     objective: 3
     type: single
     competencies: [sql.joins, sql.aggregation]
-    stem: You need every customer with their number of bookings, showing 0 for customers with none. Which is right?
+    stem: You need every customer with the number of calls they made, showing 0 for customers with none. Which is right?
     options:
-      - text: LEFT JOIN bookings, then COUNT(b.id) with GROUP BY the customer
+      - text: LEFT JOIN calls, then COUNT(k.id) with GROUP BY the customer
         correct: true
-        why: The left join keeps customers with no bookings, and COUNT(b.id) skips the NULL, giving 0.
-      - text: JOIN bookings, then COUNT(*) with GROUP BY the customer
+        why: The left join keeps customers with no calls, and COUNT(k.id) skips the NULL, giving 0.
+      - text: JOIN calls, then COUNT(*) with GROUP BY the customer
         correct: false
-        why: The inner join drops customers without bookings, so they would not appear at all.
-      - text: LEFT JOIN bookings, then COUNT(*) with GROUP BY the customer
+        why: The inner join drops customers without calls, so they would not appear at all.
+      - text: LEFT JOIN calls, then COUNT(*) with GROUP BY the customer
         correct: false
-        why: COUNT(*) counts the NULL-filled row, so a customer with no bookings shows 1.
-      - text: LEFT JOIN bookings, then COUNT(c.id) with GROUP BY the customer
+        why: COUNT(*) counts the NULL-filled row, so a customer with no calls shows 1.
+      - text: LEFT JOIN calls, then COUNT(c.id) with GROUP BY the customer
         correct: false
-        why: c.id is never NULL, so this also gives 1 for a customer with no bookings.
+        why: c.id is never NULL, so this also gives 1 for a customer with no calls.
   - id: sql-02-q-count-distinct
     pools: [mastery]
     objective: 2
