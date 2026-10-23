@@ -262,9 +262,9 @@ items:
       - text: It imports schedule from a special module
         correct: false
         why: Fixtures are found by name. No import is needed within the same file.
-      - text: It adds a decorator that says use fixture schedule
+      - text: 'It adds @pytest.mark.usefixtures("schedule") above the test'
         correct: false
-        why: There is no such decorator for the common case. The parameter name is enough.
+        why: 'usefixtures runs a fixture but does not give the test its value. The parameter name does both.'
   - id: py-06-q-tmp-path
     pools: [mastery, warmup]
     objective: 2
@@ -310,16 +310,16 @@ items:
     competencies: [py.pytest]
     stem: Why use parametrize instead of a for loop over the cases inside one test?
     options:
-      - text: The loop stops at the first failure, but parametrize reports every case
+      - text: 'A loop stops at its first failure; parametrize does not'
         correct: true
         why: An assert that fails inside a loop ends the test, so you do not learn about the later cases.
-      - text: A loop inside a test is not allowed
+      - text: 'A loop inside a test is not allowed by pytest'
         correct: false
         why: It is allowed. It just gives less information.
-      - text: parametrize runs faster than a loop
+      - text: 'parametrize runs noticeably faster than a loop'
         correct: false
         why: Speed is about the same. The benefit is the reporting.
-      - text: A loop cannot use assert
+      - text: 'A loop cannot contain an assert statement'
         correct: false
         why: assert works in a loop. The first failure ends the test.
 
@@ -412,7 +412,7 @@ items:
     competencies: [py.mocking]
     stem: When is a mock, with an assertion on how it was called, a good choice?
     options:
-      - text: When the thing to check is that a call happened, such as an email being sent once
+      - text: 'When the call itself is the behaviour, such as sending one email'
         correct: true
         why: The call is the behaviour, and there may be no return value to check.
       - text: When you want to test the result that a function returns
@@ -469,16 +469,16 @@ items:
     competencies: [py.pytest]
     stem: A test passes on most runs and fails on some. What is the most likely cause?
     options:
-      - text: It depends on something that changes, such as the clock or the network
+      - text: 'It depends on the clock, the network or other changing input'
         correct: true
         why: A test should give the same result every time. Replace the changing thing with a fake you control.
-      - text: pytest is unreliable
+      - text: 'pytest itself is unreliable and gives random results'
         correct: false
         why: pytest runs the same code each time. The difference comes from the test or the code.
-      - text: The test is too short
+      - text: 'The test is too short to be reliable'
         correct: false
         why: The length is not the cause. Uncontrolled inputs are.
-      - text: The test uses assert
+      - text: 'The test uses assert instead of raising errors'
         correct: false
         why: assert is how a test states what must be true. It does not cause random results.
   - id: py-06-q-unit-vs-integration
@@ -488,7 +488,7 @@ items:
     competencies: [py.pytest]
     stem: What is the difference between a unit test and an integration test?
     options:
-      - text: A unit test checks one piece alone, and an integration test checks pieces working together
+      - text: 'A unit test checks one piece alone; an integration test checks pieces together'
         correct: true
         why: Unit tests are fast and pinpoint the problem. Integration tests are slower, but they catch faults between the pieces.
       - text: A unit test is for small functions, and an integration test is for big ones
@@ -529,7 +529,7 @@ items:
       - text: The test breaks whenever the code is reorganised, though the behaviour is the same
         correct: true
         why: The test describes how the code works inside instead of what it does, so it makes changes harder.
-      - text: The test runs more slowly
+      - text: 'The test runs more slowly than a normal test'
         correct: false
         why: Mocks are usually fast. The cost is brittleness.
       - text: The mocks hide the assert statements
