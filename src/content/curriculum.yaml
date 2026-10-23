@@ -71,7 +71,7 @@
     - id: sql-01
       title: 'Querying one table'
       durationMin: 45
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Two pointers'
