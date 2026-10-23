@@ -9,7 +9,7 @@ items:
     competencies: [sql.joins]
     stem: A customer has no bookings. What happens to that customer in an inner join and in a left join from customers to bookings?
     options:
-      - text: Dropped by the inner join, kept by the left join with NULLs
+      - text: 'Dropped by the inner join, kept by the left join'
         correct: true
         why: An inner join keeps only rows with a match on both sides. A left join keeps every row on the left and fills the right side with NULL.
       - text: Kept by both joins, with NULLs on the booking side
@@ -29,7 +29,7 @@ items:
     competencies: [sql.joins]
     stem: Why does a self join, such as bookings joined to bookings, need table aliases?
     options:
-      - text: The two copies of the table need different names to tell apart
+      - text: 'The two copies need different names to tell apart'
         correct: true
         why: Without aliases, a column such as id could mean either copy, and PostgreSQL reports that the reference is ambiguous.
       - text: Aliases make the join run faster than it would without them
@@ -124,7 +124,7 @@ items:
     competencies: [sql.joins, sql.nulls]
     stem: A query is customers c LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.starts > '2026-11-01'. What happens to customers with no bookings?
     options:
-      - text: They disappear, because b.starts is NULL and the WHERE is not true
+      - text: 'They disappear, since b.starts is NULL and fails WHERE'
         correct: true
         why: WHERE runs after the join and keeps only rows where the condition is true, so the NULL-filled rows are removed and the left join acts like an inner join.
       - text: They stay, because a left join keeps every customer
@@ -170,15 +170,15 @@ items:
       - text: COUNT(*) cannot be used together with a join
         correct: false
         why: Aggregates work on joined rows too. The problem is the ungrouped column.
-      - text: GROUP BY needs the table alias, as in GROUP BY c
+      - text: 'GROUP BY must list every table in the join'
         correct: false
-        why: GROUP BY takes column names or expressions. The alias alone is not a valid grouping.
+        why: 'GROUP BY lists columns or expressions, not tables. The problem here is the ungrouped column b.id.'
       - text: Nothing, because PostgreSQL picks one b.id for each group
         correct: false
         why: Some other databases do this, but PostgreSQL gives an error instead.
   - id: sql-02-q-count-star-vs-column
     pools: [mastery, warmup]
-    objective: 2
+    objective: 3
     type: single
     competencies: [sql.aggregation, sql.nulls]
     stem: What is the difference between COUNT(*) and COUNT(b.id) after a LEFT JOIN?

@@ -78,7 +78,7 @@ ORDER BY c.id, k.id;                        -- Tomas Novak has no calls, so his 
 <Callout type="misconception" title="Common misconceptions in chunk 1">
 
 - "A join returns one row per customer." It returns one row per matching pair.
-- "A left join always keeps every customer." It does until a `WHERE` condition on the right table removes the NULL rows.
+- "A left join always keeps every customer." It does until a `WHERE` condition on the right table removes the NULL rows. Put that condition in the `ON` clause to keep them.
 - "`= NULL` finds the rows with no match." It never matches. Use `IS NULL`.
 
 </Callout>
@@ -95,9 +95,9 @@ ORDER BY c.id, k.id;                        -- Tomas Novak has no calls, so his 
 
 ## Aggregation: GROUP BY and HAVING
 
-`GROUP BY` collapses rows with the same value into one row, and aggregates such as `COUNT`, `SUM` and `AVG` are calculated for each group. Every selected column must be in the `GROUP BY` or inside an aggregate. `COUNT(*)` counts rows, while `COUNT(column)` and the other aggregates skip NULLs.
+`GROUP BY` collapses rows with the same value into one row, and aggregates such as `COUNT`, `SUM` and `AVG` are calculated for each group. Every selected column must be in the `GROUP BY` or inside an aggregate (PostgreSQL also accepts columns that depend on a grouped primary key, but listing them is clearer). `COUNT(*)` counts rows, while `COUNT(column)` and the other aggregates skip NULLs.
 
-`WHERE` filters rows before they are grouped, and `HAVING` filters groups after the aggregates are calculated, so only `HAVING` can test an aggregate. After a `LEFT JOIN`, count a column of the right table, as in `COUNT(b.id)`, to get 0 for a customer with no match.
+`WHERE` filters rows before they are grouped, and `HAVING` filters groups after the aggregates are calculated, so only `HAVING` can test an aggregate. After a `LEFT JOIN`, count a column of the right table, as in `COUNT(b.id)`, to get 0 for a customer with no match. `COUNT(DISTINCT reason)` counts the different values. The logical order is `FROM` and `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `SELECT`, then `ORDER BY`, which is why `ORDER BY` can use a `SELECT` alias and `WHERE` cannot.
 
 ```sql schema="sql-02-inner-join"
 SELECT customer_id, COUNT(*) AS calls, SUM(duration_s) AS total_s
