@@ -1,0 +1,80 @@
+id: sql-02-group-count
+lesson: sql-02
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'How many bookings has each customer?'
+difficulty: 2
+competencies:
+  - sql.aggregation
+  - sql.joins
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE customers (
+    id integer PRIMARY KEY,
+    name text NOT NULL
+  );
+  CREATE TABLE bookings (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL REFERENCES customers(id),
+    starts timestamp NOT NULL,
+    ends timestamp NOT NULL
+  );
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES customers(id),
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO customers VALUES
+    (1, 'Amara Okafor'),
+    (2, 'Jonas Weber'),
+    (3, 'Mei Tanaka'),
+    (4, 'Sofia Reyes'),
+    (5, 'Tomas Novak');
+  INSERT INTO bookings VALUES
+    (10, 1, '2026-11-02 09:00', '2026-11-02 10:00'),
+    (11, 1, '2026-11-02 09:30', '2026-11-02 10:30'),
+    (12, 1, '2026-11-09 09:00', '2026-11-09 10:00'),
+    (13, 3, '2026-11-03 14:00', '2026-11-03 15:00'),
+    (14, 3, '2026-11-03 15:00', '2026-11-03 16:00'),
+    (15, 2, '2026-11-02 09:15', '2026-11-02 09:45');
+  INSERT INTO calls VALUES
+    (1, 1, 120, 'booking'),
+    (2, 1, 45, 'billing'),
+    (3, 2, 300, 'cancel'),
+    (4, 3, NULL, 'booking'),
+    (5, 3, 200, 'booking'),
+    (6, NULL, 60, NULL),
+    (7, 4, 400, 'billing'),
+    (8, 4, 20, 'booking');
+prompt: |
+  Three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). Each booking and each call belongs to at most one customer.
+
+  For customers who have at least one booking, select the `name` and the number of bookings as `bookings`. Put the customer with the most bookings first, and break ties by `name`.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT c.name, COUNT(*) AS bookings FROM customers c JOIN bookings b ON b.customer_id = c.id GROUP BY c.id, c.name ORDER BY bookings DESC, c.name;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Sorts the smallest count first'
+    code: |
+      SELECT c.name, COUNT(*) AS bookings FROM customers c JOIN bookings b ON b.customer_id = c.id GROUP BY c.id, c.name ORDER BY bookings, c.name;
+  - label: 'Uses a left join with COUNT(*), so customers without bookings show a count of 1'
+    code: |
+      SELECT c.name, COUNT(*) AS bookings FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id GROUP BY c.id, c.name ORDER BY bookings DESC, c.name;
+  - label: 'Groups by the booking id, so every group has one booking'
+    code: |
+      SELECT c.name, COUNT(*) AS bookings FROM customers c JOIN bookings b ON b.customer_id = c.id GROUP BY c.name, b.id ORDER BY bookings DESC, c.name;
+hints:
+  - 'What should be one row in the result: a booking or a customer? What do you count?'
+  - 'Join the tables, GROUP BY the customer, and count the rows in each group with COUNT(*). Sort by the count, largest first.'
+  - 'SELECT c.name, ____(*) AS bookings FROM customers c JOIN bookings b ON b.customer_id = c.id GROUP BY c.id, c.name ORDER BY bookings ____, c.name;'
+explanation: |
+  `GROUP BY` collapses the rows of each customer into one result row, and `COUNT(*)` counts the rows in each group. Every column in the SELECT list must be in the GROUP BY or inside an aggregate. Grouping by `c.id` as well as `c.name` keeps two customers with the same name apart. Sorting by the alias `bookings` works because ORDER BY runs after the select list. The left join in the second wrong solution would give a count of 1 to customers without bookings, because the NULL-filled row is still one row.

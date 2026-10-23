@@ -1,0 +1,79 @@
+id: sql-02-self-join-overlap
+lesson: sql-02
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'Overlapping bookings for the same customer'
+difficulty: 3
+competencies:
+  - sql.joins
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE customers (
+    id integer PRIMARY KEY,
+    name text NOT NULL
+  );
+  CREATE TABLE bookings (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL REFERENCES customers(id),
+    starts timestamp NOT NULL,
+    ends timestamp NOT NULL
+  );
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES customers(id),
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO customers VALUES
+    (1, 'Amara Okafor'),
+    (2, 'Jonas Weber'),
+    (3, 'Mei Tanaka'),
+    (4, 'Sofia Reyes'),
+    (5, 'Tomas Novak');
+  INSERT INTO bookings VALUES
+    (10, 1, '2026-11-02 09:00', '2026-11-02 10:00'),
+    (11, 1, '2026-11-02 09:30', '2026-11-02 10:30'),
+    (12, 1, '2026-11-09 09:00', '2026-11-09 10:00'),
+    (13, 3, '2026-11-03 14:00', '2026-11-03 15:00'),
+    (14, 3, '2026-11-03 15:00', '2026-11-03 16:00'),
+    (15, 2, '2026-11-02 09:15', '2026-11-02 09:45');
+  INSERT INTO calls VALUES
+    (1, 1, 120, 'booking'),
+    (2, 1, 45, 'billing'),
+    (3, 2, 300, 'cancel'),
+    (4, 3, NULL, 'booking'),
+    (5, 3, 200, 'booking'),
+    (6, NULL, 60, NULL),
+    (7, 4, 400, 'billing'),
+    (8, 4, 20, 'booking');
+prompt: |
+  Three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). Each booking and each call belongs to at most one customer.
+
+  Find pairs of bookings of the same customer that overlap in time. Select `a.id` as `first_id` and `b.id` as `second_id`, with the smaller id first, so each pair appears once, ordered by `first_id`, then `second_id`. Two bookings overlap when each starts before the other ends. Bookings that only touch (one ends exactly when the other starts) do not overlap.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT a.id AS first_id, b.id AS second_id FROM bookings a JOIN bookings b ON a.customer_id = b.customer_id AND a.id < b.id WHERE a.starts < b.ends AND b.starts < a.ends ORDER BY a.id, b.id;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Treats bookings that only touch as overlapping'
+    code: |
+      SELECT a.id AS first_id, b.id AS second_id FROM bookings a JOIN bookings b ON a.customer_id = b.customer_id AND a.id < b.id WHERE a.starts <= b.ends AND b.starts <= a.ends ORDER BY a.id, b.id;
+  - label: 'Does not compare the ids, so every pair appears twice and each booking pairs with itself'
+    code: |
+      SELECT a.id AS first_id, b.id AS second_id FROM bookings a JOIN bookings b ON a.customer_id = b.customer_id WHERE a.starts < b.ends AND b.starts < a.ends ORDER BY a.id, b.id;
+  - label: 'Forgets that both bookings must belong to the same customer'
+    code: |
+      SELECT a.id AS first_id, b.id AS second_id FROM bookings a JOIN bookings b ON a.id < b.id WHERE a.starts < b.ends AND b.starts < a.ends ORDER BY a.id, b.id;
+hints:
+  - 'A self join uses the same table twice. How do you tell the two copies apart, and how do you stop a booking pairing with itself?'
+  - 'Give the table two aliases, a and b. Join them on the same customer_id, and add a.id < b.id so each pair appears once. Then require that each booking starts before the other ends.'
+  - 'FROM bookings a JOIN bookings b ON a.customer_id = b.customer_id AND a.id ____ b.id WHERE a.starts < b.____ AND b.starts < a.____'
+explanation: |
+  A self join treats one table as two, so each side needs its own alias. `a.id < b.id` removes pairs of a booking with itself and keeps only one of the two orders of every pair. Two time ranges overlap when each starts before the other ends. With strict `<`, bookings that only touch do not count, which is why bookings 13 and 14 are not reported. Alternative: `tsrange(a.starts, a.ends) && tsrange(b.starts, b.ends)` uses PostgreSQL's range types and does the overlap test in one operator.

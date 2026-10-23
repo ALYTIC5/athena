@@ -1,0 +1,80 @@
+id: sql-02-mastery-calls-no-bookings
+lesson: sql-02
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: 'Customers who called but never booked'
+difficulty: 3
+competencies:
+  - sql.joins
+  - sql.nulls
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE customers (
+    id integer PRIMARY KEY,
+    name text NOT NULL
+  );
+  CREATE TABLE bookings (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL REFERENCES customers(id),
+    starts timestamp NOT NULL,
+    ends timestamp NOT NULL
+  );
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES customers(id),
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO customers VALUES
+    (1, 'Amara Okafor'),
+    (2, 'Jonas Weber'),
+    (3, 'Mei Tanaka'),
+    (4, 'Sofia Reyes'),
+    (5, 'Tomas Novak');
+  INSERT INTO bookings VALUES
+    (10, 1, '2026-11-02 09:00', '2026-11-02 10:00'),
+    (11, 1, '2026-11-02 09:30', '2026-11-02 10:30'),
+    (12, 1, '2026-11-09 09:00', '2026-11-09 10:00'),
+    (13, 3, '2026-11-03 14:00', '2026-11-03 15:00'),
+    (14, 3, '2026-11-03 15:00', '2026-11-03 16:00'),
+    (15, 2, '2026-11-02 09:15', '2026-11-02 09:45');
+  INSERT INTO calls VALUES
+    (1, 1, 120, 'booking'),
+    (2, 1, 45, 'billing'),
+    (3, 2, 300, 'cancel'),
+    (4, 3, NULL, 'booking'),
+    (5, 3, 200, 'booking'),
+    (6, NULL, 60, NULL),
+    (7, 4, 400, 'billing'),
+    (8, 4, 20, 'booking');
+prompt: |
+  Three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). Each booking and each call belongs to at most one customer.
+
+  Select the `name` of every customer who has made at least one call but has no bookings, each name once, in `name` order.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT DISTINCT c.name FROM customers c JOIN calls k ON k.customer_id = c.id LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL ORDER BY c.name;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Forgets DISTINCT, so a customer with two calls appears twice'
+    code: |
+      SELECT c.name FROM customers c JOIN calls k ON k.customer_id = c.id LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL ORDER BY c.name;
+  - label: 'Left-joins the calls as well, so customers with no calls are included'
+    code: |
+      SELECT DISTINCT c.name FROM customers c LEFT JOIN calls k ON k.customer_id = c.id LEFT JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL ORDER BY c.name;
+  - label: 'Joins the bookings with an inner join, so it finds customers who did book'
+    code: |
+      SELECT DISTINCT c.name FROM customers c JOIN calls k ON k.customer_id = c.id JOIN bookings b ON b.customer_id = c.id ORDER BY c.name;
+hints:
+  - 'You need customers that have a row in calls, and no row in bookings. Which join type goes with each?'
+  - 'Inner join the calls, which keeps only customers with a call. Left join the bookings, and keep the rows where the booking side is NULL. A customer with several calls would repeat, so remove the repeats.'
+  - 'SELECT ____ c.name FROM customers c JOIN calls k ON k.customer_id = c.id ____ JOIN bookings b ON b.customer_id = c.id WHERE b.id IS NULL ORDER BY c.name;'
+explanation: |
+  The inner join to `calls` keeps only customers with at least one call, and it repeats a customer once for every call. The left join to `bookings` followed by `b.id IS NULL` keeps only customers with no booking. `DISTINCT` removes the repeats. The call from an unknown caller has a NULL `customer_id`, which matches no customer, so it never appears. Alternative: `WHERE EXISTS (SELECT 1 FROM calls k WHERE k.customer_id = c.id) AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.customer_id = c.id)` avoids the repeats without DISTINCT.

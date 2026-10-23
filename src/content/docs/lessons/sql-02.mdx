@@ -1,0 +1,143 @@
+---
+title: Joins and aggregation
+description: Combining tables with inner, left and self joins, and summarising rows with GROUP BY, aggregates and HAVING, including what NULL does to joins and counts.
+sidebar:
+  order: 75
+lessonId: sql-02
+week: 7
+track: sql
+durationMin: 45
+anatomy: short
+competencies: [sql.joins, sql.aggregation]
+prerequisites: [sql-01]
+whyItMatters: >
+  SQL appears in 37% of the postings you are targeting, and real questions are rarely about one table: which
+  customers never booked, how many calls each one made, which bookings clash. Joins and aggregates answer them, and
+  the common mistakes, a lost row after a join and a count that says 1 instead of 0, give plausible wrong numbers
+  without any error.
+objectives:
+  - Write inner, left and self joins
+  - Aggregate with GROUP BY and HAVING
+  - Explain WHERE versus HAVING, and what a LEFT JOIN does to a count
+sources:
+  - title: "PostgreSQL documentation: joined tables"
+    url: https://www.postgresql.org/docs/current/queries-table-expressions.html
+  - title: "PostgreSQL tutorial: joins between tables"
+    url: https://www.postgresql.org/docs/current/tutorial-join.html
+  - title: "PostgreSQL tutorial: aggregate functions"
+    url: https://www.postgresql.org/docs/current/tutorial-agg.html
+  - title: "PostgreSQL documentation: aggregate functions"
+    url: https://www.postgresql.org/docs/current/functions-aggregate.html
+---
+
+## Why this matters
+
+SQL appears in 37% of the postings you are targeting, and real questions are rarely about one table: which customers never booked, how many calls each one made, which bookings clash. Joins and aggregates answer them, and the common mistakes, a lost row after a join and a count that says 1 instead of 0, give plausible wrong numbers without any error.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Write inner, left and self joins.
+2. Aggregate with `GROUP BY` and `HAVING`.
+3. Explain `WHERE` versus `HAVING`, and what a `LEFT JOIN` does to a count.
+
+<Callout type="note" title="The tables in this lesson">
+
+Each exercise runs your SQL in a PostgreSQL database in your browser, with invented data. There are three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). The comparisons, `ORDER BY` and `NULL` rules from sql-01 apply here too.
+
+</Callout>
+
+<Chunk n={1} title="Joining tables">
+
+A **join** combines rows from two tables. `JOIN ... ON` pairs each row of one table with the rows of the other table that make the `ON` condition true. This is an **inner join**: a row with no match is dropped. A `LEFT JOIN` also keeps every row of the left table, and fills the right table's columns with `NULL` when nothing matches, so `WHERE b.id IS NULL` finds the left rows with no match.
+
+A join gives one result row for each matching pair, so a customer with three bookings appears three times. Give tables short **aliases** (`customers c`) and qualify columns (`c.name`). A **self join** joins a table to itself under two aliases. Add `a.id < b.id` so each pair appears once and no row pairs with itself.
+
+**Worked example.** Bookings from 3 November on, with the customer's name.
+
+```sql schema="sql-02-inner-join"
+SELECT c.name, b.starts
+FROM customers c
+JOIN bookings b ON b.customer_id = c.id   -- inner join: only customers with a booking
+WHERE b.starts >= '2026-11-03'
+ORDER BY b.starts;                        -- Mei (14:00 and 15:00), then Amara (9 November)
+```
+
+Every customer with each of their calls. Customers without calls are kept, with NULL.
+
+```sql schema="sql-02-inner-join"
+SELECT c.name, k.reason
+FROM customers c
+LEFT JOIN calls k ON k.customer_id = c.id   -- left join: keep every customer
+ORDER BY c.id, k.id;                        -- Tomas Novak has no calls, so his reason is NULL
+```
+
+<Quiz lesson="sql-02" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A join returns one row per customer." It returns one row per matching pair.
+- "A left join always keeps every customer." It does until a `WHERE` condition on the right table removes the NULL rows.
+- "`= NULL` finds the rows with no match." It never matches. Use `IS NULL`.
+
+</Callout>
+
+</Chunk>
+
+## Write three joins
+
+<Exercise id="sql-02-inner-join" />
+
+<Exercise id="sql-02-left-join-no-bookings" />
+
+<Exercise id="sql-02-self-join-overlap" />
+
+## Aggregation: GROUP BY and HAVING
+
+`GROUP BY` collapses rows with the same value into one row, and aggregates such as `COUNT`, `SUM` and `AVG` are calculated for each group. Every selected column must be in the `GROUP BY` or inside an aggregate. `COUNT(*)` counts rows, while `COUNT(column)` and the other aggregates skip NULLs.
+
+`WHERE` filters rows before they are grouped, and `HAVING` filters groups after the aggregates are calculated, so only `HAVING` can test an aggregate. After a `LEFT JOIN`, count a column of the right table, as in `COUNT(b.id)`, to get 0 for a customer with no match.
+
+```sql schema="sql-02-inner-join"
+SELECT customer_id, COUNT(*) AS calls, SUM(duration_s) AS total_s
+FROM calls
+GROUP BY customer_id          -- one row for each customer, and one for the unknown callers (NULL)
+ORDER BY customer_id;         -- customer 3 has 2 calls but only 200 seconds: the NULL is skipped
+```
+
+Reasons with at least two answered calls: WHERE picks the rows, HAVING picks the groups.
+
+```sql schema="sql-02-inner-join"
+SELECT reason, COUNT(*) AS calls
+FROM calls
+WHERE duration_s IS NOT NULL      -- a fact about one call: before grouping
+GROUP BY reason
+HAVING COUNT(*) >= 2              -- a fact about a group: after grouping
+ORDER BY reason;                  -- billing 2, booking 3
+```
+
+<Callout type="misconception" title="Common misconceptions about aggregation">
+
+- "`WHERE COUNT(*) > 1` filters groups." It is rejected, because WHERE runs before the groups exist. Use `HAVING`.
+- "`COUNT(*)` gives 0 for a customer with no bookings after a left join." It gives 1, because the NULL-filled row is still a row.
+- "`SUM` treats NULL as zero." It skips NULLs, and the result is NULL if every value is NULL.
+
+</Callout>
+
+## Write three aggregations
+
+<Exercise id="sql-02-group-count" />
+
+<Exercise id="sql-02-having" />
+
+<Exercise id="sql-02-where-vs-having" />
+
+## Mastery check
+
+<MasteryCheck lesson="sql-02" count={6} />
+
+## Further reading
+
+- [PostgreSQL tutorial: joins between tables](https://www.postgresql.org/docs/current/tutorial-join.html)
+- [PostgreSQL tutorial: aggregate functions](https://www.postgresql.org/docs/current/tutorial-agg.html)

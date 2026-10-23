@@ -1,0 +1,57 @@
+lesson: sql-02
+cards:
+  - id: sql-02-c-inner-vs-left
+    type: explain
+    competencies: [sql.joins]
+    front: What is the difference between an INNER JOIN and a LEFT JOIN?
+    back: An inner join keeps only the pairs of rows that match on both sides. A left join also keeps every row of the left table that has no match, and fills the right table's columns with NULL for it.
+  - id: sql-02-c-anti-join
+    type: explain
+    competencies: [sql.joins, sql.nulls]
+    front: How do you find customers who have no bookings?
+    back: LEFT JOIN bookings from customers, then keep the rows where a booking column, such as b.id, IS NULL. NOT EXISTS with a subquery says the same thing without a join.
+  - id: sql-02-c-join-multiplies
+    type: explain
+    competencies: [sql.joins]
+    front: A customer has three bookings. How many rows does a join of customers and bookings give for that customer, and what if you forget the ON condition?
+    back: Three, one for each matching pair. Without a condition that links the tables, every row is paired with every row (a cross join), so 6 bookings and 5 customers give 30 rows.
+  - id: sql-02-c-self-join
+    type: explain
+    competencies: [sql.joins]
+    front: How do you write a self join that finds overlapping bookings for the same customer?
+    back: Join bookings a to bookings b on the same customer_id and a.id < b.id, so each pair appears once. Then require a.starts < b.ends and b.starts < a.ends. Strict comparisons mean bookings that only touch do not overlap.
+  - id: sql-02-c-null-key
+    type: basic
+    competencies: [sql.joins, sql.nulls]
+    front: What happens to a row whose join column is NULL?
+    back: In an inner join it disappears, because NULL matches nothing, not even another NULL. In a left join from that table it is kept, with NULLs on the other side.
+  - id: sql-02-c-group-by
+    type: explain
+    competencies: [sql.aggregation]
+    front: What does GROUP BY do, and what must be true of the selected columns?
+    back: It collapses rows with the same value into one row, so aggregates such as COUNT and SUM are calculated for each group. Every selected column must be in the GROUP BY or inside an aggregate.
+  - id: sql-02-c-count
+    type: explain
+    competencies: [sql.aggregation, sql.nulls]
+    front: Why does COUNT(*) give 1 for a customer with no bookings after a LEFT JOIN, and what should you count?
+    back: The customer still has one row, with NULLs on the booking side, and COUNT(*) counts rows. Count a column of the other table, COUNT(b.id), which skips NULLs and gives 0.
+  - id: sql-02-c-aggregates-null
+    type: basic
+    competencies: [sql.aggregation, sql.nulls]
+    front: How do SUM, AVG, MIN and MAX treat NULL?
+    back: They ignore it. AVG of 10, NULL and 20 is 15. If every value is NULL, or there are no rows, the result is NULL. COUNT(*) counts rows, and COUNT(column) skips NULLs.
+  - id: sql-02-c-where-having
+    type: explain
+    competencies: [sql.aggregation]
+    front: What is the difference between WHERE and HAVING?
+    back: WHERE filters rows before they are grouped, so it cannot see an aggregate. HAVING filters groups after the aggregates are calculated. Use WHERE for a fact about one row and HAVING for a fact about a group.
+  - id: sql-02-c-left-where
+    type: explain
+    competencies: [sql.joins, sql.nulls]
+    front: Why can a WHERE condition on the right table turn a LEFT JOIN into an inner join?
+    back: The unmatched rows have NULL in the right table's columns, so a condition on them is unknown and WHERE drops the rows. Put the condition in the ON clause to keep the unmatched left rows.
+  - id: sql-02-c-eval-order
+    type: basic
+    competencies: [sql.aggregation]
+    front: In which order does PostgreSQL logically apply the parts of a query?
+    back: FROM and JOIN, then WHERE, GROUP BY, HAVING, then SELECT, and finally ORDER BY and LIMIT. That is why ORDER BY can use a column alias from SELECT and WHERE cannot.
