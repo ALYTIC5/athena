@@ -20,7 +20,7 @@ items:
         why: It runs once for each new instance, and self is an ordinary parameter that refers to that instance.
       - text: __init__ returns the new object, and self is its type
         correct: false
-        why: __init__ should return nothing. Python creates the object, then calls __init__ on it.
+        why: '__init__ must return None. Python creates the object, then calls __init__ on it.'
   - id: py-05-q-predict-class-attr
     pools: [check, mastery]
     chunk: 1
@@ -146,15 +146,15 @@ items:
       - text: __init__, __repr__ and __eq__
         correct: true
         why: These are the three by default. Others, such as ordering, can be switched on with arguments.
-      - text: __init__ and __del__
+      - text: '__init__, __del__ and __iter__'
         correct: false
         why: A dataclass does not write __del__, which runs when an object is deleted.
-      - text: __iter__ and __len__
+      - text: '__iter__, __len__ and __contains__'
         correct: false
         why: A dataclass is not a collection, so it does not get these.
-      - text: Only __init__
+      - text: 'Only __init__ and __repr__'
         correct: false
-        why: It also writes __repr__ and __eq__, which is why two dataclass instances with equal fields compare equal.
+        why: 'It also writes __eq__, which is why two dataclass instances with equal fields compare equal.'
   - id: py-05-q-predict-dataclass
     pools: [mastery]
     objective: 2
@@ -182,7 +182,7 @@ items:
     competencies: [py.classes]
     stem: A ReminderService needs to send messages. What does composition over inheritance suggest?
     options:
-      - text: Give the service a sender object to use, instead of subclassing a sender
+      - text: 'Give the service a sender object to use'
         correct: true
         why: The service has a sender, which is easier to replace with a fake in tests than a parent class.
       - text: Make ReminderService a subclass of every sender it might use
@@ -269,7 +269,7 @@ items:
     competencies: [py.typing]
     stem: What does a type checker such as mypy or pyright do?
     options:
-      - text: Reads your hints and reports mismatches without running the program
+      - text: 'Reads hints and reports mismatches before the run'
         correct: true
         why: It analyses the code. That is why it can find mistakes in paths your tests never run.
       - text: Converts values to the hinted types at run time
@@ -299,7 +299,7 @@ items:
         why: This says the function never returns a value.
       - text: '-> str or None'
         correct: false
-        why: The word or is not valid in a hint. Use the bar, or typing.Optional[str].
+        why: 'str or None evaluates to just str, so it does not mean either type, and checkers reject it. Use the bar, or typing.Optional[str].'
   - id: py-05-q-collection-hints
     pools: [mastery]
     objective: 3
@@ -337,7 +337,7 @@ items:
         why: Protocols do not control access. They describe a shape.
       - text: Checking the values passed to a function while it runs
         correct: false
-        why: Python does not use protocols at run time unless you ask for it with extra tools.
+        why: 'Python does not check protocols at run time unless the protocol is marked @runtime_checkable, and even then only the method names are checked.'
   - id: py-05-q-none-check
     pools: [mastery]
     objective: 3
@@ -367,13 +367,13 @@ items:
       - text: Editors and checkers use them to find bugs and document the code
         correct: true
         why: They show what a function expects and returns, and let tools catch mismatches early.
-      - text: They make the code run faster
+      - text: 'They make the code run noticeably faster'
         correct: false
         why: Standard Python does not use them for speed.
-      - text: They are required for the code to run
+      - text: 'They are required before the code is allowed to run'
         correct: false
         why: Code without hints runs the same.
-      - text: They convert arguments to the right types
+      - text: 'They convert arguments to the right types for you'
         correct: false
         why: Python never converts because of a hint.
   - id: py-05-q-bug-hint
@@ -562,9 +562,9 @@ items:
       - text: 'It goes into the shared Python and can clash'
         correct: true
         why: Different projects may need different versions, and one install can break another project.
-      - text: Nothing is installed, because pip needs an environment
+      - text: 'pip downloads the package but does not install it'
         correct: false
-        why: pip installs into whichever Python it belongs to, which may be the shared one.
+        why: 'pip installs the package unless something fails. Downloading it without installing is not what pip install does.'
       - text: The package is installed only for this folder
         correct: false
         why: Without an environment, the install is not tied to a folder.

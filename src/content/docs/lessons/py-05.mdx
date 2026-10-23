@@ -64,7 +64,9 @@ You know functions, decorators and exceptions from py-03 and py-04, and the muta
 
 A **class** bundles data with the functions that work on it. `__init__` sets up each new **instance** (an object made from the class), and `self` is that instance. A name set with `self.x = ...` belongs to one instance. A name assigned in the class body is a **class attribute**: one object shared by every instance, which is the mutable default bug again when the value is a list.
 
-A **dataclass** writes `__init__`, `__repr__` and `__eq__` from its annotated fields. A mutable default such as `[]` raises a `ValueError`, so use `field(default_factory=list)`, which makes a new list for each instance. `frozen=True` makes assigning to a field raise an error. A dataclass runs `__post_init__` after `__init__`, so use it to check values. Prefer **composition**: give an object the other objects it needs, instead of making it a subclass (a class that inherits its parent's methods).
+A **dataclass** writes `__init__`, `__repr__` and `__eq__` from its annotated fields. A mutable default such as `[]` raises a `ValueError`, so use `field(default_factory=list)`, which makes a new list for each instance. `frozen=True` makes assigning to a field raise an error. A dataclass runs `__post_init__` after `__init__`, so use it to check values.
+
+Prefer **composition**: give an object the other objects it needs, instead of making it a subclass (a class that inherits its parent's methods).
 
 **Worked example.** A plain class, then a frozen dataclass.
 
@@ -80,15 +82,15 @@ class Day:
         self.bookings.append(guest)
 
 @dataclass(frozen=True)                       # __init__, __repr__ and __eq__ are written for us
-class Booking:
+class Call:
     id: str
-    guest: str
-    notes: list[str] = field(default_factory=list)
+    caller: str
+    tags: list[str] = field(default_factory=list)
 
 monday = Day("2026-11-02")
 monday.add("Amara")
 print(monday.bookings)                        # ['Amara']
-print(Booking("b1", "Amara"))                 # Booking(id='b1', guest='Amara', notes=[])
+print(Call("c1", "Amara"))                    # Call(id='c1', caller='Amara', tags=[])
 ```
 
 A plain default is refused:

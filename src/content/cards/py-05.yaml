@@ -48,8 +48,13 @@ cards:
   - id: py-05-c-module-package
     type: basic
     competencies: [py.packages]
-    front: What are a module and a package, and what does the __main__ guard do?
-    back: A module is one .py file, and a package is a folder of modules (usually with an __init__.py). The block under if __name__ == "__main__" runs only when the file is run directly, not when it is imported.
+    front: What are a module and a package?
+    back: A module is one .py file, and a package is a folder of modules, usually with an __init__.py file. You import from them with a dotted path such as from bookings.schedule import Schedule.
+  - id: py-05-c-main-guard
+    type: basic
+    competencies: [py.packages]
+    front: What does if __name__ == "__main__" do?
+    back: The block runs only when the file is run directly, and not when the file is imported. When a file is imported, its __name__ is the module's name.
   - id: py-05-c-venv
     type: explain
     competencies: [py.packages]
