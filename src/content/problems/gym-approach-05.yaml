@@ -1,0 +1,86 @@
+id: gym-approach-05
+title: 'Is this slot free?'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 15
+statement: |
+  Bookings are pairs `(start, end)` in minutes after midnight, with `start` before `end`. Write `slot_is_free(booked, start, end)` that returns `True` if the new slot from `start` to `end` shares no time with any booked slot. A slot that ends exactly when another begins does not overlap it.
+examples:
+  - 'slot_is_free([(540, 600)], 600, 660) returns True'
+  - 'slot_is_free([(540, 600)], 570, 630) returns False'
+constraints:
+  - '0 to 1000 booked slots, in any order'
+  - '0 <= start < end <= 1440'
+starter: |
+  def slot_is_free(booked, start, end):
+      ...
+visibleTests: |
+  def test_touching_slots_do_not_overlap():
+      assert slot_is_free([(540, 600)], 600, 660) is True
+
+  def test_overlapping_slot():
+      assert slot_is_free([(540, 600)], 570, 630) is False
+hiddenTests: |
+  def test_nothing_booked():
+      assert slot_is_free([], 540, 600) is True
+
+  def test_new_slot_inside_a_booking():
+      assert slot_is_free([(540, 600)], 550, 560) is False
+
+  def test_new_slot_contains_a_booking():
+      assert slot_is_free([(540, 600)], 500, 700) is False
+
+  def test_identical_slot():
+      assert slot_is_free([(540, 600)], 540, 600) is False
+
+  def test_ends_exactly_when_a_booking_starts():
+      assert slot_is_free([(540, 600)], 500, 540) is True
+
+  def test_fits_in_a_gap_between_bookings():
+      assert slot_is_free([(660, 720), (540, 600)], 600, 660) is True
+
+  def test_overlaps_the_second_booking_only():
+      assert slot_is_free([(540, 600), (660, 720)], 700, 760) is False
+referenceSolutions:
+  - code: |
+      def slot_is_free(booked, start, end):
+          for b_start, b_end in booked:
+              if start < b_end and b_start < end:
+                  return False
+          return True
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Counts slots that only touch as overlapping'
+    code: |
+      def slot_is_free(booked, start, end):
+          for b_start, b_end in booked:
+              if start <= b_end and b_start <= end:
+                  return False
+          return True
+  - label: 'Only checks whether the new start falls inside a booking, so a slot that contains a booking is missed'
+    code: |
+      def slot_is_free(booked, start, end):
+          for b_start, b_end in booked:
+              if b_start <= start < b_end:
+                  return False
+          return True
+  - label: 'Only checks the first booking'
+    code: |
+      def slot_is_free(booked, start, end):
+          if not booked:
+              return True
+          b_start, b_end = booked[0]
+          return not (start < b_end and b_start < end)
+patternExplanation: |
+  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+
+  It is easier to say when two slots do not overlap: one ends before or when the other starts. Negating that gives the overlap test, each slot starts before the other ends, and it covers containment and identical slots without special cases. Using strict comparisons makes touching slots free.
+commonMistakes:
+  - 'Checking only whether one end point lies inside the other slot'
+  - 'Using <= and treating touching slots as overlapping'
+  - 'Returning after looking at only the first booking'
+followUps:
+  - 'How would you find the first free slot of 30 minutes?'
+  - 'How would you do it faster for thousands of bookings?'

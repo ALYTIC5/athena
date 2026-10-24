@@ -1,0 +1,94 @@
+id: gym-hash-03
+title: 'The first caller who phoned only once'
+pattern: hashing
+competencies: [int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A support line logs the id of each caller in the order they phoned. Write `first_single_caller(calls)` that returns the id of the first caller in the log who phoned exactly once in total. Return `None` if there is no such caller.
+examples:
+  - "first_single_caller(['a', 'b', 'a', 'c']) returns 'b'"
+  - "first_single_caller(['a', 'a']) returns None"
+constraints:
+  - '0 to 100000 calls'
+  - 'Ids are non-empty strings'
+starter: |
+  def first_single_caller(calls):
+      ...
+visibleTests: |
+  def test_example():
+      assert first_single_caller(["a", "b", "a", "c"]) == "b"
+
+  def test_nobody_phoned_once():
+      assert first_single_caller(["a", "a"]) is None
+hiddenTests: |
+  def test_empty():
+      assert first_single_caller([]) is None
+
+  def test_single_call():
+      assert first_single_caller(["a"]) == "a"
+
+  def test_later_callers_may_be_the_only_single():
+      assert first_single_caller(["a", "a", "b", "b", "c"]) == "c"
+
+  def test_first_in_log_order_not_last():
+      assert first_single_caller(["x", "a", "b", "a"]) == "x"
+
+  def test_large_input_with_the_single_caller_at_the_end():
+      calls = [str(i) for i in range(30000)] * 2 + ["only"]
+      assert first_single_caller(calls) == "only"
+
+  def test_input_unchanged():
+      calls = ["a", "b", "a"]
+      first_single_caller(calls)
+      assert calls == ["a", "b", "a"]
+referenceSolutions:
+  - code: |
+      def first_single_caller(calls):
+          counts = {}
+          for caller in calls:
+              counts[caller] = counts.get(caller, 0) + 1
+          for caller in calls:
+              if counts[caller] == 1:
+                  return caller
+          return None
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Returns the first caller who phoned more than once'
+    code: |
+      def first_single_caller(calls):
+          counts = {}
+          for caller in calls:
+              counts[caller] = counts.get(caller, 0) + 1
+          for caller in calls:
+              if counts[caller] > 1:
+                  return caller
+          return None
+  - label: 'Uses list.count for each caller, so the work grows with the square of the log'
+    code: |
+      def first_single_caller(calls):
+          for caller in calls:
+              if calls.count(caller) == 1:
+                  return caller
+          return None
+  - label: 'Returns the last caller who phoned once, not the first'
+    code: |
+      def first_single_caller(calls):
+          counts = {}
+          for caller in calls:
+              counts[caller] = counts.get(caller, 0) + 1
+          answer = None
+          for caller in calls:
+              if counts[caller] == 1:
+                  answer = caller
+          return answer
+patternExplanation: |
+  A hash table (a Python set or dict) answers "have I seen this?" in about one step, however many items it holds. You cannot know that a caller phoned only once until you have seen the whole log, so use two passes: one to count, and one in log order to pick the first caller whose count is 1. Two linear passes are still linear.
+commonMistakes:
+  - 'Trying to decide in a single pass'
+  - 'Using list.count inside the loop'
+  - 'Scanning the dict instead of the log, which loses the log order'
+followUps:
+  - 'Can you do it in one pass?'
+  - 'What if the log does not fit in memory?'

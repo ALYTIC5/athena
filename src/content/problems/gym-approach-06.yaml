@@ -1,0 +1,108 @@
+id: gym-approach-06
+title: 'Fee for a late cancellation'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 15
+statement: |
+  A salon charges for late cancellations. Write `cancellation_fee(hours_before)` where `hours_before` is how many hours before the appointment the customer cancels (it can have decimals):
+
+  - 48 hours or more: no fee, `0`
+  - from 24 hours up to (but not including) 48: `10`
+  - under 24 hours: `25`
+  - a negative number means the appointment has already started, which is an error: raise `ValueError`.
+examples:
+  - 'cancellation_fee(72) returns 0'
+  - 'cancellation_fee(30) returns 10'
+constraints:
+  - 'hours_before is a number, possibly with decimals'
+starter: |
+  def cancellation_fee(hours_before):
+      ...
+visibleTests: |
+  def test_early_cancellation_is_free():
+      assert cancellation_fee(72) == 0
+
+  def test_middle_band():
+      assert cancellation_fee(30) == 10
+hiddenTests: |
+  def raises_value_error(hours):
+      try:
+          cancellation_fee(hours)
+      except ValueError:
+          return True
+      return False
+
+
+  def test_exactly_48_is_free():
+      assert cancellation_fee(48) == 0
+
+  def test_just_under_48_pays_10():
+      assert cancellation_fee(47.9) == 10
+
+  def test_exactly_24_pays_10():
+      assert cancellation_fee(24) == 10
+
+  def test_just_under_24_pays_25():
+      assert cancellation_fee(23.9) == 25
+
+  def test_zero_hours_pays_25():
+      assert cancellation_fee(0) == 25
+
+  def test_negative_is_an_error():
+      assert raises_value_error(-1)
+
+  def test_a_long_time_before():
+      assert cancellation_fee(500.5) == 0
+referenceSolutions:
+  - code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              raise ValueError("the appointment has already started")
+          if hours_before >= 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+    time: 'O(1)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Uses > for the 48 hour edge, so exactly 48 hours is charged'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              raise ValueError("the appointment has already started")
+          if hours_before > 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+  - label: 'Uses > for the 24 hour edge, so exactly 24 hours pays 25'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              raise ValueError("the appointment has already started")
+          if hours_before >= 48:
+              return 0
+          if hours_before > 24:
+              return 10
+          return 25
+  - label: 'Does not reject a negative number'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before >= 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+patternExplanation: |
+  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+
+  The examples that matter here sit on the edges: 24, 48, a value just below each and a negative value. Check the bands from the top down, or from the bottom up, and let each test use the edge the statement gives, inclusive or not.
+commonMistakes:
+  - 'Mixing up which edge belongs to which band'
+  - 'Testing only the middle of each band'
+  - 'Forgetting the error case'
+followUps:
+  - 'What if the fees and the edges come from a table that changes?'
+  - 'How would you test every edge with a parametrised test?'

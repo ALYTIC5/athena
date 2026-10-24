@@ -1,0 +1,70 @@
+id: gym-approach-01
+title: 'Total call time in whole minutes'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 15
+statement: |
+  A phone system logs the length of each call in seconds. Write `total_minutes(durations_s)` that returns the total time of all the calls in whole minutes, rounded down.
+
+  Add the seconds first, then convert. Part-minutes from different calls count together.
+examples:
+  - 'total_minutes([90, 45]) returns 2'
+  - 'total_minutes([]) returns 0'
+constraints:
+  - '0 to 10000 calls'
+  - 'Each length is a whole number of seconds, 0 or more'
+starter: |
+  def total_minutes(durations_s):
+      ...
+visibleTests: |
+  def test_example():
+      assert total_minutes([90, 45]) == 2
+
+  def test_empty():
+      assert total_minutes([]) == 0
+hiddenTests: |
+  def test_under_a_minute():
+      assert total_minutes([59]) == 0
+
+  def test_exactly_one_minute():
+      assert total_minutes([60]) == 1
+
+  def test_part_minutes_add_up_before_rounding():
+      assert total_minutes([40, 40, 40, 40]) == 2
+
+  def test_one_hour():
+      assert total_minutes([3600]) == 60
+
+  def test_zero_length_calls():
+      assert total_minutes([0, 0]) == 0
+
+  def test_input_unchanged():
+      calls = [90, 45]
+      total_minutes(calls)
+      assert calls == [90, 45]
+referenceSolutions:
+  - code: |
+      def total_minutes(durations_s):
+          return sum(durations_s) // 60
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Rounds each call down before adding, so part-minutes are lost'
+    code: |
+      def total_minutes(durations_s):
+          return sum(d // 60 for d in durations_s)
+  - label: 'Rounds to the nearest minute instead of down'
+    code: |
+      def total_minutes(durations_s):
+          return round(sum(durations_s) / 60)
+patternExplanation: |
+  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+
+  Here the rule to clarify is when to round. Rounding each call loses the part-minutes, so add first and round once at the end.
+commonMistakes:
+  - 'Rounding too early, inside the loop'
+  - 'Using round() when the question says rounded down'
+followUps:
+  - 'What if the log also holds calls that have not ended yet?'
+  - 'How would you report hours and minutes?'
