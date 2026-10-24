@@ -41,7 +41,7 @@ hiddenTests: |
       assert duplicate_booking_ids(bookings) == ["b3", "b4"]
 
   def test_large_input_with_a_late_duplicate():
-      bookings = [("b" + str(i), "c" + str(i), "09:00") for i in range(30000)]
+      bookings = [("b" + str(i), "c" + str(i), "09:00") for i in range(50000)]
       bookings.append(("late", "c0", "09:00"))
       assert duplicate_booking_ids(bookings) == ["late"]
 

@@ -61,7 +61,7 @@ patternExplanation: |
 
   1. Clarify: when does the rounding happen: for each call, or once for the total? "Total time of all the calls" says once, at the end.
   2. Examples: [90, 45] is 135 seconds, which is 2 minutes; [] is 0.
-  3. Brute force: convert each call to minutes, round it, and add them up (this loses the part-minutes).
+  3. Brute force: convert each call to whole minutes (rounding down) and add them up (this loses the part-minutes).
   4. Optimise: add the seconds first and convert once: one pass is already enough.
   5. Code: write the simplest version that matches your examples.
   6. Test: try [59], [60] and four calls of 40 seconds, where rounding each call gives 0.

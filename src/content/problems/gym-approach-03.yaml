@@ -81,7 +81,7 @@ patternExplanation: |
   1. Clarify: what is returned for an empty log, and which way does the rounding go?
   2. Examples: 2 of 4 missed is 50; 1 of 3 is 33; an empty log is 0.
   3. Brute force: count the missed calls, divide by the total, multiply by 100, and round down.
-  4. Optimise: multiply by 100 before dividing and use whole-number division, which avoids floating-point error (29 of 100 gives 28.999... as a float).
+  4. Optimise: multiply by 100 before dividing and use whole-number division, which avoids floating-point error (29/100*100 is 28.999999999999996, which int() turns into 28).
   5. Code: write the simplest version that matches your examples.
   6. Test: try the empty log, all missed, none missed, 1 of 3, 2 of 3 and 29 of 100.
   7. Complexity: one pass, O(n) time and O(1) space.

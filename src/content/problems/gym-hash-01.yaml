@@ -32,9 +32,9 @@ hiddenTests: |
       assert distinct_senders(["a", "b", "c"]) == 3
 
   def test_input_unchanged():
-      calls = ["b", "a", "b"]
-      distinct_senders(calls)
-      assert calls == ["b", "a", "b"]
+      messages = ["b", "a", "b"]
+      distinct_senders(messages)
+      assert messages == ["b", "a", "b"]
 
   def test_large_input_with_many_different_senders():
       messages = [str(i) for i in range(60000)]
@@ -54,7 +54,7 @@ wrongSolutions:
     code: |
       def distinct_senders(messages):
           return len(messages) - len(set(messages))
-  - label: 'Keeps the callers in a list, so every check scans the whole list'
+  - label: 'Keeps the senders in a list, so every check scans the whole list'
     code: |
       def distinct_senders(messages):
           seen = []

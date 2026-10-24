@@ -75,7 +75,7 @@ patternExplanation: |
 
   1. Clarify: what happens on a tie, and what is returned for an empty list?
   2. Examples: two calls of 60 seconds, and an empty list.
-  3. Brute force: sort the calls by length and take the first.
+  3. Brute force: sort the calls by length, largest first, and take the first (a stable sort keeps list order for ties).
   4. Optimise: one pass that keeps the best call so far, and replaces it only when a call is strictly longer.
   5. Code: write the simplest version that matches your examples.
   6. Test: try a tie, a single call, the longest call first, and an empty list.

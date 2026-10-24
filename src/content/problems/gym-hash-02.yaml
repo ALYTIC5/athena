@@ -84,7 +84,7 @@ wrongSolutions:
               counts[reason] = counts.get(reason, 0) + 1
           return min(counts, key=lambda r: (-counts[r], r))
 patternExplanation: |
-  A dict can hold a count for each key, and looking a key up takes about one step. Build a dict from reason to count in one pass. The answer is the reason with the highest count, and sorting on the pair (negative count, reason) puts the alphabetical rule into the choice, so no separate tie handling is needed.
+  A dict can hold a count for each key, and looking a key up takes about one step. Build a dict from reason to count in one pass. The answer is the reason with the highest count, and choosing by the pair (negative count, reason) puts the alphabetical rule into the choice, so no separate tie handling is needed.
 commonMistakes:
   - 'Relying on Counter.most_common, which keeps first-seen order for ties'
   - 'Forgetting the empty case'
