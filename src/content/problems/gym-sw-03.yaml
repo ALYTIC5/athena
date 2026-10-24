@@ -1,0 +1,106 @@
+id: gym-sw-03
+title: 'The same reason several times in a row'
+pattern: sliding-window
+competencies: [int.sliding-window]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Write `has_streak(reasons, k)` that returns `True` if some `k` calls in a row (next to each other in the list) have the same reason, and `False` otherwise. An empty list has no streak. If `k` is larger than the list, there is no streak.
+examples:
+  - "has_streak(['a', 'a', 'b', 'b', 'b'], 3) returns True"
+  - "has_streak(['a', 'a', 'b'], 3) returns False"
+constraints:
+  - '0 to 200000 reasons'
+  - '1 <= k'
+  - 'Reasons are non-empty strings'
+starter: |
+  def has_streak(reasons, k):
+      ...
+visibleTests: |
+  def test_example():
+      assert has_streak(["a", "a", "b", "b", "b"], 3) is True
+
+  def test_no_streak_of_that_length():
+      assert has_streak(["a", "a", "b"], 3) is False
+hiddenTests: |
+  def test_empty_list():
+      assert has_streak([], 1) is False
+
+  def test_k_of_one_needs_any_call():
+      assert has_streak(["a"], 1) is True
+
+  def test_k_larger_than_the_list():
+      assert has_streak(["a", "a"], 3) is False
+
+  def test_same_reason_that_is_not_next_to_each_other():
+      assert has_streak(["a", "b", "a"], 2) is False
+
+  def test_streak_at_the_end():
+      assert has_streak(["a", "b", "c", "c"], 2) is True
+
+  def test_streak_longer_than_k_counts():
+      assert has_streak(["a", "a", "a", "a"], 2) is True
+
+  def test_large_input_without_a_streak():
+      reasons = ["a", "b"] * 100000
+      assert has_streak(reasons, 100000) is False
+
+  def test_large_input_with_a_long_streak():
+      reasons = ["a", "b"] * 50000 + ["c"] * 100000
+      assert has_streak(reasons, 100000) is True
+referenceSolutions:
+  - code: |
+      def has_streak(reasons, k):
+          run = 0
+          previous = None
+          for reason in reasons:
+              if reason == previous:
+                  run += 1
+              else:
+                  run = 1
+                  previous = reason
+              if run >= k:
+                  return True
+          return False
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Counts how often a reason appears in total, not in a row'
+    code: |
+      from collections import Counter
+
+
+      def has_streak(reasons, k):
+          return any(count >= k for count in Counter(reasons).values())
+  - label: 'Stops one call too early, because it needs a run of only k - 1'
+    code: |
+      def has_streak(reasons, k):
+          run = 0
+          previous = None
+          for reason in reasons:
+              if reason == previous:
+                  run += 1
+              else:
+                  run = 1
+                  previous = reason
+              if run >= k - 1 and k > 1:
+                  return True
+              if k == 1:
+                  return True
+          return False
+  - label: 'Builds a set for every window of k calls, so the work grows with n times k'
+    code: |
+      def has_streak(reasons, k):
+          for start in range(len(reasons) - k + 1):
+              if len(set(reasons[start:start + k])) == 1:
+                  return True
+          return False
+patternExplanation: |
+  You do not need to look at a whole window of k calls each time. Keep the length of the current run of equal reasons: extend it when the reason is the same as the one before, and restart it at 1 when it changes. As soon as the run reaches k, the answer is True. This is a sliding window whose size is tracked by a counter.
+commonMistakes:
+  - "Counting a reason's total appearances, which ignores 'in a row'"
+  - 'Forgetting to restart the run at 1 when the reason changes'
+  - 'Comparing every window from scratch'
+followUps:
+  - 'How would you return the reason of the longest streak?'
+  - 'What if you needed a streak of k calls with at most one different reason?'

@@ -1,0 +1,107 @@
+id: gym-tp-03
+title: 'How many pairs of calls fit in a slot?'
+pattern: two-pointers
+competencies: [int.two-pointers]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Call lengths in minutes are listed from shortest to longest. A pair is two different calls in the list. Write `count_fitting_pairs(lengths, limit)` that returns how many pairs have a total length of `limit` minutes or less. The pair of the same two calls counts once, whichever order you name them in.
+examples:
+  - 'count_fitting_pairs([1, 2, 3, 4], 5) returns 4'
+  - 'count_fitting_pairs([6, 7], 5) returns 0'
+constraints:
+  - '0 to 100000 lengths, sorted ascending'
+  - 'Lengths and the limit are whole numbers, 1 or more'
+starter: |
+  def count_fitting_pairs(lengths, limit):
+      ...
+visibleTests: |
+  def test_example():
+      assert count_fitting_pairs([1, 2, 3, 4], 5) == 4
+
+  def test_nothing_fits():
+      assert count_fitting_pairs([6, 7], 5) == 0
+hiddenTests: |
+  def test_empty_and_single():
+      assert count_fitting_pairs([], 5) == 0
+      assert count_fitting_pairs([2], 5) == 0
+
+  def test_a_call_does_not_pair_with_itself():
+      assert count_fitting_pairs([1], 2) == 0
+
+  def test_all_pairs_fit():
+      assert count_fitting_pairs([1, 1, 1], 2) == 3
+
+  def test_exact_total_counts():
+      assert count_fitting_pairs([2, 3], 5) == 1
+
+  def test_total_one_over_does_not_count():
+      assert count_fitting_pairs([2, 3], 4) == 0
+
+  def test_duplicates_are_different_calls():
+      assert count_fitting_pairs([2, 2, 2, 9], 4) == 3
+
+  def test_input_unchanged():
+      lengths = [1, 2, 3]
+      count_fitting_pairs(lengths, 4)
+      assert lengths == [1, 2, 3]
+
+  def test_large_input():
+      assert count_fitting_pairs(list(range(1, 20001)), 20001) == 100000000
+referenceSolutions:
+  - code: |
+      def count_fitting_pairs(lengths, limit):
+          count = 0
+          left, right = 0, len(lengths) - 1
+          while left < right:
+              if lengths[left] + lengths[right] <= limit:
+                  count += right - left
+                  left += 1
+              else:
+                  right -= 1
+          return count
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Uses < instead of <=, so a total equal to the limit does not count'
+    code: |
+      def count_fitting_pairs(lengths, limit):
+          count = 0
+          left, right = 0, len(lengths) - 1
+          while left < right:
+              if lengths[left] + lengths[right] < limit:
+                  count += right - left
+                  left += 1
+              else:
+                  right -= 1
+          return count
+  - label: 'Counts a call paired with itself'
+    code: |
+      def count_fitting_pairs(lengths, limit):
+          count = 0
+          left, right = 0, len(lengths) - 1
+          while left <= right:
+              if lengths[left] + lengths[right] <= limit:
+                  count += right - left + 1
+                  left += 1
+              else:
+                  right -= 1
+          return count
+  - label: 'Tries every pair, so the work grows with the square of the list'
+    code: |
+      def count_fitting_pairs(lengths, limit):
+          count = 0
+          for i in range(len(lengths)):
+              for j in range(i + 1, len(lengths)):
+                  if lengths[i] + lengths[j] <= limit:
+                      count += 1
+          return count
+patternExplanation: |
+  Because the list is sorted, one comparison can settle many pairs. Put one pointer at the shortest call and one at the longest. If their total fits, then the left call also fits with every call between the pointers, so add right - left pairs and move the left pointer. If the total is too big, the right call is too long for every remaining left call, so move the right pointer. Each step moves a pointer, so the work is linear.
+commonMistakes:
+  - 'Adding only 1 when the total fits'
+  - 'Letting the pointers meet and counting a call with itself'
+  - 'Checking every pair, which ignores that the list is sorted'
+followUps:
+  - 'What if the list is not sorted?'
+  - 'How would you list the pairs and not only count them?'

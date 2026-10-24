@@ -1,0 +1,96 @@
+id: gym-tp-04
+title: 'One reading for each value'
+pattern: two-pointers
+competencies: [int.two-pointers]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A sensor sends the number of calls waiting, many times a minute, so equal readings are repeated. The readings are sorted from smallest to largest. Write `unique_sorted(values)` that returns a new list that holds each value once, still in increasing order. Do not change the list you are given.
+examples:
+  - 'unique_sorted([1, 1, 2, 3, 3, 3]) returns [1, 2, 3]'
+  - 'unique_sorted([]) returns []'
+constraints:
+  - '0 to 100000 values, sorted ascending'
+  - 'Values are whole numbers'
+starter: |
+  def unique_sorted(values):
+      ...
+visibleTests: |
+  def test_example():
+      assert unique_sorted([1, 1, 2, 3, 3, 3]) == [1, 2, 3]
+
+  def test_empty():
+      assert unique_sorted([]) == []
+hiddenTests: |
+  def test_single_value():
+      assert unique_sorted([4]) == [4]
+
+  def test_all_equal():
+      assert unique_sorted([7, 7, 7]) == [7]
+
+  def test_nothing_repeated():
+      assert unique_sorted([1, 2, 3]) == [1, 2, 3]
+
+  def test_values_that_appear_once_are_kept():
+      assert unique_sorted([1, 2, 2, 3]) == [1, 2, 3]
+
+  def test_returns_a_new_list_and_leaves_the_input_alone():
+      values = [1, 1, 2]
+      result = unique_sorted(values)
+      assert values == [1, 1, 2]
+      assert result is not values
+
+  def test_zero_and_negative_values():
+      assert unique_sorted([-2, -2, 0, 0, 3]) == [-2, 0, 3]
+
+  def test_large_input():
+      values = list(range(60000)) + [59999] * 5
+      assert unique_sorted(values) == list(range(60000))
+referenceSolutions:
+  - code: |
+      def unique_sorted(values):
+          result = []
+          for value in values:
+              if not result or value != result[-1]:
+                  result.append(value)
+          return result
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Checks the whole result list each time, so the work grows with the square of the list'
+    code: |
+      def unique_sorted(values):
+          result = []
+          for value in values:
+              if value not in result:
+                  result.append(value)
+          return result
+  - label: 'Keeps only the values that appear once'
+    code: |
+      def unique_sorted(values):
+          result = []
+          for i, value in enumerate(values):
+              before = i > 0 and values[i - 1] == value
+              after = i + 1 < len(values) and values[i + 1] == value
+              if not before and not after:
+                  result.append(value)
+          return result
+  - label: 'Deletes repeats from the list it was given'
+    code: |
+      def unique_sorted(values):
+          i = 1
+          while i < len(values):
+              if values[i] == values[i - 1]:
+                  del values[i]
+              else:
+                  i += 1
+          return values
+patternExplanation: |
+  Equal values sit next to each other in a sorted list, so a value is new exactly when it differs from the one before it. Walk through the list once, and keep a value only if it differs from the last value you kept. No set or membership test is needed, and the order stays sorted.
+commonMistakes:
+  - 'Using `in` on the result list, which makes every check a scan'
+  - 'Comparing with the next item and dropping a value that has no repeat'
+  - 'Deleting from the list while looping over it'
+followUps:
+  - 'How would you do it in place, without a second list?'
+  - 'How would you count how many times each value was repeated?'

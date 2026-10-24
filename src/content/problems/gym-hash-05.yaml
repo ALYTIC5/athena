@@ -1,0 +1,77 @@
+id: gym-hash-05
+title: 'Callers who phoned on both days'
+pattern: hashing
+competencies: [int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A salon keeps the list of caller ids for Monday and for Tuesday. A caller may appear more than once on a day. Write `callers_on_both_days(monday, tuesday)` that returns the ids of the callers who phoned on both days, each id once, sorted alphabetically.
+examples:
+  - "callers_on_both_days(['b', 'a', 'b'], ['a', 'c', 'b']) returns ['a', 'b']"
+  - "callers_on_both_days(['a'], ['b']) returns []"
+constraints:
+  - '0 to 100000 ids on each day'
+  - 'Ids are non-empty strings'
+starter: |
+  def callers_on_both_days(monday, tuesday):
+      ...
+visibleTests: |
+  def test_example():
+      assert callers_on_both_days(["b", "a", "b"], ["a", "c", "b"]) == ["a", "b"]
+
+  def test_nobody_in_common():
+      assert callers_on_both_days(["a"], ["b"]) == []
+hiddenTests: |
+  def test_empty_days():
+      assert callers_on_both_days([], ["a"]) == []
+      assert callers_on_both_days(["a"], []) == []
+      assert callers_on_both_days([], []) == []
+
+  def test_result_is_sorted_not_in_log_order():
+      assert callers_on_both_days(["c", "a", "b"], ["b", "c", "a"]) == ["a", "b", "c"]
+
+  def test_each_caller_once_even_if_they_phoned_many_times():
+      assert callers_on_both_days(["a", "a", "a"], ["a", "a"]) == ["a"]
+
+  def test_a_caller_on_one_day_only_is_left_out():
+      assert callers_on_both_days(["a", "b"], ["b", "c"]) == ["b"]
+
+  def test_inputs_unchanged():
+      monday, tuesday = ["b", "a"], ["a"]
+      callers_on_both_days(monday, tuesday)
+      assert monday == ["b", "a"] and tuesday == ["a"]
+
+  def test_large_input():
+      monday = [str(i) for i in range(40000)]
+      tuesday = [str(i) for i in range(20000, 60000)]
+      expected = sorted(str(i) for i in range(20000, 40000))
+      assert callers_on_both_days(monday, tuesday) == expected
+referenceSolutions:
+  - code: |
+      def callers_on_both_days(monday, tuesday):
+          return sorted(set(monday) & set(tuesday))
+    time: 'O(n + m + k log k)'
+    space: 'O(n + m)'
+wrongSolutions:
+  - label: "Keeps repeats and the order of Monday's log"
+    code: |
+      def callers_on_both_days(monday, tuesday):
+          on_tuesday = set(tuesday)
+          return [caller for caller in monday if caller in on_tuesday]
+  - label: 'Returns everyone who phoned on either day'
+    code: |
+      def callers_on_both_days(monday, tuesday):
+          return sorted(set(monday) | set(tuesday))
+  - label: 'Looks each caller up in a list, so the work grows with the product of the two lengths'
+    code: |
+      def callers_on_both_days(monday, tuesday):
+          return sorted({caller for caller in monday if caller in tuesday})
+patternExplanation: |
+  A set answers "is this id here?" in about one step, and the & operator on two sets keeps only the items in both. Turn each day into a set once, then sort the result for the output order. Testing membership in a list inside a loop looks the same but costs a pass over the list each time.
+commonMistakes:
+  - 'Looking up in a list instead of a set'
+  - 'Forgetting to remove repeats or to sort'
+  - 'Using | (either day) instead of & (both days)'
+followUps:
+  - 'How would you find the callers on exactly one of the two days?'
+  - "What if each day's log is too large for memory?"

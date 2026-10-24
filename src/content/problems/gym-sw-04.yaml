@@ -1,0 +1,101 @@
+id: gym-sw-04
+title: 'The most different callers in a window'
+pattern: sliding-window
+competencies: [int.sliding-window, int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `callers` holds the id of the caller of each call, in order. Write `max_distinct(callers, k)` that looks at every `k` calls in a row and returns the largest number of different callers in any such stretch. For an empty list, return `0`.
+examples:
+  - "max_distinct(['a', 'b', 'a', 'c'], 3) returns 3"
+  - "max_distinct(['a', 'a', 'a'], 2) returns 1"
+constraints:
+  - '0 to 200000 calls'
+  - '1 <= k <= the number of calls (when there are calls)'
+  - 'Ids are non-empty strings'
+starter: |
+  def max_distinct(callers, k):
+      ...
+visibleTests: |
+  def test_example():
+      assert max_distinct(["a", "b", "a", "c"], 3) == 3
+
+  def test_all_the_same():
+      assert max_distinct(["a", "a", "a"], 2) == 1
+hiddenTests: |
+  def test_empty():
+      assert max_distinct([], 3) == 0
+
+  def test_k_of_one():
+      assert max_distinct(["a", "b", "c"], 1) == 1
+
+  def test_whole_list_as_one_window():
+      assert max_distinct(["a", "b", "c", "a", "d"], 5) == 4
+
+  def test_a_caller_who_left_the_window_is_not_counted():
+      assert max_distinct(["a", "b", "c", "a", "a"], 2) == 2
+
+  def test_best_window_is_the_last_one():
+      assert max_distinct(["a", "a", "a", "b", "c"], 2) == 2
+
+  def test_best_window_is_the_first_one():
+      assert max_distinct(["a", "b", "c", "c", "c"], 3) == 3
+
+  def test_input_unchanged():
+      callers = ["a", "b", "a"]
+      max_distinct(callers, 2)
+      assert callers == ["a", "b", "a"]
+
+  def test_large_input():
+      callers = [str(i % 1000) for i in range(200000)]
+      assert max_distinct(callers, 100000) == 1000
+referenceSolutions:
+  - code: |
+      def max_distinct(callers, k):
+          counts = {}
+          best = 0
+          for i, caller in enumerate(callers):
+              counts[caller] = counts.get(caller, 0) + 1
+              if i >= k:
+                  leaving = callers[i - k]
+                  counts[leaving] -= 1
+                  if counts[leaving] == 0:
+                      del counts[leaving]
+              if i >= k - 1:
+                  best = max(best, len(counts))
+          return best
+    time: 'O(n)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Only looks at the first window'
+    code: |
+      def max_distinct(callers, k):
+          return len(set(callers[:k]))
+  - label: 'Leaves a caller in the counts when their count drops to zero, so callers who left are still counted'
+    code: |
+      def max_distinct(callers, k):
+          counts = {}
+          best = 0
+          for i, caller in enumerate(callers):
+              counts[caller] = counts.get(caller, 0) + 1
+              if i >= k:
+                  counts[callers[i - k]] -= 1
+              if i >= k - 1:
+                  best = max(best, len(counts))
+          return best
+  - label: 'Builds a set for every window, so the work grows with n times k'
+    code: |
+      def max_distinct(callers, k):
+          best = 0
+          for start in range(len(callers) - k + 1):
+              best = max(best, len(set(callers[start:start + k])))
+          return best
+patternExplanation: |
+  This combines a sliding window with a hash table. Keep a dict that counts each caller inside the current window. When the window moves, add the new caller's count, subtract the leaving caller's count, and delete the entry when its count reaches zero, so that the number of keys is the number of different callers. Then each step costs a constant amount of work.
+commonMistakes:
+  - 'Not removing a caller whose count has reached zero'
+  - 'Counting only the first window'
+  - 'Rebuilding a set for every window'
+followUps:
+  - 'How would you return the window where the maximum happens?'
+  - 'How would this change if you wanted the smallest number of different callers?'
