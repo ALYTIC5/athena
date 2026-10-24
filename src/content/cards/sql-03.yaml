@@ -1,0 +1,57 @@
+lesson: sql-03
+cards:
+  - id: sql-03-c-keys
+    type: explain
+    competencies: [sql.schema]
+    front: What do a primary key and a foreign key do?
+    back: A primary key identifies one row, so it is unique and never NULL. A foreign key makes a column point at a row in another table, and the database refuses a value that does not exist there (SQLSTATE 23503).
+  - id: sql-03-c-constraints
+    type: explain
+    competencies: [sql.schema]
+    front: Which constraints can a column or table have, and which SQLSTATE does each report?
+    back: NOT NULL (23502), UNIQUE (23505), FOREIGN KEY (23503), CHECK (23514) and PRIMARY KEY (unique and not null). DEFAULT is not a rule, but a value used when an insert leaves the column out.
+  - id: sql-03-c-composite
+    type: basic
+    competencies: [sql.schema]
+    front: What does UNIQUE (stylist_id, starts_at) allow and refuse?
+    back: It refuses a second row with the same pair of values, a double booking. It allows the same time for another stylist, and another time for the same stylist.
+  - id: sql-03-c-check-null
+    type: explain
+    competencies: [sql.schema, sql.nulls]
+    front: Why do you add NOT NULL next to a CHECK?
+    back: A CHECK refuses a row only when its condition is false. A comparison with NULL is unknown, so a NULL passes. NOT NULL closes that gap.
+  - id: sql-03-c-db-constraints
+    type: explain
+    competencies: [sql.schema]
+    front: Why enforce rules in the database when the application already checks them?
+    back: Two requests can pass an application check at the same moment, and other programs may write to the table. A constraint is enforced for every writer, so it is the guarantee.
+  - id: sql-03-c-on-delete
+    type: basic
+    competencies: [sql.schema]
+    front: What are the main ON DELETE rules for a foreign key?
+    back: The default, NO ACTION, refuses to delete a row that others point to. CASCADE deletes the dependent rows, and SET NULL clears the link (the column must allow NULL). Keep data you may need, such as invoices, by refusing the delete.
+  - id: sql-03-c-anomalies
+    type: explain
+    competencies: [sql.normalisation]
+    front: What are the update, insert and delete anomalies of a table that repeats facts?
+    back: 'Update: a changed fact must be changed on many rows, and one missed row disagrees. Insert: a fact cannot be recorded without an unrelated row, such as a caller with no call. Delete: deleting the last row loses a fact, such as a caller.'
+  - id: sql-03-c-normalise
+    type: explain
+    competencies: [sql.normalisation]
+    front: How do you normalise a messy table?
+    back: Find the facts that repeat, make a table for that thing with a primary key, fill it with SELECT DISTINCT, and point the old rows at it with a foreign key. Each fact then lives in one place.
+  - id: sql-03-c-denormalise
+    type: explain
+    competencies: [sql.normalisation]
+    front: When is it reasonable to denormalise, and what does it cost?
+    back: To keep a snapshot, such as the price paid on an order, or to avoid a costly join after you have measured. The cost is keeping the copies in step, because they can disagree.
+  - id: sql-03-c-injection
+    type: explain
+    competencies: [sql.parameters]
+    front: What is SQL injection, and how do you prevent it?
+    back: 'User input pasted into SQL text becomes part of the command. Use a parameterised query: the SQL has placeholders and the values are sent separately, so they are always data. Escaping by hand is fragile.'
+  - id: sql-03-c-placeholders
+    type: basic
+    competencies: [sql.parameters]
+    front: What can a placeholder stand for, and what can it not stand for?
+    back: A value, including numbers. It cannot stand for a table or column name, so choose those from a fixed list in your code. An ORM is safe only where it uses parameters.

@@ -1,0 +1,110 @@
+id: sql-03-injection
+lesson: sql-03
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: 'Fix a query that can be hijacked'
+difficulty: 2
+competencies:
+  - sql.parameters
+timeoutMs: 5000
+estMin: 3
+packages: []
+prompt: |
+  `find_calls(db, reason)` returns the `(id, reason)` rows of the calls with a given reason, ordered by id. It builds its SQL by pasting the reason into a string. A caller who types `x' OR '1'='1` as the reason gets every row, and a reason with an apostrophe breaks the query.
+
+  Fix it so that the reason is always treated as data, whatever it contains. Keep the same arguments and the same result.
+starter: |
+  def find_calls(db, reason):
+      query = f"SELECT id, reason FROM calls WHERE reason = '{reason}' ORDER BY id"
+      return db.execute(query).fetchall()
+visibleTests: |
+  import sqlite3
+
+
+  def make_db():
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE calls (id INTEGER PRIMARY KEY, reason TEXT, duration_s INTEGER)")
+      db.executemany(
+          "INSERT INTO calls (id, reason, duration_s) VALUES (?, ?, ?)",
+          [(1, "booking", 120), (2, "billing", 45), (3, "cancel", 300), (4, "booking", 20)],
+      )
+      return db
+
+
+  def test_finds_calls_with_a_reason():
+      assert find_calls(make_db(), "booking") == [(1, "booking"), (4, "booking")]
+
+  def test_hostile_input_is_treated_as_data():
+      assert find_calls(make_db(), "x' OR '1'='1") == []
+hiddenTests: |
+  import sqlite3
+
+
+  def make_db():
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE calls (id INTEGER PRIMARY KEY, reason TEXT, duration_s INTEGER)")
+      db.executemany(
+          "INSERT INTO calls (id, reason, duration_s) VALUES (?, ?, ?)",
+          [(1, "booking", 120), (2, "billing", 45), (3, "cancel", 300), (4, "booking", 20)],
+      )
+      return db
+
+
+  def test_a_reason_with_an_apostrophe_does_not_break_the_query():
+      assert find_calls(make_db(), "O'Brien") == []
+
+  def test_a_second_statement_is_not_run():
+      db = make_db()
+      assert find_calls(db, "x'; DROP TABLE calls; --") == []
+      assert db.execute("SELECT count(*) FROM calls").fetchone()[0] == 4
+
+  def test_unknown_reason_gives_an_empty_list():
+      assert find_calls(make_db(), "refund") == []
+
+  def test_empty_reason():
+      assert find_calls(make_db(), "") == []
+
+  def test_a_percent_sign_is_not_a_wildcard():
+      assert find_calls(make_db(), "%") == []
+
+  def test_the_result_is_ordered_by_id():
+      rows = find_calls(make_db(), "cancel")
+      assert rows == [(3, "cancel")]
+feedback:
+  - test: test_hostile_input_is_treated_as_data
+    message: 'The reason was pasted into the SQL, so part of it ran as a command. Put a ? placeholder in the query and pass the reason as a separate value.'
+  - test: test_a_reason_with_an_apostrophe_does_not_break_the_query
+    message: 'An apostrophe ends the text in the pasted SQL. With a ? placeholder the value never becomes part of the SQL text.'
+  - test: test_a_second_statement_is_not_run
+    message: 'Do not build the SQL with the value inside it. Use db.execute(sql, (reason,)).'
+hints:
+  - "Where does the user's text end up: in the data, or in the command?"
+  - 'Write the query with a ? where the value goes, and pass the values as a tuple in the second argument of execute.'
+  - 'db.execute("SELECT id, reason FROM calls WHERE reason = ____ ORDER BY id", (____,)).fetchall()'
+referenceSolution: |
+  def find_calls(db, reason):
+      return db.execute(
+          "SELECT id, reason FROM calls WHERE reason = ? ORDER BY id", (reason,)
+      ).fetchall()
+wrongSolutions:
+  - label: 'Builds the query with str.format, which pastes the text in just the same'
+    code: |
+      def find_calls(db, reason):
+          query = "SELECT id, reason FROM calls WHERE reason = '{}' ORDER BY id".format(reason)
+          return db.execute(query).fetchall()
+  - label: 'Builds the query with the % operator, which pastes the text in just the same'
+    code: |
+      def find_calls(db, reason):
+          query = "SELECT id, reason FROM calls WHERE reason = '%s' ORDER BY id" % reason
+          return db.execute(query).fetchall()
+  - label: 'Refuses any text with an apostrophe, instead of treating it as data'
+    code: |
+      def find_calls(db, reason):
+          if "'" in reason:
+              raise ValueError("bad input")
+          query = f"SELECT id, reason FROM calls WHERE reason = '{reason}' ORDER BY id"
+          return db.execute(query).fetchall()
+explanation: |
+  With a placeholder, the database receives the SQL text and the values separately. The SQL is parsed first, with a hole where the value goes, and the value is filled in afterwards as data, so it can never change the shape of the command. That removes the injection and also fixes the apostrophe problem. `format` and `%` build the SQL text in Python, so they paste the value in just like the f-string. Refusing input that contains a quote is a blacklist: it breaks legitimate names such as O'Brien, and attackers use other tricks. Alternative: an ORM builds parameterised queries for you, but you must still avoid string-building inside raw fragments. Placeholders can only stand for values, never for table or column names; choose those from a fixed list in your code.
