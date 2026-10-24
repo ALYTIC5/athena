@@ -1,69 +1,72 @@
 id: gym-hash-01
-title: 'How many different callers?'
+title: 'How many different senders?'
 pattern: hashing
 competencies: [int.hashing]
 difficulty: easy
 timeLimitMin: 20
 statement: |
-  A support line logs the id of each caller in the order they phoned. Write `distinct_callers(calls)` that returns how many different callers there are.
+  A messaging service logs the id of the sender of each text message. Write `distinct_senders(messages)` that returns how many different senders there are.
 examples:
-  - "distinct_callers(['a', 'b', 'a']) returns 2"
-  - 'distinct_callers([]) returns 0'
+  - "distinct_senders(['a', 'b', 'a']) returns 2"
+  - 'distinct_senders([]) returns 0'
 constraints:
-  - '0 to 100000 calls'
+  - '0 to 100000 messages'
   - 'Ids are non-empty strings'
 starter: |
-  def distinct_callers(calls):
+  def distinct_senders(messages):
       ...
 visibleTests: |
   def test_example():
-      assert distinct_callers(["a", "b", "a"]) == 2
+      assert distinct_senders(["a", "b", "a"]) == 2
 
   def test_empty():
-      assert distinct_callers([]) == 0
+      assert distinct_senders([]) == 0
 hiddenTests: |
   def test_all_the_same():
-      assert distinct_callers(["a"] * 5) == 1
+      assert distinct_senders(["a"] * 5) == 1
+
+  def test_many_messages_from_few_senders():
+      assert distinct_senders([str(i % 7) for i in range(1000)]) == 7
 
   def test_all_different():
-      assert distinct_callers(["a", "b", "c"]) == 3
+      assert distinct_senders(["a", "b", "c"]) == 3
 
   def test_input_unchanged():
       calls = ["b", "a", "b"]
-      distinct_callers(calls)
+      distinct_senders(calls)
       assert calls == ["b", "a", "b"]
 
-  def test_large_input_with_many_different_callers():
-      calls = [str(i % 20000) for i in range(60000)]
-      assert distinct_callers(calls) == 20000
+  def test_large_input_with_many_different_senders():
+      messages = [str(i) for i in range(60000)]
+      assert distinct_senders(messages) == 60000
 referenceSolutions:
   - code: |
-      def distinct_callers(calls):
-          return len(set(calls))
+      def distinct_senders(messages):
+          return len(set(messages))
     time: 'O(n)'
     space: 'O(n)'
 wrongSolutions:
-  - label: 'Counts every call, not every caller'
+  - label: 'Counts every message, not every sender'
     code: |
-      def distinct_callers(calls):
-          return len(calls)
-  - label: 'Counts the repeats instead of the different callers'
+      def distinct_senders(messages):
+          return len(messages)
+  - label: 'Counts the repeats instead of the different senders'
     code: |
-      def distinct_callers(calls):
-          return len(calls) - len(set(calls))
+      def distinct_senders(messages):
+          return len(messages) - len(set(messages))
   - label: 'Keeps the callers in a list, so every check scans the whole list'
     code: |
-      def distinct_callers(calls):
+      def distinct_senders(messages):
           seen = []
-          for caller in calls:
-              if caller not in seen:
-                  seen.append(caller)
+          for sender in messages:
+              if sender not in seen:
+                  seen.append(sender)
           return len(seen)
 patternExplanation: |
-  A hash table (a Python set or dict) answers "have I seen this?" in about one step, however many items it holds. A set keeps one copy of each item, so its length is the number of different callers. Checking membership in a list instead costs a pass over the list each time, which makes the whole function quadratic.
+  A hash table (a Python set or dict) answers "have I seen this?" in about one step, however many items it holds. A set keeps one copy of each item, so its length is the number of different senders. Checking membership in a list instead costs a pass over the list each time, which makes the whole function quadratic.
 commonMistakes:
-  - 'Using len(calls)'
+  - 'Using len(messages)'
   - "Using a list for 'seen', which makes each check linear"
 followUps:
   - 'What if the log does not fit in memory?'
-  - 'What if you need the count for each hour of the day?'
+  - 'What if you need the number of senders for each hour of the day?'

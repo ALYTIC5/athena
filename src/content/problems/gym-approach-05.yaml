@@ -3,7 +3,7 @@ title: 'Is this slot free?'
 pattern: approach
 competencies: [int.approach]
 difficulty: easy
-timeLimitMin: 15
+timeLimitMin: 20
 statement: |
   Bookings are pairs `(start, end)` in minutes after midnight, with `start` before `end`. Write `slot_is_free(booked, start, end)` that returns `True` if the new slot from `start` to `end` shares no time with any booked slot. A slot that ends exactly when another begins does not overlap it.
 examples:
@@ -33,6 +33,9 @@ hiddenTests: |
 
   def test_identical_slot():
       assert slot_is_free([(540, 600)], 540, 600) is False
+
+  def test_overlaps_the_start_of_a_booking():
+      assert slot_is_free([(540, 600)], 500, 560) is False
 
   def test_ends_exactly_when_a_booking_starts():
       assert slot_is_free([(540, 600)], 500, 540) is True
@@ -74,13 +77,18 @@ wrongSolutions:
           b_start, b_end = booked[0]
           return not (start < b_end and b_start < end)
 patternExplanation: |
-  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+  The think-aloud checklist applied to this problem:
 
-  It is easier to say when two slots do not overlap: one ends before or when the other starts. Negating that gives the overlap test, each slot starts before the other ends, and it covers containment and identical slots without special cases. Using strict comparisons makes touching slots free.
+  1. Clarify: do slots that only touch overlap? The statement says no. Are the bookings sorted? No.
+  2. Examples: (540, 600) with (600, 660) is free, and with (570, 630) is not.
+  3. Brute force: list every minute of the new slot and check whether any is booked.
+  4. Optimise: compare end points only: two slots do not overlap when one ends before or when the other starts, so they overlap when each starts before the other ends.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try touching on both sides, a slot inside a booking, a slot around a booking, an identical slot, a gap between two bookings and no bookings.
+  7. Complexity: one pass over the bookings, O(n) time and O(1) space.
 commonMistakes:
   - 'Checking only whether one end point lies inside the other slot'
   - 'Using <= and treating touching slots as overlapping'
   - 'Returning after looking at only the first booking'
 followUps:
   - 'How would you find the first free slot of 30 minutes?'
-  - 'How would you do it faster for thousands of bookings?'

@@ -98,7 +98,7 @@ wrongSolutions:
                       break
           return duplicates
 patternExplanation: |
-  A hash table (a Python set or dict) answers "have I seen this?" in about one step, however many items it holds. The key idea is to choose what makes two bookings the same, here the pair (customer, slot), and to use that tuple as the set item. A tuple of strings is hashable, so it works as a key. Scanning once and adding each new key to the set finds every later repeat.
+  A set remembers what you have seen, and looking an item up takes about one step. The key idea is to choose what makes two bookings the same, here the pair (customer, slot), and to use that tuple as the set item. A tuple of strings is hashable, so it works as a key. Scanning once and adding each new key to the set finds every later repeat.
 commonMistakes:
   - 'Using only the customer, or only the slot, as the key'
   - 'Reporting the first booking instead of the repeat'

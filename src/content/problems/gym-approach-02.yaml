@@ -3,7 +3,7 @@ title: 'The longest call'
 pattern: approach
 competencies: [int.approach]
 difficulty: easy
-timeLimitMin: 15
+timeLimitMin: 20
 statement: |
   Each call is a dict with an `"id"` and the number of `"seconds"` it lasted. Write `longest_call(calls)` that returns the id of the longest call. If two calls are equally long, return the one that comes first in the list. If there are no calls, return `None`.
 examples:
@@ -71,9 +71,15 @@ wrongSolutions:
               return None
           return max(c["seconds"] for c in calls)
 patternExplanation: |
-  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+  The think-aloud checklist applied to this problem:
 
-  The clarifying questions are the tie rule and the empty case. A single pass that keeps the best call so far answers both.
+  1. Clarify: what happens on a tie, and what is returned for an empty list?
+  2. Examples: two calls of 60 seconds, and an empty list.
+  3. Brute force: sort the calls by length and take the first.
+  4. Optimise: one pass that keeps the best call so far, and replaces it only when a call is strictly longer.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try a tie, a single call, the longest call first, and an empty list.
+  7. Complexity: one pass, O(n) time and O(1) space.
 commonMistakes:
   - 'Forgetting the empty list'
   - 'Returning the number instead of the id'

@@ -51,7 +51,7 @@ referenceSolutions:
           if not counts:
               return None
           return min(counts, key=lambda r: (-counts[r], r))
-    time: 'O(n + k)'
+    time: 'O(n)'
     space: 'O(k)'
 wrongSolutions:
   - label: 'Breaks ties by first appearance instead of alphabetically'
@@ -70,6 +70,12 @@ wrongSolutions:
           for reason in reasons:
               counts[reason] = counts.get(reason, 0) + 1
           return max(counts.values()) if counts else None
+  - label: 'Calls list.count once for every item, which is slow and breaks ties by first appearance'
+    code: |
+      def top_reason(reasons):
+          if not reasons:
+              return None
+          return max(reasons, key=reasons.count)
   - label: 'Crashes on an empty list'
     code: |
       def top_reason(reasons):
@@ -78,7 +84,7 @@ wrongSolutions:
               counts[reason] = counts.get(reason, 0) + 1
           return min(counts, key=lambda r: (-counts[r], r))
 patternExplanation: |
-  A hash table (a Python set or dict) answers "have I seen this?" in about one step, however many items it holds. A dict from reason to count is built in one pass. The answer is the reason with the highest count, and sorting on the pair (negative count, reason) puts the alphabetical rule into the choice, so no separate tie handling is needed.
+  A dict can hold a count for each key, and looking a key up takes about one step. Build a dict from reason to count in one pass. The answer is the reason with the highest count, and sorting on the pair (negative count, reason) puts the alphabetical rule into the choice, so no separate tie handling is needed.
 commonMistakes:
   - 'Relying on Counter.most_common, which keeps first-seen order for ties'
   - 'Forgetting the empty case'

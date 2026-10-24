@@ -3,9 +3,9 @@ title: 'Percentage of missed calls'
 pattern: approach
 competencies: [int.approach]
 difficulty: easy
-timeLimitMin: 15
+timeLimitMin: 20
 statement: |
-  A call log holds one status for each call, either `"answered"` or `"missed"`. Write `missed_percent(statuses)` that returns the share of missed calls as a whole number of percent, rounded down. For an empty log, return `0`.
+  A call log holds one status for each call, either `"answered"` or `"missed"`. Write `missed_percent(statuses)` that returns the share of missed calls as an `int` number of percent, rounded down. For an empty log, return `0`.
 examples:
   - "missed_percent(['answered', 'missed', 'missed', 'answered']) returns 50"
   - 'missed_percent([]) returns 0'
@@ -36,6 +36,9 @@ hiddenTests: |
 
   def test_result_is_a_whole_number():
       assert isinstance(missed_percent(["missed", "answered"]), int)
+
+  def test_twenty_nine_in_a_hundred():
+      assert missed_percent(["missed"] * 29 + ["answered"] * 71) == 29
 referenceSolutions:
   - code: |
       def missed_percent(statuses):
@@ -65,10 +68,23 @@ wrongSolutions:
               return 0
           missed = sum(1 for s in statuses if s == "missed")
           return missed / len(statuses)
+  - label: 'Uses floating-point division, which loses a percent for 29 of 100'
+    code: |
+      def missed_percent(statuses):
+          if not statuses:
+              return 0
+          missed = sum(1 for s in statuses if s == "missed")
+          return int(missed / len(statuses) * 100)
 patternExplanation: |
-  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+  The think-aloud checklist applied to this problem:
 
-  Two edge cases decide this problem: the empty log, where dividing would fail, and the rounding rule. Multiplying by 100 before the whole-number division keeps the arithmetic in integers.
+  1. Clarify: what is returned for an empty log, and which way does the rounding go?
+  2. Examples: 2 of 4 missed is 50; 1 of 3 is 33; an empty log is 0.
+  3. Brute force: count the missed calls, divide by the total, multiply by 100, and round down.
+  4. Optimise: multiply by 100 before dividing and use whole-number division, which avoids floating-point error (29 of 100 gives 28.999... as a float).
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try the empty log, all missed, none missed, 1 of 3, 2 of 3 and 29 of 100.
+  7. Complexity: one pass, O(n) time and O(1) space.
 commonMistakes:
   - 'Dividing by zero for an empty log'
   - 'Rounding to nearest when the statement says down'

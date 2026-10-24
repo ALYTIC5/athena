@@ -3,14 +3,14 @@ title: 'Fee for a late cancellation'
 pattern: approach
 competencies: [int.approach]
 difficulty: easy
-timeLimitMin: 15
+timeLimitMin: 20
 statement: |
   A salon charges for late cancellations. Write `cancellation_fee(hours_before)` where `hours_before` is how many hours before the appointment the customer cancels (it can have decimals):
 
   - 48 hours or more: no fee, `0`
   - from 24 hours up to (but not including) 48: `10`
   - under 24 hours: `25`
-  - a negative number means the appointment has already started, which is an error: raise `ValueError`.
+  - a negative number means the appointment has already started, which no fee can fix: return `None`.
 examples:
   - 'cancellation_fee(72) returns 0'
   - 'cancellation_fee(30) returns 10'
@@ -26,14 +26,6 @@ visibleTests: |
   def test_middle_band():
       assert cancellation_fee(30) == 10
 hiddenTests: |
-  def raises_value_error(hours):
-      try:
-          cancellation_fee(hours)
-      except ValueError:
-          return True
-      return False
-
-
   def test_exactly_48_is_free():
       assert cancellation_fee(48) == 0
 
@@ -49,8 +41,8 @@ hiddenTests: |
   def test_zero_hours_pays_25():
       assert cancellation_fee(0) == 25
 
-  def test_negative_is_an_error():
-      assert raises_value_error(-1)
+  def test_negative_means_no_fee_applies():
+      assert cancellation_fee(-1) is None
 
   def test_a_long_time_before():
       assert cancellation_fee(500.5) == 0
@@ -58,7 +50,7 @@ referenceSolutions:
   - code: |
       def cancellation_fee(hours_before):
           if hours_before < 0:
-              raise ValueError("the appointment has already started")
+              return None
           if hours_before >= 48:
               return 0
           if hours_before >= 24:
@@ -71,7 +63,7 @@ wrongSolutions:
     code: |
       def cancellation_fee(hours_before):
           if hours_before < 0:
-              raise ValueError("the appointment has already started")
+              return None
           if hours_before > 48:
               return 0
           if hours_before >= 24:
@@ -81,13 +73,13 @@ wrongSolutions:
     code: |
       def cancellation_fee(hours_before):
           if hours_before < 0:
-              raise ValueError("the appointment has already started")
+              return None
           if hours_before >= 48:
               return 0
           if hours_before > 24:
               return 10
           return 25
-  - label: 'Does not reject a negative number'
+  - label: 'Charges the top fee for a negative number instead of returning None'
     code: |
       def cancellation_fee(hours_before):
           if hours_before >= 48:
@@ -96,13 +88,19 @@ wrongSolutions:
               return 10
           return 25
 patternExplanation: |
-  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+  The think-aloud checklist applied to this problem:
 
-  The examples that matter here sit on the edges: 24, 48, a value just below each and a negative value. Check the bands from the top down, or from the bottom up, and let each test use the edge the statement gives, inclusive or not.
+  1. Clarify: which edge belongs to which band, and what a negative number means. The statement says 48 is free, 24 pays 10, and a negative number returns None.
+  2. Examples: 72 is free; 30 pays 10; 10 pays 25; -1 gives None.
+  3. Brute force: write a chain of if statements, one for each band.
+  4. Optimise: check the negative case first, then the bands from the top down, so that each test needs only one comparison.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try 48, just under 48, 24, just under 24, 0 and a negative number.
+  7. Complexity: a few comparisons, O(1) time and space.
 commonMistakes:
   - 'Mixing up which edge belongs to which band'
   - 'Testing only the middle of each band'
-  - 'Forgetting the error case'
+  - 'Forgetting the negative case'
 followUps:
   - 'What if the fees and the edges come from a table that changes?'
   - 'How would you test every edge with a parametrised test?'

@@ -3,7 +3,7 @@ title: "Tidy a caller's name"
 pattern: approach
 competencies: [int.approach]
 difficulty: easy
-timeLimitMin: 15
+timeLimitMin: 20
 statement: |
   Names arrive from a web form in all kinds of shapes. Write `clean_name(text)` that returns the name tidied up:
 
@@ -64,9 +64,15 @@ wrongSolutions:
       def clean_name(text):
           return text.strip().capitalize()
 patternExplanation: |
-  Work through the think-aloud checklist before you type: clarify the rules, write two or three examples by hand (including an empty or edge case), describe the simple solution, then code it, test it on your examples and say its cost.
+  The think-aloud checklist applied to this problem:
 
-  The examples expose the traps: extra spaces, a name in capitals, and punctuation inside a word. `text.split()` with no argument removes the extra spaces in one step. `str.title()` looks right but treats a hyphen or an apostrophe as the start of a new word.
+  1. Clarify: what counts as a word, and what happens to letters inside a word? The statement says words are separated by spaces and only the first letter is a capital.
+  2. Examples: "  amara   OKAFOR " becomes "Amara Okafor"; "O'BRIEN" becomes "O'brien"; empty text stays empty.
+  3. Brute force: walk through the characters and track whether the previous one was a space.
+  4. Optimise: split on whitespace (which also removes extra spaces), fix each word, and join with one space. str.title() looks right but starts a new word after a hyphen or an apostrophe.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try extra spaces, all capitals, an apostrophe, a hyphen and an empty text.
+  7. Complexity: one pass, O(n) time and space. This is a toy rule: real systems keep the name as typed, because names such as McDonald break any simple rule.
 commonMistakes:
   - 'Using title() without checking names with apostrophes or hyphens'
   - 'Stripping the ends but not the spaces between words'
