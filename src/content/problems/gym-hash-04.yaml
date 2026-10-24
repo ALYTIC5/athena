@@ -1,0 +1,108 @@
+id: gym-hash-04
+title: 'Duplicate bookings'
+pattern: hashing
+competencies: [int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A booking is a tuple `(booking_id, customer, slot)`. A booking is a duplicate if an earlier booking in the list has the same customer and the same slot. Write `duplicate_booking_ids(bookings)` that returns the ids of the duplicate bookings, in the order they appear. The earlier booking is not reported.
+examples:
+  - "duplicate_booking_ids([('b1', 'amara', '09:00'), ('b2', 'amara', '09:00'), ('b3', 'bayu', '09:00')]) returns ['b2']"
+  - 'duplicate_booking_ids([]) returns []'
+constraints:
+  - '0 to 100000 bookings'
+  - 'Booking ids are unique'
+starter: |
+  def duplicate_booking_ids(bookings):
+      ...
+visibleTests: |
+  def test_example():
+      bookings = [("b1", "amara", "09:00"), ("b2", "amara", "09:00"), ("b3", "bayu", "09:00")]
+      assert duplicate_booking_ids(bookings) == ["b2"]
+
+  def test_no_duplicates():
+      assert duplicate_booking_ids([("b1", "amara", "09:00"), ("b2", "amara", "10:00")]) == []
+hiddenTests: |
+  def test_empty():
+      assert duplicate_booking_ids([]) == []
+
+  def test_three_of_the_same_booking():
+      bookings = [("b1", "a", "09:00"), ("b2", "a", "09:00"), ("b3", "a", "09:00")]
+      assert duplicate_booking_ids(bookings) == ["b2", "b3"]
+
+  def test_same_slot_different_customers_is_fine():
+      assert duplicate_booking_ids([("b1", "a", "09:00"), ("b2", "b", "09:00")]) == []
+
+  def test_same_customer_different_slots_is_fine():
+      assert duplicate_booking_ids([("b1", "a", "09:00"), ("b2", "a", "10:00")]) == []
+
+  def test_ids_come_out_in_input_order():
+      bookings = [("b1", "a", "9"), ("b2", "b", "9"), ("b3", "b", "9"), ("b4", "a", "9")]
+      assert duplicate_booking_ids(bookings) == ["b3", "b4"]
+
+  def test_large_input_with_a_late_duplicate():
+      bookings = [("b" + str(i), "c" + str(i), "09:00") for i in range(50000)]
+      bookings.append(("late", "c0", "09:00"))
+      assert duplicate_booking_ids(bookings) == ["late"]
+
+  def test_input_unchanged():
+      bookings = [("b1", "a", "9"), ("b2", "a", "9")]
+      duplicate_booking_ids(bookings)
+      assert bookings == [("b1", "a", "9"), ("b2", "a", "9")]
+referenceSolutions:
+  - code: |
+      def duplicate_booking_ids(bookings):
+          seen = set()
+          duplicates = []
+          for booking_id, customer, slot in bookings:
+              key = (customer, slot)
+              if key in seen:
+                  duplicates.append(booking_id)
+              else:
+                  seen.add(key)
+          return duplicates
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Treats a repeated customer as a duplicate, whatever the slot'
+    code: |
+      def duplicate_booking_ids(bookings):
+          seen = set()
+          duplicates = []
+          for booking_id, customer, slot in bookings:
+              if customer in seen:
+                  duplicates.append(booking_id)
+              else:
+                  seen.add(customer)
+          return duplicates
+  - label: 'Reports the earlier booking instead of the later one'
+    code: |
+      def duplicate_booking_ids(bookings):
+          first_id = {}
+          duplicates = []
+          for booking_id, customer, slot in bookings:
+              key = (customer, slot)
+              if key in first_id:
+                  duplicates.append(first_id[key])
+              else:
+                  first_id[key] = booking_id
+          return duplicates
+  - label: 'Compares every booking with every earlier one, so the work grows with the square of the list'
+    code: |
+      def duplicate_booking_ids(bookings):
+          duplicates = []
+          for i, (booking_id, customer, slot) in enumerate(bookings):
+              for _, other_customer, other_slot in bookings[:i]:
+                  if customer == other_customer and slot == other_slot:
+                      duplicates.append(booking_id)
+                      break
+          return duplicates
+patternExplanation: |
+  A set remembers what you have seen, and looking an item up takes about one step. The key idea is to choose what makes two bookings the same, here the pair (customer, slot), and to use that tuple as the set item. A tuple of strings is hashable, so it works as a key. Scanning once and adding each new key to the set finds every later repeat.
+commonMistakes:
+  - 'Using only the customer, or only the slot, as the key'
+  - 'Reporting the first booking instead of the repeat'
+  - 'Comparing every pair'
+followUps:
+  - 'What if the same customer can have two bookings in different rooms?'
+  - 'How would you also report which booking each duplicate repeats?'

@@ -1,0 +1,106 @@
+id: gym-approach-06
+title: 'Fee for a late cancellation'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A salon charges for late cancellations. Write `cancellation_fee(hours_before)` where `hours_before` is how many hours before the appointment the customer cancels (it can have decimals):
+
+  - 48 hours or more: no fee, `0`
+  - from 24 hours up to (but not including) 48: `10`
+  - under 24 hours: `25`
+  - a negative number means the appointment has already started, which no fee can fix: return `None`.
+examples:
+  - 'cancellation_fee(72) returns 0'
+  - 'cancellation_fee(30) returns 10'
+constraints:
+  - 'hours_before is a number, possibly with decimals'
+starter: |
+  def cancellation_fee(hours_before):
+      ...
+visibleTests: |
+  def test_early_cancellation_is_free():
+      assert cancellation_fee(72) == 0
+
+  def test_middle_band():
+      assert cancellation_fee(30) == 10
+hiddenTests: |
+  def test_exactly_48_is_free():
+      assert cancellation_fee(48) == 0
+
+  def test_just_under_48_pays_10():
+      assert cancellation_fee(47.9) == 10
+
+  def test_exactly_24_pays_10():
+      assert cancellation_fee(24) == 10
+
+  def test_just_under_24_pays_25():
+      assert cancellation_fee(23.9) == 25
+
+  def test_zero_hours_pays_25():
+      assert cancellation_fee(0) == 25
+
+  def test_negative_means_no_fee_applies():
+      assert cancellation_fee(-1) is None
+
+  def test_a_long_time_before():
+      assert cancellation_fee(500.5) == 0
+referenceSolutions:
+  - code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              return None
+          if hours_before >= 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+    time: 'O(1)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Uses > for the 48 hour edge, so exactly 48 hours is charged'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              return None
+          if hours_before > 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+  - label: 'Uses > for the 24 hour edge, so exactly 24 hours pays 25'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before < 0:
+              return None
+          if hours_before >= 48:
+              return 0
+          if hours_before > 24:
+              return 10
+          return 25
+  - label: 'Charges the top fee for a negative number instead of returning None'
+    code: |
+      def cancellation_fee(hours_before):
+          if hours_before >= 48:
+              return 0
+          if hours_before >= 24:
+              return 10
+          return 25
+patternExplanation: |
+  The think-aloud checklist applied to this problem:
+
+  1. Clarify: which edge belongs to which band, and what a negative number means. The statement says 48 is free, 24 pays 10, and a negative number returns None.
+  2. Examples: 72 is free; 30 pays 10; 10 pays 25; -1 gives None.
+  3. Brute force: write a chain of if statements, one for each band.
+  4. Optimise: check the negative case first, then the bands from the top down, so that each test needs only one comparison.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try 48, just under 48, 24, just under 24, 0 and a negative number.
+  7. Complexity: a few comparisons, O(1) time and space.
+commonMistakes:
+  - 'Mixing up which edge belongs to which band'
+  - 'Testing only the middle of each band'
+  - 'Forgetting the negative case'
+followUps:
+  - 'What if the fees and the edges come from a table that changes?'
+  - 'How would you test every edge with a parametrised test?'

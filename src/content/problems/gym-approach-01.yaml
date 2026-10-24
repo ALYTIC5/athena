@@ -1,0 +1,74 @@
+id: gym-approach-01
+title: 'Total call time in whole minutes'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A phone system logs the length of each call in seconds. Write `total_call_minutes(durations_s)` that returns the total time of all the calls in whole minutes, rounded down.
+examples:
+  - 'total_call_minutes([90, 45]) returns 2'
+  - 'total_call_minutes([]) returns 0'
+constraints:
+  - '0 to 10000 calls'
+  - 'Each length is a whole number of seconds, 0 or more'
+starter: |
+  def total_call_minutes(durations_s):
+      ...
+visibleTests: |
+  def test_example():
+      assert total_call_minutes([90, 45]) == 2
+
+  def test_empty():
+      assert total_call_minutes([]) == 0
+hiddenTests: |
+  def test_under_a_minute():
+      assert total_call_minutes([59]) == 0
+
+  def test_exactly_one_minute():
+      assert total_call_minutes([60]) == 1
+
+  def test_part_minutes_add_up_before_rounding():
+      assert total_call_minutes([40, 40, 40, 40]) == 2
+
+  def test_one_hour():
+      assert total_call_minutes([3600]) == 60
+
+  def test_zero_length_calls():
+      assert total_call_minutes([0, 0]) == 0
+
+  def test_input_unchanged():
+      calls = [90, 45]
+      total_call_minutes(calls)
+      assert calls == [90, 45]
+referenceSolutions:
+  - code: |
+      def total_call_minutes(durations_s):
+          return sum(durations_s) // 60
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Rounds each call down before adding, so part-minutes are lost'
+    code: |
+      def total_call_minutes(durations_s):
+          return sum(d // 60 for d in durations_s)
+  - label: 'Rounds to the nearest minute instead of down'
+    code: |
+      def total_call_minutes(durations_s):
+          return round(sum(durations_s) / 60)
+patternExplanation: |
+  The think-aloud checklist applied to this problem:
+
+  1. Clarify: when does the rounding happen: for each call, or once for the total? "Total time of all the calls" says once, at the end.
+  2. Examples: [90, 45] is 135 seconds, which is 2 minutes; [] is 0.
+  3. Brute force: convert each call to whole minutes (rounding down) and add them up (this loses the part-minutes).
+  4. Optimise: add the seconds first and convert once: one pass is already enough.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try [59], [60] and four calls of 40 seconds, where rounding each call gives 0.
+  7. Complexity: one pass over the calls, O(n) time and O(1) space.
+commonMistakes:
+  - 'Rounding too early, inside the loop'
+  - 'Using round() when the question says rounded down'
+followUps:
+  - 'What if the log also holds calls that have not ended yet?'
+  - 'How would you report hours and minutes?'
