@@ -319,9 +319,9 @@ items:
       - text: db.execute("SELECT id FROM calls WHERE reason = '" + reason + "'")
         correct: false
         why: Joining strings with + pastes the value into the SQL in the same way.
-      - text: db.execute("SELECT id FROM calls WHERE reason = '%s'" % reason)
+      - text: db.execute("SELECT id FROM calls WHERE reason = '{}'".format(reason))
         correct: false
-        why: The % operator also builds the text in Python, before the database runs it.
+        why: The format method also builds the text in Python, before the database runs it.
   - id: sql-03-q-escape
     pools: [mastery]
     objective: 3

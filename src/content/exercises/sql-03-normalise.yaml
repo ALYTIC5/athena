@@ -75,6 +75,10 @@ checks:
   - 'SELECT sum(duration_s) = 455 FROM calls'
   - 'SELECT sum(id) = 15 FROM calls'
   - "SELECT count(*) = 3 FROM calls WHERE reason = 'booking'"
+  - "SELECT count(*) = 2 FROM calls c JOIN callers r ON r.id = c.caller_id WHERE r.name = 'Bayu Singh'"
+  - "SELECT r.name = 'Chen Wei' FROM calls c JOIN callers r ON r.id = c.caller_id WHERE c.id = 4"
+  - "SELECT count(*) = 1 FROM calls WHERE reason = 'cancel' AND duration_s = 30"
+  - "SELECT count(*) = 1 FROM information_schema.table_constraints WHERE table_name = 'calls' AND constraint_type = 'PRIMARY KEY'"
   - "SELECT is_nullable = 'NO' FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'caller_id'"
   - "SELECT count(*) = 0 FROM information_schema.columns WHERE table_name = 'calls' AND column_name IN ('caller_name', 'caller_phone', 'name', 'phone')"
   - "SELECT count(*) >= 1 FROM information_schema.table_constraints WHERE table_name = 'calls' AND constraint_type = 'FOREIGN KEY'"

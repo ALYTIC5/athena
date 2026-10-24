@@ -58,6 +58,12 @@ A table definition is also a set of rules. A **primary key** identifies each row
 
 A broken rule gives a **SQLSTATE** code: 23505 for unique, 23503 for foreign key, 23502 for not null and 23514 for check. Put the rules in the database even when the application checks them too, because two requests can pass a check at the same moment but cannot both pass a constraint. By default a foreign key refuses to delete a row that others point to, and `ON DELETE CASCADE` deletes the dependent rows with their parent (`ON DELETE SET NULL` clears the link instead).
 
+<Callout type="note" title="Two more pieces of table syntax">
+
+`DEFAULT now()` fills in a value when an insert leaves the column out. `timestamptz` is a date and time with a time zone, and `date` is a date only. The default rule for a foreign key is called `NO ACTION`: it refuses the delete.
+
+</Callout>
+
 **Worked example.** Two linked tables with their rules.
 
 ```sql schema="sql-03-create-table"
@@ -105,7 +111,7 @@ GROUP BY caller_phone
 ORDER BY caller_phone;     -- each phone is stored 2, 2 and 1 times: the repeats are the problem
 ```
 
-Repeated facts cause **anomalies**. Changing a phone number means updating many rows, and missing one leaves two numbers for one caller (update anomaly). You cannot record a caller who has not called yet (insert anomaly), and deleting a caller's only call loses the caller (delete anomaly). The fix is one table for each kind of thing, a primary key for each, and foreign keys to link them. A column belongs in the table of the thing it describes: a name belongs with the caller, not with the call.
+Repeated facts cause **anomalies**. Changing a phone number means updating many rows, and missing one leaves two numbers for one caller (update anomaly). You cannot record a caller who has not called yet (insert anomaly), and deleting a caller's only call loses the caller (delete anomaly). The fix is one table for each kind of thing, a primary key for each, and foreign keys to link them. Fill a new table from the old one with `INSERT INTO callers (name, phone) SELECT DISTINCT caller_name, caller_phone FROM calls_raw;`, where `DISTINCT` keeps one copy of each repeated row. A column belongs in the table of the thing it describes: a name belongs with the caller, not with the call.
 
 Copying a fact back on purpose, called **denormalising**, is sometimes right: a snapshot such as the price paid on an order must not change when the product price does. The cost is keeping copies in step, so do it for a reason.
 
