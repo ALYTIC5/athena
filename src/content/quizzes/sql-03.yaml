@@ -32,15 +32,15 @@ items:
       - text: A booking for a customer id that does not exist
         correct: true
         why: The foreign key makes sure that every booking points to a real customer. The error is SQLSTATE 23503.
-      - text: Two bookings for the same customer
+      - text: 'Two bookings for the very same customer'
         correct: false
         why: Many bookings can point to one customer. That is the usual relationship.
-      - text: A customer with no bookings
+      - text: 'A customer who has no bookings at all'
         correct: false
         why: The key constrains the booking side only. A customer can exist without bookings.
-      - text: Any change to the customers table
+      - text: 'Any change at all to the customers table'
         correct: false
-        why: Customers can still be added and changed. Only deleting a customer that bookings still point to is refused.
+        why: 'Customers can still be added and most columns changed. Only deleting a customer that bookings still point to is refused.'
   - id: sql-03-q-unique-composite
     pools: [mastery, warmup]
     objective: 1
@@ -48,7 +48,7 @@ items:
     competencies: [sql.schema]
     stem: A table has UNIQUE (stylist_id, starts_at). Which rows can it hold?
     options:
-      - text: Two stylists at the same time, and one stylist at two times
+      - text: 'Same time for two stylists, two times for one'
         correct: true
         why: Only the pair has to be unique. The same stylist can repeat with a different time, and the same time can repeat with a different stylist.
       - text: One row for each stylist, whatever the time
@@ -57,7 +57,7 @@ items:
       - text: One row for each time, whatever the stylist
         correct: false
         why: That would need UNIQUE on starts_at alone.
-      - text: Rows where both columns are different from every other row
+      - text: 'Rows where both columns differ from every other row'
         correct: false
         why: The constraint looks at the pair of values together, not each column separately.
   - id: sql-03-q-sqlstate
@@ -105,7 +105,7 @@ items:
     competencies: [sql.schema]
     stem: Application code already checks that a slot is free before it inserts a booking. Why is a UNIQUE constraint still needed?
     options:
-      - text: Two requests can pass the check at the same moment
+      - text: 'Two requests can pass the check together'
         correct: true
         why: The check and the insert are separate steps, so both requests see a free slot. The constraint is the one guarantee that cannot be raced.
       - text: Application code cannot read the table
@@ -164,7 +164,7 @@ items:
     competencies: [sql.normalisation]
     stem: A calls table stores the caller's phone number on every call row. What goes wrong when the number changes?
     options:
-      - text: Many rows need updating, and missing one leaves two numbers
+      - text: 'Many rows must change, and one missed row disagrees'
         correct: true
         why: This is an update anomaly. A fact stored in many places can disagree with itself.
       - text: Nothing, because the new number is added automatically
@@ -186,13 +186,13 @@ items:
       - text: Store each fact once, in the table about that thing
         correct: true
         why: Facts about a caller live in the callers table, and the call rows point to it with a key.
-      - text: Make every table have the same columns
+      - text: 'Make every table have the same columns in the same order'
         correct: false
         why: Tables describe different things, so their columns differ.
-      - text: Put all the data in one big table
+      - text: 'Put all the data in one big table to avoid joins'
         correct: false
         why: That is the opposite. One big table repeats facts.
-      - text: Make queries run faster in every case
+      - text: 'Make queries run faster in every case, without exception'
         correct: false
         why: Normalising protects correctness. Some reads need joins and get slower.
   - id: sql-03-q-depends-on-key
@@ -205,13 +205,13 @@ items:
       - text: caller_name, because it depends on the caller
         correct: true
         why: A name belongs to the caller. It should be in the callers table and found through caller_id.
-      - text: reason, because it describes the call
+      - text: 'reason, because it describes the call itself'
         correct: false
         why: The reason is a fact about this call, so it belongs here.
-      - text: caller_id, because it is a key
+      - text: 'caller_id, because it is a key to the caller table'
         correct: false
         why: caller_id is the link to the caller. Each call needs it.
-      - text: call_id, because it is a number
+      - text: 'call_id, because it is a number that counts up'
         correct: false
         why: call_id identifies the call and is the key of this table.
   - id: sql-03-q-insert-anomaly
@@ -221,16 +221,16 @@ items:
     competencies: [sql.normalisation]
     stem: A single table holds callers and their calls. Why can you not record a new caller who has not called yet?
     options:
-      - text: Every row is a call, so a caller needs a call to exist
+      - text: 'Every row is a call, so a caller needs one'
         correct: true
         why: This is an insert anomaly. A separate callers table lets a caller exist without calls.
-      - text: Tables cannot have empty columns
+      - text: 'Tables cannot have empty columns in them'
         correct: false
         why: Columns can be NULL. The design is the problem.
-      - text: The caller would have no id
+      - text: 'The caller would have no id to be stored with'
         correct: false
         why: An id could be generated. The problem is that the only table has no place for a caller without a call.
-      - text: Phone numbers must be unique
+      - text: 'Phone numbers must be unique in the table'
         correct: false
         why: Uniqueness is not the issue. The structure is.
   - id: sql-03-q-denormalise
@@ -240,16 +240,16 @@ items:
     competencies: [sql.normalisation]
     stem: When is it reasonable to store a copy of a fact, such as the price at the time of an order, in another table?
     options:
-      - text: When the copy records what was true then, and should not change later
+      - text: 'When the copy records what was true at the time'
         correct: true
         why: An order must keep the price paid, even if the product price changes. It is a snapshot, not a duplicate of live data.
-      - text: Whenever a join looks slow
+      - text: 'Whenever a join looks slow in a test'
         correct: false
         why: Measure first. A copy has a cost, which is keeping it correct.
-      - text: Never, because normal forms forbid it
+      - text: 'Never, because the normal forms forbid any copy'
         correct: false
         why: Normalising is a guide. Deliberate copies are common, with a reason.
-      - text: Whenever a column name is long
+      - text: 'Whenever a column name is very long'
         correct: false
         why: The length of a name has nothing to do with it.
   - id: sql-03-q-denormalise-cost
@@ -259,7 +259,7 @@ items:
     competencies: [sql.normalisation]
     stem: What is the cost of copying a fact into a second table to avoid a join?
     options:
-      - text: You must keep the copies in step, or they will disagree
+      - text: 'You must keep the copies in step'
         correct: true
         why: Every change has to reach all the copies. That is the update anomaly again, accepted on purpose.
       - text: The database refuses the second copy
@@ -291,7 +291,7 @@ items:
     competencies: [sql.parameters]
     stem: What is SQL injection?
     options:
-      - text: User input becomes part of the SQL command and changes what it does
+      - text: 'User input becomes part of the command'
         correct: true
         why: When SQL is built by pasting text into a string, the text can contain SQL. The database then runs it as part of the command.
       - text: A fast way to load many rows into a table
@@ -300,7 +300,7 @@ items:
       - text: An error that happens when two users write at once
         correct: false
         why: That is a concurrency problem, not an attack.
-      - text: A way to add a column to a table
+      - text: 'A way to add a column to a table safely'
         correct: false
         why: Adding a column is done with ALTER TABLE.
   - id: sql-03-q-placeholder
@@ -329,7 +329,7 @@ items:
     competencies: [sql.parameters]
     stem: Why is escaping quotes by hand a weaker defence than placeholders?
     options:
-      - text: It is easy to miss a case, and each driver has its own rules
+      - text: 'It is easy to miss a case in some driver'
         correct: true
         why: Placeholders keep values out of the SQL text, so there is nothing to escape and nothing to forget.
       - text: Escaping makes the query slower than placeholders
@@ -348,13 +348,13 @@ items:
     competencies: [sql.parameters]
     stem: A user chooses which column to sort a list by. Can a ? placeholder stand for the column name?
     options:
-      - text: No, so check the name against a fixed list of allowed columns
+      - text: 'No, so check the name against an allowed list'
         correct: true
         why: Placeholders stand for values only. A column name has to be in the SQL text, so only a name from an allowlist may be used.
       - text: Yes, placeholders can stand for any part of the SQL
         correct: false
         why: They stand for values. The database treats a value as data, not as a name.
-      - text: Yes, but only in PostgreSQL
+      - text: 'Yes, but only in PostgreSQL and similar databases'
         correct: false
         why: This is the same in the common databases.
       - text: No, so paste the name into the SQL as typed
@@ -365,9 +365,9 @@ items:
     objective: 3
     type: single
     competencies: [sql.parameters]
-    stem: The query is built with an f-string, but the only user input is a number, such as {min_seconds}. Is it safe?
+    stem: The query is built with an f-string, but the only user input is a number, such as {min_seconds}, taken straight from the request without conversion. Is it safe?
     options:
-      - text: No, because the number can arrive as text that contains SQL
+      - text: 'No, because the number can arrive as SQL text'
         correct: true
         why: Web input arrives as text. Use a placeholder for numbers as well.
       - text: Yes, because numbers cannot contain SQL
@@ -376,7 +376,7 @@ items:
       - text: Yes, as long as the number is positive
         correct: false
         why: The sign does not matter. The text could be anything.
-      - text: No, but only for decimals
+      - text: 'No, but only for decimal numbers like 1.5'
         correct: false
         why: The type does not matter. Pasted text is the problem.
   - id: sql-03-q-orm
@@ -386,13 +386,13 @@ items:
     competencies: [sql.parameters]
     stem: A project uses an ORM, a library that builds queries for you. Where can injection still happen?
     options:
-      - text: In raw SQL fragments that are built from user input
+      - text: 'In raw SQL built from user input'
         correct: true
         why: The ORM's normal query methods use parameters. Raw fragments pasted from input bring the risk back.
       - text: Never, because an ORM makes injection impossible
         correct: false
         why: It removes the risk only where you use its methods as intended.
-      - text: Only in the database server
+      - text: 'Only in the database server itself'
         correct: false
         why: The weakness is in how the application builds the query.
       - text: Only when the table has a primary key

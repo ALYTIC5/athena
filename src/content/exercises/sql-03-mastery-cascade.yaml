@@ -37,6 +37,9 @@ checks:
     expectError: '23503'
   - sql: "INSERT INTO visits (guest_id, visited_on) VALUES (NULL, '2026-11-02');"
     expectError: '23502'
+  - sql: 'INSERT INTO visits (guest_id, visited_on) VALUES (1, NULL);'
+    expectError: '23502'
+  - "SELECT data_type = 'date' FROM information_schema.columns WHERE table_name = 'visits' AND column_name = 'visited_on'"
   - "WITH i AS (INSERT INTO visits (guest_id, visited_on) VALUES (1, '2026-11-02') RETURNING 1) SELECT count(*) = 1 FROM i"
 wrongSolutions:
   - label: 'Has a foreign key with no ON DELETE rule, so deleting a guest with visits is refused'

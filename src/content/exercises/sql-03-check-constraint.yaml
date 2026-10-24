@@ -40,6 +40,8 @@ checks:
     expectError: '23514'
   - sql: "INSERT INTO shifts (starts_at, ends_at) VALUES ('2026-11-02 09:00+00', NULL);"
     expectError: '23502'
+  - sql: "INSERT INTO shifts (starts_at, ends_at) VALUES (NULL, '2026-11-02 17:00+00');"
+    expectError: '23502'
 wrongSolutions:
   - label: 'Has no check, so a shift can end before it starts'
     code: |

@@ -13,7 +13,7 @@ prerequisites: [sql-02]
 whyItMatters: >
   SQL appears in 37% of the postings you are targeting, and a backend is only as reliable as its tables. Constraints
   stop impossible data, such as a double-booked slot, from being stored at all, and a well-split schema stops the same
-  fact from drifting apart in five places. Injection is also the best-known way to lose a database, and the fix, a
+  fact from drifting apart in five places. Injection is also a well-known way to lose a database, and the fix, a
   placeholder, costs nothing.
 objectives:
   - Design tables with primary keys, foreign keys and constraints
@@ -34,7 +34,7 @@ sources:
 
 ## Why this matters
 
-SQL appears in 37% of the postings you are targeting, and a backend is only as reliable as its tables. Constraints stop impossible data, such as a double-booked slot, from being stored at all, and a well-split schema stops the same fact from drifting apart in five places. Injection is also the best-known way to lose a database, and the fix, a placeholder, costs nothing.
+SQL appears in 37% of the postings you are targeting, and a backend is only as reliable as its tables. Constraints stop impossible data, such as a double-booked slot, from being stored at all, and a well-split schema stops the same fact from drifting apart in five places. Injection is also a well-known way to lose a database, and the fix, a placeholder, costs nothing.
 
 ## Objectives
 
@@ -46,15 +46,17 @@ By the end of this lesson you can:
 
 <Callout type="note" title="How the exercises work">
 
-In the exercises that ask you to create tables, your SQL runs in a PostgreSQL database in your browser, and then the page runs checks that insert rows to test every rule. The injection exercises are in Python, with the `sqlite3` module that comes with Python. All data is invented.
+In the exercises that ask you to create tables, your SQL runs in a PostgreSQL database in your browser, and then the page runs checks that insert rows to test every rule. The injection exercise is in Python, with the `sqlite3` module that comes with Python. All data is invented.
 
 </Callout>
 
 <Chunk n={1} title="Keys and constraints">
 
-A table definition is also a set of rules. A **primary key** identifies each row: it is unique and never NULL, and `GENERATED ALWAYS AS IDENTITY` lets the database number the rows. A **foreign key** (`REFERENCES other(id)`) makes the database refuse a value that does not exist in the other table. `NOT NULL` makes a column required, `UNIQUE` refuses repeats (`UNIQUE (a, b)` refuses a repeated pair), and `CHECK (condition)` refuses a row that fails a test. A CHECK lets NULL through, so add `NOT NULL` too.
+A table definition is also a set of rules. A **primary key** identifies each row: it is unique and never NULL, and `GENERATED ALWAYS AS IDENTITY` lets the database number the rows and refuses an id you supply. A **foreign key** (`REFERENCES other(id)`) makes the database refuse a value that does not exist in the other table.
 
-A broken rule gives a **SQLSTATE** code: 23505 for unique, 23503 for foreign key, 23502 for not null and 23514 for check. Put the rules in the database even when the application checks them too, because two requests can pass a check at the same moment but cannot both pass a constraint. By default a foreign key refuses to delete a row that others point to, and `ON DELETE CASCADE` deletes the dependent rows with their parent.
+`NOT NULL` makes a column required, and `UNIQUE` refuses repeats (`UNIQUE (a, b)` refuses a repeated pair, and NULLs never count as repeats). `CHECK (condition)` refuses a row that fails a test. A CHECK lets NULL through, so add `NOT NULL` too.
+
+A broken rule gives a **SQLSTATE** code: 23505 for unique, 23503 for foreign key, 23502 for not null and 23514 for check. Put the rules in the database even when the application checks them too, because two requests can pass a check at the same moment but cannot both pass a constraint. By default a foreign key refuses to delete a row that others point to, and `ON DELETE CASCADE` deletes the dependent rows with their parent (`ON DELETE SET NULL` clears the link instead).
 
 **Worked example.** Two linked tables with their rules.
 
@@ -111,17 +113,17 @@ Copying a fact back on purpose, called **denormalising**, is sometimes right: a 
 
 ## Parameterised queries
 
-Building SQL by pasting user text into a string lets the text become part of the command. That is **SQL injection**. A **parameterised query** sends the SQL with placeholders (`?` in `sqlite3`, `%s` in many PostgreSQL drivers) and the values separately, so a value can only ever be data. Escaping quotes by hand is easy to get wrong, and numbers need placeholders too. A placeholder cannot stand for a table or column name, so choose those from a fixed list in your code.
+Building SQL by pasting user text into a string lets the text become part of the command. That is **SQL injection**. A **parameterised query** sends the SQL with placeholders (`?` in `sqlite3`, `%s` in many PostgreSQL drivers) and the values separately, so a value can only ever be data. Escaping quotes by hand is easy to get wrong, and numbers need placeholders too. A placeholder cannot stand for a table or column name, so choose those from a fixed list in your code. An ORM (a library that builds queries for you) is safe only where it uses parameters, not when you paste raw SQL into it.
 
 ```python
 import sqlite3
 
 db = sqlite3.connect(":memory:")
 db.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, topic TEXT)")
-db.executemany("INSERT INTO notes (topic) VALUES (?)", [("tea",), ("coffee",)])
+db.executemany("INSERT INTO notes (topic) VALUES (?)", [("tea",), ("coffee",)])   # ? is a placeholder
 topic = "x' OR '1'='1"                                  # hostile input
 pasted = f"SELECT id FROM notes WHERE topic = '{topic}'"
-print(db.execute(pasted).fetchall())                    # [(1,), (2,)]: the text became part of the SQL
+print(db.execute(pasted).fetchall())                    # fetchall gives the rows: [(1,), (2,)], the text became part of the SQL
 print(db.execute("SELECT id FROM notes WHERE topic = ?", (topic,)).fetchall())   # []: it stayed data
 ```
 

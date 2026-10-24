@@ -36,12 +36,17 @@ referenceSolution: |
 compare: none
 checks:
   - "WITH i AS (INSERT INTO customers (name, phone) VALUES ('Amara Okafor', '+44 7700 900123') RETURNING id, created_at) SELECT count(*) = 1 AND bool_and(id IS NOT NULL AND created_at IS NOT NULL) FROM i"
-  - sql: "INSERT INTO customers (name, phone) VALUES ('Amara Okafor', '+44 7700 900123'); INSERT INTO customers (name, phone) VALUES ('Bayu Singh', '+44 7700 900123');"
+  - sql: "INSERT INTO customers (name, phone) VALUES ('Dara Obi', '+44 7700 900125'); INSERT INTO customers (name, phone) VALUES ('Ewa Nowak', '+44 7700 900125');"
     expectError: '23505'
   - sql: "INSERT INTO customers (name, phone) VALUES (NULL, '+44 7700 900124');"
     expectError: '23502'
   - sql: "INSERT INTO customers (name, phone) VALUES ('Chen Wei', NULL);"
     expectError: '23502'
+  - sql: "INSERT INTO customers (name, phone, created_at) VALUES ('Ola Berg', '+44 7700 900126', NULL);"
+    expectError: '23502'
+  - sql: "INSERT INTO customers (id, name, phone) VALUES (500, 'Ola Berg', '+44 7700 900127');"
+    expectError: '428C9'
+  - "SELECT count(*) = 1 FROM information_schema.table_constraints WHERE table_name = 'customers' AND constraint_type = 'PRIMARY KEY'"
 wrongSolutions:
   - label: 'Does not make the phone number unique, so two customers can share one'
     code: |

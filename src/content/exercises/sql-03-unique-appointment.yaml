@@ -41,6 +41,12 @@ checks:
     expectError: '23505'
   - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (99, '2026-11-02 09:00+00', 'Amara Okafor');"
     expectError: '23503'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, NULL, 'Amara Okafor');"
+    expectError: '23502'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (NULL, '2026-11-02 09:00+00', 'Amara Okafor');"
+    expectError: '23502'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', NULL);"
+    expectError: '23502'
   - "WITH a AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Amara Okafor') RETURNING 1), b AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 10:00+00', 'Chen Wei') RETURNING 1), c AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (2, '2026-11-02 09:00+00', 'Bayu Singh') RETURNING 1) SELECT (SELECT count(*) FROM a) + (SELECT count(*) FROM b) + (SELECT count(*) FROM c) = 3"
 wrongSolutions:
   - label: 'Has no unique constraint, so a stylist can be double-booked'
