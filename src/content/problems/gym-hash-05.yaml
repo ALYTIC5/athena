@@ -42,9 +42,9 @@ hiddenTests: |
       assert monday == ["b", "a"] and tuesday == ["a"]
 
   def test_large_input():
-      monday = [str(i) for i in range(40000)]
-      tuesday = [str(i) for i in range(20000, 60000)]
-      expected = sorted(str(i) for i in range(20000, 40000))
+      monday = [str(i) for i in range(60000)]
+      tuesday = [str(i) for i in range(30000, 90000)]
+      expected = sorted(str(i) for i in range(30000, 60000))
       assert callers_on_both_days(monday, tuesday) == expected
 referenceSolutions:
   - code: |
@@ -67,7 +67,7 @@ wrongSolutions:
       def callers_on_both_days(monday, tuesday):
           return sorted({caller for caller in monday if caller in tuesday})
 patternExplanation: |
-  A set answers "is this id here?" in about one step, and the & operator on two sets keeps only the items in both. Turn each day into a set once, then sort the result for the output order. Testing membership in a list inside a loop looks the same but costs a pass over the list each time.
+  A set answers "is this id here?" in about one step, and the & operator on two sets keeps only the items in both. Turn each day into a set once, then sort the result for the output order. The cost is linear in the two logs plus k log k to sort the k callers in common. Testing membership in a list inside a loop looks the same but costs a pass over the list each time.
 commonMistakes:
   - 'Looking up in a list instead of a set'
   - 'Forgetting to remove repeats or to sort'
