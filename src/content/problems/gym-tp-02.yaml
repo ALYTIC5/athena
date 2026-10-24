@@ -1,0 +1,101 @@
+id: gym-tp-02
+title: 'A booking code that reads the same backwards'
+pattern: two-pointers
+competencies: [int.two-pointers]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Some booking codes are mirror codes: they read the same forwards and backwards. Write `is_mirror_code(code)` that returns `True` for a mirror code. Ignore dashes and spaces, and ignore the difference between capital and small letters. An empty code, or a code with only dashes, is a mirror code.
+examples:
+  - "is_mirror_code('Ab-ba') returns True"
+  - "is_mirror_code('ab-cd') returns False"
+constraints:
+  - 'Codes of 0 to 100000 characters'
+  - 'Dashes and spaces are the only characters to ignore'
+starter: |
+  def is_mirror_code(code):
+      ...
+visibleTests: |
+  def test_example():
+      assert is_mirror_code("Ab-ba") is True
+
+  def test_not_a_mirror():
+      assert is_mirror_code("ab-cd") is False
+hiddenTests: |
+  def test_empty_code():
+      assert is_mirror_code("") is True
+
+  def test_one_character():
+      assert is_mirror_code("a") is True
+
+  def test_dash_in_the_middle_of_a_pair_is_ignored():
+      assert is_mirror_code("ab-a") is True
+
+  def test_spaces_are_ignored():
+      assert is_mirror_code("Race car") is True
+
+  def test_only_dashes():
+      assert is_mirror_code("---") is True
+
+  def test_first_and_last_match_but_the_middle_does_not():
+      assert is_mirror_code("abca") is False
+
+  def test_digits():
+      assert is_mirror_code("12-21") is True
+      assert is_mirror_code("1-2-3") is False
+
+  def test_large_mirror():
+      code = "ab" * 50000 + "ba" * 50000
+      assert is_mirror_code(code) is True
+referenceSolutions:
+  - code: |
+      def is_mirror_code(code):
+          chars = [c.lower() for c in code if c not in "- "]
+          left, right = 0, len(chars) - 1
+          while left < right:
+              if chars[left] != chars[right]:
+                  return False
+              left += 1
+              right -= 1
+          return True
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Does not ignore dashes and spaces'
+    code: |
+      def is_mirror_code(code):
+          chars = [c.lower() for c in code]
+          left, right = 0, len(chars) - 1
+          while left < right:
+              if chars[left] != chars[right]:
+                  return False
+              left += 1
+              right -= 1
+          return True
+  - label: 'Does not ignore the difference between capital and small letters'
+    code: |
+      def is_mirror_code(code):
+          chars = [c for c in code if c not in "- "]
+          left, right = 0, len(chars) - 1
+          while left < right:
+              if chars[left] != chars[right]:
+                  return False
+              left += 1
+              right -= 1
+          return True
+  - label: 'Only compares the first and the last character'
+    code: |
+      def is_mirror_code(code):
+          chars = [c.lower() for c in code if c not in "- "]
+          if not chars:
+              return True
+          return chars[0] == chars[-1]
+patternExplanation: |
+  Clean the code first (drop dashes and spaces, lower-case the rest), then compare from both ends. One pointer starts at the left end and one at the right end. If the two characters differ, it is not a mirror code. Otherwise move both inward, and stop when they meet.
+commonMistakes:
+  - 'Checking only the two ends'
+  - 'Comparing before cleaning the code'
+  - 'Forgetting capitals'
+followUps:
+  - 'Can you do it without making a cleaned copy?'
+  - 'How would you allow one wrong character?'
