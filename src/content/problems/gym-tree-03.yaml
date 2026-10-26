@@ -1,0 +1,195 @@
+id: gym-tree-03
+title: 'The org chart floor by floor'
+pattern: trees
+competencies: [int.trees]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  Write `levels(root)` that returns the values of a binary tree grouped by level. The result is a list of lists: the first list holds the root, the second holds its children from left to right, and so on down the tree. An empty tree returns `[]`.
+examples:
+  - 'For root 1 with children 2 (left) and 3 (right), where 2 has a left child 4, levels(root) returns [[1], [2, 3], [4]]'
+  - 'levels(None) returns []'
+constraints:
+  - '0 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def levels(root):
+      ...
+visibleTests: |
+  def test_example():
+      root = Node(1, Node(2, Node(4)), Node(3))
+      assert levels(root) == [[1], [2, 3], [4]]
+
+  def test_empty_tree():
+      assert levels(None) == []
+hiddenTests: |
+  def full(depth):
+      if depth == 0:
+          return None
+      return Node(1, full(depth - 1), full(depth - 1))
+
+  def chain(length, value=1):
+      root = None
+      for _ in range(length):
+          root = Node(value, root, None)
+      return root
+
+  def heap_tree(n, i=1):
+      if i > n:
+          return None
+      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
+
+  def from_sorted(values):
+      if not values:
+          return None
+      mid = len(values) // 2
+      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
+  def test_single_node():
+      assert levels(Node(9)) == [[9]]
+
+  def test_left_to_right_inside_a_level():
+      root = Node(1, Node(2, Node(4), Node(5)), Node(3, Node(6), Node(7)))
+      assert levels(root) == [[1], [2, 3], [4, 5, 6, 7]]
+
+  def test_missing_children_leave_gaps_out():
+      root = Node(1, Node(2, None, Node(5)), Node(3, Node(6)))
+      assert levels(root) == [[1], [2, 3], [5, 6]]
+
+  def test_only_right_children():
+      assert levels(Node(1, None, Node(2, None, Node(3)))) == [[1], [2], [3]]
+
+  def test_each_level_of_a_big_tree():
+      result = levels(heap_tree(2**14 - 1))
+      assert len(result) == 14
+      assert [len(level) for level in result] == [2**i for i in range(14)]
+      assert result[13][0] == 2**13
+      assert result[13][-1] == 2**14 - 1
+
+  def test_long_chain():
+      assert levels(chain(500, 7)) == [[7]] * 500
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      from collections import deque
+
+      def levels(root):
+          if root is None:
+              return []
+          result = []
+          queue = deque([root])
+          while queue:
+              level = []
+              for _ in range(len(queue)):
+                  node = queue.popleft()
+                  level.append(node.value)
+                  if node.left is not None:
+                      queue.append(node.left)
+                  if node.right is not None:
+                      queue.append(node.right)
+              result.append(level)
+          return result
+    time: 'O(n)'
+    space: 'O(w)'
+wrongSolutions:
+  - label: 'Returns one flat list, not grouped by level'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def levels(root):
+          if root is None:
+              return []
+          result = []
+
+          def visit(node):
+              if node is None:
+                  return
+              result.append(node.value)
+              visit(node.left)
+              visit(node.right)
+
+          visit(root)
+          return result
+  - label: 'Puts the right child before the left one'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      from collections import deque
+
+      def levels(root):
+          if root is None:
+              return []
+          result = []
+          queue = deque([root])
+          while queue:
+              level = []
+              for _ in range(len(queue)):
+                  node = queue.popleft()
+                  level.append(node.value)
+                  if node.right is not None:
+                      queue.append(node.right)
+                  if node.left is not None:
+                      queue.append(node.left)
+              result.append(level)
+          return result
+  - label: 'Crashes on an empty tree'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      from collections import deque
+
+      def levels(root):
+          result = []
+          queue = deque([root])
+          while queue:
+              level = []
+              for _ in range(len(queue)):
+                  node = queue.popleft()
+                  level.append(node.value)
+                  if node.left is not None:
+                      queue.append(node.left)
+                  if node.right is not None:
+                      queue.append(node.right)
+              result.append(level)
+          return result
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. Grouping by level is a breadth-first walk: visit every node of one level before any node of the next. A queue does this. Start with the root. In each round, take exactly as many nodes as the queue holds right now (that is one level), record their values, and add their children to the back. Children join at the back, so they wait for the next round, and adding left before right keeps each level in left-to-right order. Use collections.deque so taking from the front is O(1), because list.pop(0) shifts every element. Each node is queued once, so the time is linear, and the queue holds at most one level, so the extra memory is the width of the tree.
+commonMistakes:
+  - 'Walking depth-first, which gives a flat list instead of levels'
+  - 'Not fixing the level size before the round starts, so levels blend together'
+  - 'Adding the right child before the left child'
+followUps:
+  - 'How would you return the levels bottom-up?'
+  - 'How would you return only the last node of each level (the right-side view)?'

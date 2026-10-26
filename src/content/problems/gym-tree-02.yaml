@@ -1,0 +1,138 @@
+id: gym-tree-02
+title: 'How many management levels?'
+pattern: trees
+competencies: [int.trees]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  An org chart is a binary tree of `Node` objects. Write `height(root)` that returns the number of levels in the tree: the number of nodes on the longest path from the root down to a node with no children. An empty tree has height 0, and a single node has height 1.
+examples:
+  - 'For a root with one left child, height(root) returns 2'
+  - 'height(None) returns 0'
+constraints:
+  - '0 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def height(root):
+      ...
+visibleTests: |
+  def test_example():
+      assert height(Node(1, Node(2))) == 2
+
+  def test_empty_tree():
+      assert height(None) == 0
+hiddenTests: |
+  def full(depth):
+      if depth == 0:
+          return None
+      return Node(1, full(depth - 1), full(depth - 1))
+
+  def chain(length, value=1):
+      root = None
+      for _ in range(length):
+          root = Node(value, root, None)
+      return root
+
+  def heap_tree(n, i=1):
+      if i > n:
+          return None
+      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
+
+  def from_sorted(values):
+      if not values:
+          return None
+      mid = len(values) // 2
+      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
+  def test_single_node():
+      assert height(Node(1)) == 1
+
+  def test_deeper_on_the_right():
+      assert height(Node(1, Node(2), Node(3, None, Node(4, None, Node(5))))) == 4
+
+  def test_deeper_on_the_left():
+      assert height(Node(1, Node(2, Node(3, Node(4))))) == 4
+
+  def test_left_is_shallow_right_is_deep():
+      assert height(Node(1, Node(2), Node(3, Node(4)))) == 3
+
+  def test_balanced_tree():
+      assert height(full(15)) == 15
+
+  def test_long_chain():
+      assert height(chain(500)) == 500
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def height(root):
+          if root is None:
+              return 0
+          return 1 + max(height(root.left), height(root.right))
+    time: 'O(n)'
+    space: 'O(h)'
+wrongSolutions:
+  - label: 'Counts the nodes'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def height(root):
+          if root is None:
+              return 0
+          return 1 + height(root.left) + height(root.right)
+  - label: 'Takes the shorter side'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def height(root):
+          if root is None:
+              return 0
+          return 1 + min(height(root.left), height(root.right))
+  - label: 'Counts edges, so a single node gives 0'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def height(root):
+          if root is None:
+              return -1
+          return 1 + max(height(root.left), height(root.right))
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. The height of a node is 1 plus the height of its taller child. The base case is None, which has height 0, so a single node gets 1 + max(0, 0) = 1. Use max, not min or a sum: the longest path decides the height, and a missing child must count as 0, not be skipped. Each node is visited once, and the call stack is as deep as the tree is tall.
+commonMistakes:
+  - 'Adding the two heights, which counts nodes'
+  - 'Using min, which follows the shortest path'
+  - 'Returning -1 for None, which counts edges instead of levels'
+followUps:
+  - 'How would you check whether the tree is balanced (the two sides differ by at most 1 at every node)?'
+  - 'How would you return the path to the deepest node?'

@@ -1,0 +1,187 @@
+id: gym-tree-06
+title: 'Closest shared manager'
+pattern: trees
+competencies: [int.trees]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  An org chart is a binary tree of `Node` objects with distinct integer ids as values. Write `closest_shared_manager(root, a, b)` that returns the id of the lowest node that has both employees `a` and `b` in its subtree. A node counts as part of its own subtree, so if `a` manages `b`, the answer is `a`. Both ids are in the tree. The tree is not sorted: ids are in no particular order.
+examples:
+  - 'For root 1 with children 2 and 3, where 2 has children 4 and 5, closest_shared_manager(root, 4, 5) returns 2 and closest_shared_manager(root, 4, 3) returns 1'
+  - 'closest_shared_manager(root, 2, 4) returns 2'
+constraints:
+  - '1 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+  - 'Ids are distinct, and a and b are both in the tree'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def closest_shared_manager(root, a, b):
+      ...
+visibleTests: |
+  def test_example():
+      root = Node(1, Node(2, Node(4), Node(5)), Node(3))
+      assert closest_shared_manager(root, 4, 5) == 2
+      assert closest_shared_manager(root, 4, 3) == 1
+
+  def test_one_manages_the_other():
+      root = Node(1, Node(2, Node(4), Node(5)), Node(3))
+      assert closest_shared_manager(root, 2, 4) == 2
+hiddenTests: |
+  def full(depth):
+      if depth == 0:
+          return None
+      return Node(1, full(depth - 1), full(depth - 1))
+
+  def chain(length, value=1):
+      root = None
+      for _ in range(length):
+          root = Node(value, root, None)
+      return root
+
+  def heap_tree(n, i=1):
+      if i > n:
+          return None
+      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
+
+  def from_sorted(values):
+      if not values:
+          return None
+      mid = len(values) // 2
+      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
+  def test_same_employee_twice():
+      root = Node(1, Node(2), Node(3))
+      assert closest_shared_manager(root, 3, 3) == 3
+
+  def test_root_is_one_of_them():
+      root = Node(1, Node(2), Node(3))
+      assert closest_shared_manager(root, 1, 3) == 1
+
+  def test_ids_are_not_sorted():
+      root = Node(50, Node(7, Node(90), Node(3)), Node(20, Node(1), Node(60)))
+      assert closest_shared_manager(root, 90, 3) == 7
+      assert closest_shared_manager(root, 90, 60) == 50
+      assert closest_shared_manager(root, 1, 60) == 20
+
+  def test_zero_is_a_valid_id():
+      root = Node(5, Node(0), Node(8))
+      assert closest_shared_manager(root, 0, 8) == 5
+      assert closest_shared_manager(root, 0, 0) == 0
+
+  def test_both_only_on_the_right():
+      root = Node(1, Node(2), Node(3, Node(6), Node(7)))
+      assert closest_shared_manager(root, 6, 7) == 3
+
+  def test_big_tree_by_index():
+      tree = heap_tree(2**14 - 1)
+      for a, b in [(8192, 8193), (8192, 16383), (5000, 12000), (3, 9000), (16383, 16382)]:
+          x, y = a, b
+          while x != y:
+              if x > y:
+                  x //= 2
+              else:
+                  y //= 2
+          assert closest_shared_manager(tree, a, b) == x
+
+  def test_long_chain():
+      root = None
+      for value in range(500, 0, -1):
+          root = Node(value, root, None)
+      assert closest_shared_manager(root, 499, 500) == 499
+      assert closest_shared_manager(root, 1, 500) == 1
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def closest_shared_manager(root, a, b):
+          if root is None:
+              return None
+          if root.value == a or root.value == b:
+              return root.value
+          left = closest_shared_manager(root.left, a, b)
+          right = closest_shared_manager(root.right, a, b)
+          if left is not None and right is not None:
+              return root.value
+          return left if left is not None else right
+    time: 'O(n)'
+    space: 'O(h)'
+wrongSolutions:
+  - label: 'Assumes the ids are sorted like a search tree'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def closest_shared_manager(root, a, b):
+          node = root
+          while node is not None:
+              if a < node.value and b < node.value:
+                  node = node.left
+              elif a > node.value and b > node.value:
+                  node = node.right
+              else:
+                  return node.value
+          return None
+  - label: 'Does not let a manager count as their own report'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def closest_shared_manager(root, a, b):
+          def find(node):
+              if node is None:
+                  return None, False
+              left_answer, left_found = find(node.left)
+              right_answer, right_found = find(node.right)
+              if left_answer is not None:
+                  return left_answer, True
+              if right_answer is not None:
+                  return right_answer, True
+              if left_found and right_found:
+                  return node.value, True
+              found = left_found or right_found or node.value in (a, b)
+              return None, found
+
+          return find(root)[0]
+  - label: 'Always returns the root'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def closest_shared_manager(root, a, b):
+          return root.value
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. Ask each subtree whether it contains a or b. Return a node's value the moment it equals a or b, since nothing below it can be a lower shared manager for that employee. At every node you then get two answers, one from each side. If both sides found something, a and b are in different subtrees, so this node is the first one that sees both: it is the answer. If only one side found something, pass that answer up unchanged. Because the answer from deeper in the tree is passed up, the lowest shared manager wins. Do not use the sorted-tree shortcut of comparing ids with the node: it only works for a search tree, and this tree is not sorted. Test for `is not None`, not for truthiness, because an id of 0 is valid. Each node is visited once.
+commonMistakes:
+  - 'Using the search tree shortcut on an unsorted tree'
+  - 'Testing the answer for truthiness, which treats id 0 as missing'
+  - 'Forgetting that a node can be its own descendant when a manages b'
+followUps:
+  - 'How would it change if a or b might not be in the tree?'
+  - 'How would you answer many queries quickly on the same tree?'

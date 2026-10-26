@@ -1,0 +1,168 @@
+id: gym-tree-05
+title: 'A path that matches the budget'
+pattern: trees
+competencies: [int.trees]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  Each node of a binary tree holds a cost, which can be negative (a refund). A plan is a path that starts at the root and ends at a node with no children. Write `has_plan(root, budget)` that returns `True` if the costs along some plan add up to exactly `budget`, and `False` otherwise. An empty tree has no plans.
+examples:
+  - 'For root 5 with children 4 and 8, has_plan(root, 9) returns True (5 + 4)'
+  - 'has_plan(None, 0) returns False'
+constraints:
+  - '0 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+  - 'Costs and budget are ints and may be negative'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def has_plan(root, budget):
+      ...
+visibleTests: |
+  def test_example():
+      assert has_plan(Node(5, Node(4), Node(8)), 9) is True
+
+  def test_empty_tree():
+      assert has_plan(None, 0) is False
+hiddenTests: |
+  def full(depth):
+      if depth == 0:
+          return None
+      return Node(1, full(depth - 1), full(depth - 1))
+
+  def chain(length, value=1):
+      root = None
+      for _ in range(length):
+          root = Node(value, root, None)
+      return root
+
+  def heap_tree(n, i=1):
+      if i > n:
+          return None
+      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
+
+  def from_sorted(values):
+      if not values:
+          return None
+      mid = len(values) // 2
+      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
+  def test_single_node_matches():
+      assert has_plan(Node(3), 3) is True
+
+  def test_single_node_does_not_match():
+      assert has_plan(Node(3), 4) is False
+
+  def test_path_must_end_at_a_leaf():
+      root = Node(1, Node(2, Node(3), Node(1)), Node(10))
+      assert has_plan(root, 3) is False
+
+  def test_leaf_on_the_right():
+      root = Node(1, Node(2, Node(3), Node(1)), Node(10))
+      assert has_plan(root, 11) is True
+
+  def test_deep_leaf_on_the_left():
+      root = Node(1, Node(2, Node(3), Node(1)), Node(10))
+      assert has_plan(root, 6) is True
+
+  def test_negative_costs_after_a_big_one():
+      assert has_plan(Node(10, Node(-5, Node(3))), 8) is True
+
+  def test_no_plan_matches():
+      root = Node(1, Node(2, Node(3), Node(1)), Node(10))
+      assert has_plan(root, 5) is False
+
+  def test_full_tree():
+      assert has_plan(full(15), 15) is True
+      assert has_plan(full(15), 14) is False
+
+  def test_long_chain():
+      assert has_plan(chain(500), 500) is True
+      assert has_plan(chain(500), 499) is False
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def has_plan(root, budget):
+          if root is None:
+              return False
+          remaining = budget - root.value
+          if root.left is None and root.right is None:
+              return remaining == 0
+          return has_plan(root.left, remaining) or has_plan(root.right, remaining)
+    time: 'O(n)'
+    space: 'O(h)'
+wrongSolutions:
+  - label: 'Accepts a path that stops at a node with children'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def has_plan(root, budget):
+          if root is None:
+              return False
+          remaining = budget - root.value
+          if remaining == 0:
+              return True
+          return has_plan(root.left, remaining) or has_plan(root.right, remaining)
+  - label: 'Gives up as soon as the total passes the budget'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def has_plan(root, budget):
+          if root is None:
+              return False
+          remaining = budget - root.value
+          if remaining < 0:
+              return False
+          if root.left is None and root.right is None:
+              return remaining == 0
+          return has_plan(root.left, remaining) or has_plan(root.right, remaining)
+  - label: 'Only follows the left side'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def has_plan(root, budget):
+          if root is None:
+              return False
+          remaining = budget - root.value
+          if root.left is None and root.right is None:
+              return remaining == 0
+          return has_plan(root.left, remaining)
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. Carry the remaining budget down the tree: at each node, subtract the node's cost. At a leaf (no children), the plan works if nothing is left. Otherwise ask both children, and succeed if either side has a plan. Two details decide correctness. First, only a leaf can end a plan, so reaching zero at an inner node is not enough. Second, costs can be negative, so a running total above the budget can still come back down: do not stop early. A None child returns False, which also handles an empty tree and a node with only one child. The time is linear and the stack is as deep as the tree.
+commonMistakes:
+  - 'Stopping at a node that still has children'
+  - 'Pruning when the total passes the budget, which is wrong with negative costs'
+  - 'Following only one side of the tree'
+followUps:
+  - 'How would you return the path itself?'
+  - 'How would you count how many plans match?'

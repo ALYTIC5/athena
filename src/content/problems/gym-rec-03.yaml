@@ -1,0 +1,79 @@
+id: gym-rec-03
+title: 'How deep do the folders go?'
+pattern: recursion
+competencies: [int.recursion]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A folder is a dict that maps each subfolder name to that subfolder's own dict. An empty dict is a folder with no subfolders. Write `max_depth(folder)` that returns the number of folders on the longest path from this folder down to a folder with no subfolders, counting both ends. A folder with no subfolders has depth 1.
+examples:
+  - "max_depth({'docs': {'2024': {}, '2025': {'q1': {}}}, 'img': {}}) returns 4"
+  - 'max_depth({}) returns 1'
+constraints:
+  - 'At most 500 levels of folders'
+  - 'At most 1000 subfolders in one folder'
+starter: |
+  def max_depth(folder):
+      ...
+visibleTests: |
+  def test_example():
+      assert max_depth({"docs": {"2024": {}, "2025": {"q1": {}}}, "img": {}}) == 4
+
+  def test_empty_folder():
+      assert max_depth({}) == 1
+hiddenTests: |
+  def test_one_subfolder():
+      assert max_depth({"a": {}}) == 2
+
+  def test_first_subfolder_is_not_the_deepest():
+      assert max_depth({"a": {}, "b": {"c": {"d": {}}}}) == 4
+
+  def test_deepest_is_first():
+      assert max_depth({"b": {"c": {"d": {}}}, "a": {}}) == 4
+
+  def test_wide_and_shallow():
+      folder = {f"f{i}": {} for i in range(1000)}
+      assert max_depth(folder) == 2
+
+  def test_long_chain():
+      folder = {}
+      for _ in range(500):
+          folder = {"x": folder}
+      assert max_depth(folder) == 501
+referenceSolutions:
+  - code: |
+      def max_depth(folder):
+          deepest_child = 0
+          for subfolder in folder.values():
+              deepest_child = max(deepest_child, max_depth(subfolder))
+          return 1 + deepest_child
+    time: 'O(n)'
+    space: 'O(d)'
+wrongSolutions:
+  - label: 'Counts the subfolders in the top folder'
+    code: |
+      def max_depth(folder):
+          return 1 + len(folder)
+  - label: 'Only follows the first subfolder'
+    code: |
+      def max_depth(folder):
+          if not folder:
+              return 1
+          first = next(iter(folder.values()))
+          return 1 + max_depth(first)
+  - label: 'Counts the steps between folders, one too few'
+    code: |
+      def max_depth(folder):
+          deepest_child = 0
+          for subfolder in folder.values():
+              deepest_child = max(deepest_child, 1 + max_depth(subfolder))
+          return deepest_child
+patternExplanation: |
+  Recursion means a function solves a problem by calling itself on a smaller version of the same problem. Every recursive function needs a base case that stops the calls and a recursive case that moves toward it. A folder's depth is 1 plus the depth of its deepest subfolder. The base case is a folder with no subfolders, which has depth 1: the loop never runs, so the deepest child is 0 and the answer is 1. The recursive case asks each subfolder for its depth and keeps the largest. Compare every subfolder, not only the first, because the deepest path can be in any of them. Each folder is visited once, so the work is linear in the number of folders, and the call depth equals the depth of the folders.
+commonMistakes:
+  - 'Following only the first subfolder'
+  - 'Returning 0 for an empty folder, which shifts every answer down by one'
+  - 'Measuring width (how many subfolders) instead of depth'
+followUps:
+  - 'How would you also return the path to the deepest folder?'
+  - 'How would you avoid the recursion limit for very deep folders?'
