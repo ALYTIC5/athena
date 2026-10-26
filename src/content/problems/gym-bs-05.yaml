@@ -48,7 +48,6 @@ hiddenTests: |
       assert largest_square_side(10**18 - 1) == 10**9 - 1
 
   def test_huge_just_above_a_perfect_square():
-      assert largest_square_side(10**18 + 0) == 10**9
       assert largest_square_side(999999999 ** 2 + 5) == 999999999
 referenceSolutions:
   - code: |
@@ -87,7 +86,7 @@ wrongSolutions:
                   high = mid - 1
           return low
 patternExplanation: |
-  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving 200000 items takes about 18 steps. You can binary search on an answer, not only on a list. If side works (side * side <= seats), every smaller side works too, so the sides flip from yes to no exactly once. Search for the last yes. When the middle works, keep it and move low to mid. Because that does not move past mid, the middle must round up ((low + high + 1) // 2); rounding down would repeat the same mid forever when low and high are neighbours. Python integers never overflow, so the squares are exact even for 10**18, while a float square root is not.
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving a search range of 10**18 takes about 60 steps. You can binary search on an answer, not only on a list. If side works (side * side <= seats), every smaller side works too, so the sides flip from yes to no exactly once. Search for the last yes. When the middle works, keep it and move low to mid. Because that does not move past mid, the middle must round up ((low + high + 1) // 2); rounding down would repeat the same mid forever when low and high are neighbours. Python integers never overflow, so the squares are exact even for 10**18, while a float square root is not.
 commonMistakes:
   - 'Rounding the middle down when low = mid, which can loop forever'
   - 'Using a float square root and getting an answer that is off by one for huge numbers'

@@ -77,10 +77,16 @@ failingTest: |
       assert find_customer(index, "BK-KB17") == "Amara"
       assert find_customer(index, "BK-ZX9") == "Bilal"
       assert find_customer(index, "BK-KB18") is None
+
+
+  def test_codes_differing_only_in_leading_letters_stay_distinct():
+      index = make_index([("BK-KB17", "Amara"), ("BK-B17", "Bilal")])
+      assert find_customer(index, "BK-KB17") == "Amara"
+      assert find_customer(index, "BK-B17") == "Bilal"
 bugExplanation: |
   `strip_prefix` calls `lstrip("BK-")`. `lstrip` does not remove a prefix: it removes every leading character that is in
-  the set `{"B", "K", "-"}`, so it also eats the first letters of the reference. `"BK-KB17"` becomes `"17"`, and the
-  index keys no longer match the codes. Remove the prefix explicitly, for example with `startswith` and a slice by
+  the set `{"B", "K", "-"}`, so it also eats the first letters of the reference. `"BK-KB17"` becomes `"17"`, so references
+  are mangled and codes that differ only in leading B or K letters (`BK-KB17` and `BK-B17`) collide on the same key. Remove the prefix explicitly, for example with `startswith` and a slice by
   `len(PREFIX)`.
 fixedFiles:
   codes.py: |
