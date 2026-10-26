@@ -30,10 +30,11 @@ visibleTests: |
   def test_empty_tree():
       assert levels(None) == []
 hiddenTests: |
-  def full(depth):
-      if depth == 0:
+  def heap_tree(n, i=1):
+      if i > n:
           return None
-      return Node(1, full(depth - 1), full(depth - 1))
+      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
+
 
   def chain(length, value=1):
       root = None
@@ -41,16 +42,6 @@ hiddenTests: |
           root = Node(value, root, None)
       return root
 
-  def heap_tree(n, i=1):
-      if i > n:
-          return None
-      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
-
-  def from_sorted(values):
-      if not values:
-          return None
-      mid = len(values) // 2
-      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
 
   def test_single_node():
       assert levels(Node(9)) == [[9]]

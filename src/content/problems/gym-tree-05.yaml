@@ -35,22 +35,13 @@ hiddenTests: |
           return None
       return Node(1, full(depth - 1), full(depth - 1))
 
+
   def chain(length, value=1):
       root = None
       for _ in range(length):
           root = Node(value, root, None)
       return root
 
-  def heap_tree(n, i=1):
-      if i > n:
-          return None
-      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
-
-  def from_sorted(values):
-      if not values:
-          return None
-      mid = len(values) // 2
-      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
 
   def test_single_node_matches():
       assert has_plan(Node(3), 3) is True
@@ -72,6 +63,11 @@ hiddenTests: |
 
   def test_negative_costs_after_a_big_one():
       assert has_plan(Node(10, Node(-5, Node(3))), 8) is True
+
+  def test_one_child_whose_total_matches_is_not_a_plan():
+      assert has_plan(Node(1, Node(2)), 1) is False
+      assert has_plan(Node(1, None, Node(2)), 1) is False
+      assert has_plan(Node(1, Node(2)), 3) is True
 
   def test_no_plan_matches():
       root = Node(1, Node(2, Node(3), Node(1)), Node(10))
@@ -140,6 +136,21 @@ wrongSolutions:
           if root.left is None and root.right is None:
               return remaining == 0
           return has_plan(root.left, remaining) or has_plan(root.right, remaining)
+  - label: 'Counts a missing child as the end of a plan'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def has_plan(root, budget):
+          if root is None:
+              return budget == 0
+          remaining = budget - root.value
+          return has_plan(root.left, remaining) or has_plan(root.right, remaining)
   - label: 'Only follows the left side'
     code: |
       class Node:
@@ -161,6 +172,7 @@ patternExplanation: |
   A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. Carry the remaining budget down the tree: at each node, subtract the node's cost. At a leaf (no children), the plan works if nothing is left. Otherwise ask both children, and succeed if either side has a plan. Two details decide correctness. First, only a leaf can end a plan, so reaching zero at an inner node is not enough. Second, costs can be negative, so a running total above the budget can still come back down: do not stop early. A None child returns False, which also handles an empty tree and a node with only one child. The time is linear and the stack is as deep as the tree.
 commonMistakes:
   - 'Stopping at a node that still has children'
+  - 'Treating a missing child (None) as the end of a plan, which accepts a node that has only one child'
   - 'Pruning when the total passes the budget, which is wrong with negative costs'
   - 'Following only one side of the tree'
 followUps:

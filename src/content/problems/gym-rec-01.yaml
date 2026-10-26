@@ -36,9 +36,9 @@ hiddenTests: |
 
   def test_deeply_nested():
       box = [1]
-      for _ in range(300):
+      for _ in range(450):
           box = [box, 1]
-      assert total_items(box) == 301
+      assert total_items(box) == 451
 referenceSolutions:
   - code: |
       def total_items(box):

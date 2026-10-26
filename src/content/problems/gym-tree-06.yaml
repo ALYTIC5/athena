@@ -33,27 +33,11 @@ visibleTests: |
       root = Node(1, Node(2, Node(4), Node(5)), Node(3))
       assert closest_shared_manager(root, 2, 4) == 2
 hiddenTests: |
-  def full(depth):
-      if depth == 0:
-          return None
-      return Node(1, full(depth - 1), full(depth - 1))
-
-  def chain(length, value=1):
-      root = None
-      for _ in range(length):
-          root = Node(value, root, None)
-      return root
-
   def heap_tree(n, i=1):
       if i > n:
           return None
       return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
 
-  def from_sorted(values):
-      if not values:
-          return None
-      mid = len(values) // 2
-      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
 
   def test_same_employee_twice():
       root = Node(1, Node(2), Node(3))
@@ -164,7 +148,7 @@ wrongSolutions:
               return None, found
 
           return find(root)[0]
-  - label: 'Always returns the root'
+  - label: 'Treats id 0 as missing'
     code: |
       class Node:
           def __init__(self, value, left=None, right=None):
@@ -175,7 +159,15 @@ wrongSolutions:
 
 
       def closest_shared_manager(root, a, b):
-          return root.value
+          if root is None:
+              return None
+          if root.value == a or root.value == b:
+              return root.value
+          left = closest_shared_manager(root.left, a, b)
+          right = closest_shared_manager(root.right, a, b)
+          if left and right:
+              return root.value
+          return left or right
 patternExplanation: |
   A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. Ask each subtree whether it contains a or b. Return a node's value the moment it equals a or b, since nothing below it can be a lower shared manager for that employee. At every node you then get two answers, one from each side. If both sides found something, a and b are in different subtrees, so this node is the first one that sees both: it is the answer. If only one side found something, pass that answer up unchanged. Because the answer from deeper in the tree is passed up, the lowest shared manager wins. Do not use the sorted-tree shortcut of comparing ids with the node: it only works for a search tree, and this tree is not sorted. Test for `is not None`, not for truthiness, because an id of 0 is valid. Each node is visited once.
 commonMistakes:

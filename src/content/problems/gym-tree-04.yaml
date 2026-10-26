@@ -5,7 +5,7 @@ competencies: [int.trees]
 difficulty: medium
 timeLimitMin: 40
 statement: |
-  A pricing tool stores price tiers in a binary search tree. In a valid tree, for every node, every value in its left subtree is smaller than the node's value, and every value in its right subtree is larger. No value appears twice. Write `is_valid_tiers(root)` that returns `True` if the tree is valid and `False` otherwise. An empty tree is valid.
+  A pricing tool stores price tiers in a binary search tree. In a valid tree, for every node, every value in its left subtree is smaller than the node's value, and every value in its right subtree is larger. No value appears twice. Write `is_valid_tiers(root)` that returns the bool `True` if the tree is valid and `False` otherwise. An empty tree is valid.
 examples:
   - 'A root 10 with left child 5 and right child 15 is valid, so it returns True'
   - 'A root 10 with left child 5 and right child 15 that has a left child 6 returns False, because 6 sits in the right subtree of 10 but is smaller than 10'
@@ -30,27 +30,12 @@ visibleTests: |
   def test_deep_value_on_the_wrong_side():
       assert is_valid_tiers(Node(10, Node(5), Node(15, Node(6)))) is False
 hiddenTests: |
-  def full(depth):
-      if depth == 0:
-          return None
-      return Node(1, full(depth - 1), full(depth - 1))
-
-  def chain(length, value=1):
-      root = None
-      for _ in range(length):
-          root = Node(value, root, None)
-      return root
-
-  def heap_tree(n, i=1):
-      if i > n:
-          return None
-      return Node(i, heap_tree(n, 2 * i), heap_tree(n, 2 * i + 1))
-
   def from_sorted(values):
       if not values:
           return None
       mid = len(values) // 2
       return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
 
   def test_empty_tree():
       assert is_valid_tiers(None) is True
