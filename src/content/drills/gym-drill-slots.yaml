@@ -1,0 +1,136 @@
+id: gym-drill-slots
+kind: code-reading
+title: 'The appointment slot that never appears'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  slots.py: |
+    """Generate appointment slots inside opening hours. Times are minutes since midnight."""
+
+
+    def generate_slots(open_minute, close_minute, length):
+        """Start minutes of every slot of `length` minutes that fits before closing time.
+
+        A slot that ends exactly at closing time fits.
+        """
+        return list(range(open_minute, close_minute - length, length))
+
+
+    def slot_label(start_minute, length):
+        """Text such as "09:00-09:30" for a slot."""
+        end_minute = start_minute + length
+        return f"{clock(start_minute)}-{clock(end_minute)}"
+
+
+    def clock(minute):
+        """Format minutes since midnight as HH:MM."""
+        return f"{minute // 60:02d}:{minute % 60:02d}"
+  booked.py: |
+    """Take booked slots out of a day's slots."""
+
+
+    def free_slots(slots, booked):
+        """Slots that are not booked, in order."""
+        taken = set(booked)
+        return [slot for slot in slots if slot not in taken]
+
+
+    def count_free(slots, booked):
+        """How many slots are still free."""
+        return len(free_slots(slots, booked))
+
+
+    def next_free(slots, booked, after):
+        """The first free slot that starts after the given minute, or None."""
+        for slot in free_slots(slots, booked):
+            if slot > after:
+                return slot
+        return None
+  report.py: |
+    """Printed list of free slots for a day."""
+
+    from booked import free_slots
+    from slots import generate_slots, slot_label
+
+
+    def day_sheet(open_minute, close_minute, length, booked):
+        slots = generate_slots(open_minute, close_minute, length)
+        lines = [slot_label(slot, length) for slot in free_slots(slots, booked)]
+        return "\n".join(lines) if lines else "fully booked"
+failingTest: |
+  from booked import count_free, next_free
+  from report import day_sheet
+  from slots import generate_slots
+
+
+  def test_last_slot_ends_exactly_at_closing_time():
+      assert generate_slots(540, 600, 30) == [540, 570]
+      assert generate_slots(540, 660, 30) == [540, 570, 600, 630]
+
+
+  def test_a_slot_that_would_run_past_closing_is_not_offered():
+      assert generate_slots(540, 610, 30) == [540, 570]
+
+
+  def test_sheet_and_counts_include_the_last_slot():
+      assert count_free(generate_slots(540, 660, 30), [570]) == 3
+      assert next_free(generate_slots(540, 660, 30), [], 600) == 630
+      assert day_sheet(540, 600, 30, [540]) == "09:30-10:00"
+bugExplanation: |
+  `range` stops before its end value, so `range(open, close - length, length)` stops before the start minute of the last
+  slot that still fits: the slot that ends exactly at closing time never appears. A slot starting at `start` fits when
+  `start + length <= close`, that is `start <= close - length`, so the `range` end must be `close - length + 1`.
+fixedFiles:
+  slots.py: |
+    """Generate appointment slots inside opening hours. Times are minutes since midnight."""
+
+
+    def generate_slots(open_minute, close_minute, length):
+        """Start minutes of every slot of `length` minutes that fits before closing time.
+
+        A slot that ends exactly at closing time fits.
+        """
+        return list(range(open_minute, close_minute - length + 1, length))
+
+
+    def slot_label(start_minute, length):
+        """Text such as "09:00-09:30" for a slot."""
+        end_minute = start_minute + length
+        return f"{clock(start_minute)}-{clock(end_minute)}"
+
+
+    def clock(minute):
+        """Format minutes since midnight as HH:MM."""
+        return f"{minute // 60:02d}:{minute % 60:02d}"
+  booked.py: |
+    """Take booked slots out of a day's slots."""
+
+
+    def free_slots(slots, booked):
+        """Slots that are not booked, in order."""
+        taken = set(booked)
+        return [slot for slot in slots if slot not in taken]
+
+
+    def count_free(slots, booked):
+        """How many slots are still free."""
+        return len(free_slots(slots, booked))
+
+
+    def next_free(slots, booked, after):
+        """The first free slot that starts after the given minute, or None."""
+        for slot in free_slots(slots, booked):
+            if slot > after:
+                return slot
+        return None
+  report.py: |
+    """Printed list of free slots for a day."""
+
+    from booked import free_slots
+    from slots import generate_slots, slot_label
+
+
+    def day_sheet(open_minute, close_minute, length, booked):
+        slots = generate_slots(open_minute, close_minute, length)
+        lines = [slot_label(slot, length) for slot in free_slots(slots, booked)]
+        return "\n".join(lines) if lines else "fully booked"

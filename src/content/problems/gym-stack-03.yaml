@@ -1,0 +1,98 @@
+id: gym-stack-03
+title: 'Switches that cancel each other'
+pattern: stack
+competencies: [int.stack]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A building log lists the name of each switch that was pressed. When the same switch is pressed twice in a row, the two presses cancel and both disappear from the log. After they disappear, the presses on either side become neighbours, so they may cancel in turn. Write `net_presses(log)` that returns the list of presses that remain, in the original order.
+examples:
+  - "net_presses(['door', 'lamp', 'lamp', 'door', 'fan']) returns ['fan']"
+  - "net_presses(['a', 'a', 'a']) returns ['a']"
+constraints:
+  - '0 to 100000 presses'
+  - 'Names are non-empty strings'
+starter: |
+  def net_presses(log):
+      ...
+visibleTests: |
+  def test_example():
+      assert net_presses(["door", "lamp", "lamp", "door", "fan"]) == ["fan"]
+
+  def test_three_in_a_row():
+      assert net_presses(["a", "a", "a"]) == ["a"]
+hiddenTests: |
+  def test_empty():
+      assert net_presses([]) == []
+
+  def test_nothing_cancels():
+      assert net_presses(["a", "b", "a", "b"]) == ["a", "b", "a", "b"]
+
+  def test_chain_reaction():
+      assert net_presses(["a", "b", "c", "c", "b", "a"]) == []
+
+  def test_same_name_far_apart_does_not_cancel():
+      assert net_presses(["a", "b", "a"]) == ["a", "b", "a"]
+
+  def test_four_in_a_row():
+      assert net_presses(["a", "a", "a", "a"]) == []
+
+  def test_input_unchanged():
+      log = ["a", "a", "b"]
+      net_presses(log)
+      assert log == ["a", "a", "b"]
+
+  def test_large_chain_reaction():
+      names = [str(i) for i in range(30000)]
+      assert net_presses(names + list(reversed(names))) == []
+referenceSolutions:
+  - code: |
+      def net_presses(log):
+          remaining = []
+          for name in log:
+              if remaining and remaining[-1] == name:
+                  remaining.pop()
+              else:
+                  remaining.append(name)
+          return remaining
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Cancels pairs in one left-to-right pass and misses the chain reaction'
+    code: |
+      def net_presses(log):
+          result = []
+          i = 0
+          while i < len(log):
+              if i + 1 < len(log) and log[i] == log[i + 1]:
+                  i += 2
+              else:
+                  result.append(log[i])
+                  i += 1
+          return result
+  - label: 'Keeps the presses of switches that were pressed an odd number of times in total, wherever the presses are'
+    code: |
+      def net_presses(log):
+          return [name for name in log if log.count(name) % 2 == 1]
+  - label: 'Starts again from the beginning after each cancellation, so the work grows with the square of the log'
+    code: |
+      def net_presses(log):
+          items = list(log)
+          changed = True
+          while changed:
+              changed = False
+              for i in range(len(items) - 1):
+                  if items[i] == items[i + 1]:
+                      del items[i:i + 2]
+                      changed = True
+                      break
+          return items
+patternExplanation: |
+  A stack lets you add and remove at one end only, so the item you handle next is always the one added last. A Python list does this with append() and pop(). Keep the presses that have not been cancelled on a stack. For each new press, look only at the top of the stack: if it is the same switch, pop it, because the pair cancels; otherwise push the new press. After a pop, the next press is compared with the new top, which is how the chain reaction happens without any second pass.
+commonMistakes:
+  - 'Cancelling pairs only once, so the chain reaction is missed'
+  - 'Counting presses instead of looking at neighbours'
+  - 'Restarting the scan after every cancellation'
+followUps:
+  - 'What if three presses in a row should cancel?'
+  - 'How would you also return how many presses were cancelled?'

@@ -1,0 +1,97 @@
+id: gym-stack-01
+title: 'Undo the last note'
+pattern: stack
+competencies: [int.stack]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A notes tool keeps a list of notes. Each command is a string. `"add <text>"` adds the text after `add ` to the end of the list. `"undo"` removes the note that was added last and is still in the list. Undo on an empty list does nothing. Write `apply_edits(commands)` that returns the final list of notes.
+examples:
+  - "apply_edits(['add a', 'add b', 'undo', 'add c']) returns ['a', 'c']"
+  - "apply_edits(['undo']) returns []"
+constraints:
+  - '0 to 100000 commands'
+  - 'The text of a note has at least one character and may contain spaces'
+starter: |
+  def apply_edits(commands):
+      ...
+visibleTests: |
+  def test_example():
+      assert apply_edits(["add a", "add b", "undo", "add c"]) == ["a", "c"]
+
+  def test_undo_on_empty():
+      assert apply_edits(["undo"]) == []
+hiddenTests: |
+  def test_no_commands():
+      assert apply_edits([]) == []
+
+  def test_undo_removes_the_latest_note_not_the_first():
+      assert apply_edits(["add a", "add b", "add c", "undo"]) == ["a", "b"]
+
+  def test_several_undos_in_a_row():
+      assert apply_edits(["add a", "add b", "undo", "undo", "undo", "add c"]) == ["c"]
+
+  def test_notes_with_spaces_are_kept_whole():
+      assert apply_edits(["add call back", "add send the form"]) == ["call back", "send the form"]
+
+  def test_everything_undone():
+      assert apply_edits(["add a", "undo"]) == []
+
+  def test_large_input():
+      commands = ["add x"] * 100000 + ["undo"] * 40000
+      assert apply_edits(commands) == ["x"] * 60000
+referenceSolutions:
+  - code: |
+      def apply_edits(commands):
+          notes = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      notes.pop()
+              else:
+                  notes.append(command[4:])
+          return notes
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Crashes when undo comes before any note'
+    code: |
+      def apply_edits(commands):
+          notes = []
+          for command in commands:
+              if command == "undo":
+                  notes.pop()
+              else:
+                  notes.append(command[4:])
+          return notes
+  - label: 'Undo removes the first note instead of the last one'
+    code: |
+      def apply_edits(commands):
+          notes = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      notes.pop(0)
+              else:
+                  notes.append(command[4:])
+          return notes
+  - label: 'Keeps only the first word of a note'
+    code: |
+      def apply_edits(commands):
+          notes = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      notes.pop()
+              else:
+                  notes.append(command.split()[1])
+          return notes
+patternExplanation: |
+  A stack lets you add and remove at one end only, so the item you handle next is always the one added last. A Python list does this with append() and pop(). Undo always reverses the most recent step, so the notes are a stack: add pushes, undo pops. Check that the list is not empty before you pop, because undo on an empty list must do nothing. Cut the note text off with a slice at the fixed prefix "add " so that spaces inside the note survive.
+commonMistakes:
+  - 'Popping from an empty list'
+  - 'Using pop(0), which removes the oldest note'
+  - 'Splitting the command on spaces and losing words'
+followUps:
+  - 'How would you add a redo command?'
+  - 'How would you limit the history to the last 50 notes?'

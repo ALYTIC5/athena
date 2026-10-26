@@ -1,0 +1,129 @@
+id: gym-drill-minutes
+kind: code-reading
+title: 'The busiest agents that are not the busiest'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  loader.py: |
+    """Read call-minute rows from simple text lines such as "Amara,9"."""
+
+
+    def parse_row(line):
+        """Turn one line into {"agent": name, "minutes": number}."""
+        agent, minutes = line.strip().split(",")
+        return {"agent": agent.strip(), "minutes": minutes.strip()}
+
+
+    def parse_rows(text):
+        """Parse every non-empty line of text."""
+        return [parse_row(line) for line in text.splitlines() if line.strip()]
+  stats.py: |
+    """Statistics over parsed call-minute rows."""
+
+
+    def total_minutes(rows):
+        """Sum of all minutes."""
+        return sum(row["minutes"] for row in rows)
+
+
+    def busiest(rows, n):
+        """The n rows with the most minutes, most minutes first."""
+        return sorted(rows, key=lambda row: row["minutes"], reverse=True)[:n]
+
+
+    def average_minutes(rows):
+        """Average minutes per row, rounded to one decimal place. Zero for no rows."""
+        if not rows:
+            return 0
+        return round(total_minutes(rows) / len(rows), 1)
+
+
+    def above_average(rows):
+        """Names of the agents with more minutes than the average, in the order of the rows."""
+        average = average_minutes(rows)
+        return [row["agent"] for row in rows if row["minutes"] > average]
+  report.py: |
+    """A short text report on call minutes."""
+
+    from loader import parse_rows
+    from stats import average_minutes, busiest, total_minutes
+
+
+    def report(text, top=2):
+        rows = parse_rows(text)
+        lines = [f"total {total_minutes(rows)} min, average {average_minutes(rows)} min"]
+        for row in busiest(rows, top):
+            lines.append(f"{row['agent']}: {row['minutes']} min")
+        return "\n".join(lines)
+failingTest: |
+  from loader import parse_rows
+  from stats import above_average, busiest, total_minutes
+
+  DATA = "Amara,9\nBilal,40\nChen,10\nDeji,5\n"
+
+
+  def test_busiest_orders_by_the_number_of_minutes():
+      rows = parse_rows(DATA)
+      assert [row["agent"] for row in busiest(rows, 2)] == ["Bilal", "Chen"]
+
+
+  def test_totals_and_averages_work_on_numbers():
+      rows = parse_rows(DATA)
+      assert total_minutes(rows) == 64
+      assert above_average(rows) == ["Bilal"]
+bugExplanation: |
+  `parse_row` returns the minutes as the text it read (`"9"`, `"40"`), not as numbers. Text compares letter by letter,
+  so `"9"` is greater than `"40"` and `busiest` puts the wrong agents first; `sum` over text raises a `TypeError`. The
+  conversion belongs where the data enters the program: use `int(minutes.strip())` in `parse_row`.
+fixedFiles:
+  loader.py: |
+    """Read call-minute rows from simple text lines such as "Amara,9"."""
+
+
+    def parse_row(line):
+        """Turn one line into {"agent": name, "minutes": number}."""
+        agent, minutes = line.strip().split(",")
+        return {"agent": agent.strip(), "minutes": int(minutes.strip())}
+
+
+    def parse_rows(text):
+        """Parse every non-empty line of text."""
+        return [parse_row(line) for line in text.splitlines() if line.strip()]
+  stats.py: |
+    """Statistics over parsed call-minute rows."""
+
+
+    def total_minutes(rows):
+        """Sum of all minutes."""
+        return sum(row["minutes"] for row in rows)
+
+
+    def busiest(rows, n):
+        """The n rows with the most minutes, most minutes first."""
+        return sorted(rows, key=lambda row: row["minutes"], reverse=True)[:n]
+
+
+    def average_minutes(rows):
+        """Average minutes per row, rounded to one decimal place. Zero for no rows."""
+        if not rows:
+            return 0
+        return round(total_minutes(rows) / len(rows), 1)
+
+
+    def above_average(rows):
+        """Names of the agents with more minutes than the average, in the order of the rows."""
+        average = average_minutes(rows)
+        return [row["agent"] for row in rows if row["minutes"] > average]
+  report.py: |
+    """A short text report on call minutes."""
+
+    from loader import parse_rows
+    from stats import average_minutes, busiest, total_minutes
+
+
+    def report(text, top=2):
+        rows = parse_rows(text)
+        lines = [f"total {total_minutes(rows)} min, average {average_minutes(rows)} min"]
+        for row in busiest(rows, top):
+            lines.append(f"{row['agent']}: {row['minutes']} min")
+        return "\n".join(lines)

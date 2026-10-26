@@ -1,0 +1,101 @@
+id: gym-bs-01
+title: 'The first booking at or after a time'
+pattern: binary-search
+competencies: [int.binary-search]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `starts` holds the start minute of each booking in a day, in increasing order (two bookings may start at the same minute). Write `first_at_or_after(starts, t)` that returns the index of the first booking that starts at minute `t` or later. If no booking starts at `t` or later, return `len(starts)`.
+examples:
+  - 'first_at_or_after([540, 570, 570, 630], 570) returns 1'
+  - 'first_at_or_after([540, 570], 600) returns 2'
+constraints:
+  - '0 to 200000 bookings, sorted ascending'
+  - 'Minutes are whole numbers'
+starter: |
+  def first_at_or_after(starts, t):
+      ...
+visibleTests: |
+  def test_example():
+      assert first_at_or_after([540, 570, 570, 630], 570) == 1
+
+  def test_nothing_that_late():
+      assert first_at_or_after([540, 570], 600) == 2
+hiddenTests: |
+  def test_empty_list():
+      assert first_at_or_after([], 100) == 0
+
+  def test_before_everything():
+      assert first_at_or_after([540, 570], 100) == 0
+
+  def test_between_two_bookings():
+      assert first_at_or_after([540, 600], 570) == 1
+
+  def test_exact_match_on_the_last_booking():
+      assert first_at_or_after([540, 570, 600], 600) == 2
+
+  def test_one_booking():
+      assert first_at_or_after([540], 540) == 0
+      assert first_at_or_after([540], 541) == 1
+
+  def test_input_unchanged():
+      starts = [1, 2, 3]
+      first_at_or_after(starts, 2)
+      assert starts == [1, 2, 3]
+
+  def test_many_lookups_on_a_long_list():
+      starts = list(range(0, 200000, 2))
+      for t in range(0, 200000, 20):
+          assert first_at_or_after(starts, t) == (t + 1) // 2
+referenceSolutions:
+  - code: |
+      def first_at_or_after(starts, t):
+          low, high = 0, len(starts)
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid
+          return low
+    time: 'O(log n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Scans the list from the start, so a long list makes every lookup slow'
+    code: |
+      def first_at_or_after(starts, t):
+          for i, start in enumerate(starts):
+              if start >= t:
+                  return i
+          return len(starts)
+  - label: 'Finds the first booking after t, so a booking exactly at t is skipped'
+    code: |
+      def first_at_or_after(starts, t):
+          low, high = 0, len(starts)
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] <= t:
+                  low = mid + 1
+              else:
+                  high = mid
+          return low
+  - label: 'Starts with high at the last index, so it never answers len(starts)'
+    code: |
+      def first_at_or_after(starts, t):
+          low, high = 0, len(starts) - 1
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid
+          return low
+patternExplanation: |
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving 200000 items takes about 18 steps. Keep a range [low, high) that always contains the answer. The answer can be len(starts), so high starts one past the last index. If the middle booking starts before t, the answer is to its right, so low = mid + 1. Otherwise the middle booking could itself be the answer, so high = mid. When low meets high, that is the first booking that starts at t or later.
+commonMistakes:
+  - 'Writing <= instead of < and skipping a booking that starts exactly at t'
+  - 'Starting high at len(starts) - 1, which cannot return len(starts)'
+  - 'Scanning the list instead of halving it'
+followUps:
+  - 'How would you find the first booking strictly after t?'
+  - 'How would you use this to count the bookings before t?'

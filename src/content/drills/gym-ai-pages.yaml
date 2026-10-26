@@ -1,0 +1,67 @@
+id: gym-ai-pages
+kind: ai-assisted
+title: 'Pages of the call history'
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `get_page` should return the items on one page of a call history, with pages numbered from 1, and `page_count` should
+  say how many pages there are. The tests below fail. You may use an AI assistant. Before each prompt, write down what
+  you think is wrong and why. Verify any answer with the tests before you trust it.
+files:
+  pages.py: |
+    """Pages of a call history list. Pages are numbered from 1."""
+
+
+    def page_count(total_items, per_page):
+        """How many pages are needed to show total_items items, per_page on each page."""
+        return total_items // per_page
+
+
+    def get_page(items, page_number, per_page):
+        """The items on one page. A page number outside the range gives an empty list."""
+        if page_number < 1 or page_number > page_count(len(items), per_page):
+            return []
+        start = page_number * per_page
+        return items[start:start + per_page]
+failingTest: |
+  from pages import get_page, page_count
+
+
+  def test_page_count_rounds_up():
+      assert page_count(10, 5) == 2
+      assert page_count(11, 5) == 3
+      assert page_count(0, 5) == 0
+
+
+  def test_first_page_starts_at_the_first_item():
+      assert get_page([1, 2, 3, 4, 5, 6, 7], 1, 3) == [1, 2, 3]
+
+
+  def test_last_page_may_be_short():
+      assert get_page([1, 2, 3, 4, 5, 6, 7], 3, 3) == [7]
+
+
+  def test_page_outside_the_range_is_empty():
+      assert get_page([1, 2, 3], 0, 2) == []
+      assert get_page([1, 2, 3], 3, 2) == []
+bugExplanation: |
+  There are two separate problems. `page_count` uses `//` on its own, which rounds down and drops a partly filled last
+  page (11 items at 5 per page is 3 pages, not 2). `get_page` computes the start as `page_number * per_page`, which is
+  right only for pages numbered from 0; for pages numbered from 1 the start is `(page_number - 1) * per_page`. Round up
+  with `(total + per_page - 1) // per_page` and subtract 1 from the page number.
+fixedFiles:
+  pages.py: |
+    """Pages of a call history list. Pages are numbered from 1."""
+
+
+    def page_count(total_items, per_page):
+        """How many pages are needed to show total_items items, per_page on each page."""
+        return (total_items + per_page - 1) // per_page
+
+
+    def get_page(items, page_number, per_page):
+        """The items on one page. A page number outside the range gives an empty list."""
+        if page_number < 1 or page_number > page_count(len(items), per_page):
+            return []
+        start = (page_number - 1) * per_page
+        return items[start:start + per_page]
