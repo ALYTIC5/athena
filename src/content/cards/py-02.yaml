@@ -1,0 +1,62 @@
+lesson: py-02
+cards:
+  - id: py-02-c-choose-collection
+    type: explain
+    competencies: [py.collections]
+    front: How do you choose between a list, a tuple, a set and a dict?
+    back: Ask what you do with the data. A list is an ordered sequence you read by position and may grow. A tuple is a fixed record. A set holds each item once and answers "is it here?" fast. A dict maps unique keys to values and gives fast lookup by key.
+  - id: py-02-c-hashable
+    type: explain
+    competencies: [py.collections]
+    front: Why can a tuple be a dict key but a list cannot?
+    back: Dict keys and set items must be hashable, which means their hash cannot change while they are stored. A list can change, so it is not hashable. A tuple of hashable items cannot change, so it is.
+  - id: py-02-c-dict-order
+    type: basic
+    competencies: [py.collections]
+    front: In which order does a dict give its keys, and what about a set?
+    back: A dict keeps insertion order (guaranteed since Python 3.7), and changing a value does not move its key. A set promises no order, so use sorted(...) when order matters.
+  - id: py-02-c-membership-cost
+    type: explain
+    competencies: [py.complexity, py.collections]
+    front: Why is "x in my_set" faster than "x in my_list"?
+    back: A list is searched item by item, so the cost grows with its length. A set uses the item's hash to go straight to where it would be stored, so on average the cost stays about the same however large the set is. The price is extra memory and a need for hashable items.
+  - id: py-02-c-set-once
+    type: explain
+    competencies: [py.complexity]
+    front: You must test thousands of items against a big list. What do you change, and where?
+    back: Build a set from the list once, before the loop, and test against the set. Building it inside the loop would repeat the cost you wanted to avoid.
+  - id: py-02-c-nested-loops
+    type: explain
+    competencies: [py.complexity]
+    front: Why do nested loops over the same input cost O(n squared), but two loops one after the other cost O(n)?
+    back: Nested loops multiply. The inner body runs n times for each of the n outer passes. Sequential loops add to about 2n, and big-O ignores constant factors.
+  - id: py-02-c-comprehension
+    type: basic
+    competencies: [py.comprehensions]
+    front: What do square brackets, curly brackets with a colon, curly brackets without one, and round brackets build in a comprehension?
+    back: Square brackets build a list, curly brackets with a key, a colon and a value build a dict, curly brackets with one expression build a set, and round brackets make a generator expression that produces items one at a time.
+  - id: py-02-c-counter
+    type: basic
+    competencies: [py.collections]
+    front: What do Counter(items)[x] and Counter(items).most_common(3) give?
+    back: The first is how many times x appears, and 0 if it never does, without adding a key. The second is a list of the three (item, count) pairs with the highest counts, highest first.
+  - id: py-02-c-defaultdict
+    type: explain
+    competencies: [py.collections]
+    front: Why use defaultdict(list) when grouping, and what is the catch?
+    back: A missing key gets a new empty list the first time you read it, so you can append straight away. The catch is that merely reading a missing key creates it, so convert to a plain dict with dict(groups) when you return it.
+  - id: py-02-c-sort-key
+    type: explain
+    competencies: [py.collections]
+    front: How do you sort calls longest first, with ties broken by id, without changing the original list?
+    back: 'sorted(calls, key=lambda c: (-c["seconds"], c["id"])). sorted returns a new list. The tuple key compares seconds first (negated for longest first), then the id.'
+  - id: py-02-c-sort-stable
+    type: basic
+    competencies: [py.collections]
+    front: What does it mean that Python's sort is stable?
+    back: Items with equal keys keep the order they had in the input. That is why you add a second part to the key when you need a particular order for ties.
+  - id: py-02-c-big-o-names
+    type: explain
+    competencies: [py.complexity]
+    front: Say in words what O(1), O(n), O(n log n) and O(n squared) mean, with one Python example of each.
+    back: O(1) means the work does not grow with the input (reading a dict item). O(n) means it grows in step (one pass over a list). O(n log n) grows a little faster (sorted). O(n squared) means doubling the input makes the work about four times larger (comparing every pair).

@@ -45,7 +45,7 @@
     - id: py-02
       title: 'Collections and complexity'
       durationMin: 165
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Hashing'
