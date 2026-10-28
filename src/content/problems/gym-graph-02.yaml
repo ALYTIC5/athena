@@ -38,6 +38,10 @@ hiddenTests: |
       network = {"a": ["b", "e"], "b": ["c"], "c": ["d"], "d": ["f"], "e": ["f"], "f": []}
       assert fewest_forwards(network, "a", "f") == 2
 
+  def test_depth_first_reaches_the_goal_by_the_long_route_first():
+      network = {"a": ["b", "c"], "b": ["g"], "c": ["x"], "x": ["g"]}
+      assert fewest_forwards(network, "a", "g") == 2
+
   def test_cycle():
       network = {"a": ["b"], "b": ["a", "c"], "c": []}
       assert fewest_forwards(network, "a", "c") == 2

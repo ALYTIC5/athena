@@ -11,7 +11,7 @@ examples:
   - "can_route({'a': ['b'], 'b': ['a']}, 'a', 'z') returns False"
 constraints:
   - '0 to 100000 switches'
-  - 'Names are strings'
+  - 'Names are strings or ints'
   - 'The network may contain cycles'
 starter: |
   def can_route(network, start, goal):

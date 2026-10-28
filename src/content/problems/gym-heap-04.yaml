@@ -43,6 +43,9 @@ hiddenTests: |
   def test_identical_meetings():
       assert rooms_needed([(5, 9), (5, 9)]) == 2
 
+  def test_start_and_end_orders_differ():
+      assert rooms_needed([(7, 9), (2, 4), (2, 7), (6, 10)]) == 2
+
   def test_large_input():
       meetings = [(i, i + 5) for i in range(100000)]
       assert rooms_needed(meetings) == 5
@@ -80,6 +83,18 @@ wrongSolutions:
       def rooms_needed(meetings):
           rooms = []
           for start, end in meetings:
+              if rooms and rooms[0] <= start:
+                  heapq.heapreplace(rooms, end)
+              else:
+                  heapq.heappush(rooms, end)
+          return len(rooms)
+  - label: 'Handles the meetings in order of end time'
+    code: |
+      import heapq
+
+      def rooms_needed(meetings):
+          rooms = []
+          for start, end in sorted(meetings, key=lambda m: (m[1], m[0])):
               if rooms and rooms[0] <= start:
                   heapq.heapreplace(rooms, end)
               else:

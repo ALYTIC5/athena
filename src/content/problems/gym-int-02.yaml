@@ -5,7 +5,7 @@ competencies: [int.intervals]
 difficulty: medium
 timeLimitMin: 40
 statement: |
-  A resource has bookings, each a pair `[start, end]` with `start <= end`, in any order. Two bookings that overlap, or that touch (one ends exactly where the next starts), should become one booking that covers both. Write `merge_bookings(bookings)` that returns the merged bookings as a list of `[start, end]` lists, sorted by start. The input must not be changed.
+  A resource has bookings, each a pair `[start, end]` with `start <= end`, in any order. Two bookings that overlap, or that touch (one ends exactly where the next starts), should become one booking that covers both. Write `merge_bookings(bookings)` that returns the merged bookings as a list of `[start, end]` lists, sorted by start. The input must not be changed, and the returned lists must be new lists.
 examples:
   - 'merge_bookings([[1, 3], [2, 6], [8, 10]]) returns [[1, 6], [8, 10]]'
   - 'merge_bookings([[1, 4], [4, 5]]) returns [[1, 5]]'

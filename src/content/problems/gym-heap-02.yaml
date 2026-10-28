@@ -1,5 +1,5 @@
 id: gym-heap-02
-title: 'Third-best score after every call'
+title: 'The k-th best score so far'
 pattern: heaps
 competencies: [int.heaps]
 difficulty: medium
