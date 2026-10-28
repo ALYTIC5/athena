@@ -1,0 +1,131 @@
+id: gym-graph-03
+title: 'How many separate office groups?'
+pattern: graphs
+competencies: [int.graphs]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A company has `n` offices numbered 0 to n-1. `links` is a list of pairs `(a, b)` meaning offices a and b have a direct phone line, which works both ways. Offices are in the same group if they can reach each other through any chain of lines. Write `count_groups(n, links)` that returns the number of groups. An office with no lines is a group of its own.
+examples:
+  - 'count_groups(5, [(0, 1), (1, 2), (3, 4)]) returns 2'
+  - 'count_groups(3, []) returns 3'
+constraints:
+  - '0 <= n <= 100000'
+  - '0 to 200000 links'
+  - 'Links may repeat and may connect an office to itself'
+starter: |
+  def count_groups(n, links):
+      ...
+visibleTests: |
+  def test_example():
+      assert count_groups(5, [(0, 1), (1, 2), (3, 4)]) == 2
+
+  def test_no_lines():
+      assert count_groups(3, []) == 3
+hiddenTests: |
+  def test_no_offices():
+      assert count_groups(0, []) == 0
+
+  def test_isolated_office_counts():
+      assert count_groups(4, [(0, 1), (1, 2)]) == 2
+
+  def test_lines_work_both_ways():
+      assert count_groups(3, [(2, 1), (1, 0)]) == 1
+
+  def test_repeated_and_self_links():
+      assert count_groups(3, [(0, 1), (1, 0), (0, 1), (2, 2)]) == 2
+
+  def test_all_connected_in_a_cycle():
+      assert count_groups(4, [(0, 1), (1, 2), (2, 3), (3, 0)]) == 1
+
+  def test_groups_joined_late():
+      assert count_groups(6, [(0, 1), (2, 3), (4, 5), (1, 2)]) == 2
+
+  def test_long_chain():
+      links = [(i, i + 1) for i in range(99999)]
+      assert count_groups(100000, links) == 1
+
+  def test_many_pairs():
+      links = [(i, i + 1) for i in range(0, 100000, 2)]
+      assert count_groups(100000, links) == 50000
+referenceSolutions:
+  - code: |
+      def count_groups(n, links):
+          neighbours = [[] for _ in range(n)]
+          for a, b in links:
+              neighbours[a].append(b)
+              neighbours[b].append(a)
+          seen = [False] * n
+          groups = 0
+          for office in range(n):
+              if seen[office]:
+                  continue
+              groups += 1
+              seen[office] = True
+              stack = [office]
+              while stack:
+                  current = stack.pop()
+                  for nxt in neighbours[current]:
+                      if not seen[nxt]:
+                          seen[nxt] = True
+                          stack.append(nxt)
+          return groups
+    time: 'O(n + m)'
+    space: 'O(n + m)'
+wrongSolutions:
+  - label: 'Ignores offices that have no lines'
+    code: |
+      def count_groups(n, links):
+          neighbours = {}
+          for a, b in links:
+              neighbours.setdefault(a, []).append(b)
+              neighbours.setdefault(b, []).append(a)
+          seen = set()
+          groups = 0
+          for office in neighbours:
+              if office in seen:
+                  continue
+              groups += 1
+              seen.add(office)
+              stack = [office]
+              while stack:
+                  current = stack.pop()
+                  for nxt in neighbours[current]:
+                      if nxt not in seen:
+                          seen.add(nxt)
+                          stack.append(nxt)
+          return groups
+  - label: 'Treats each line as one-way'
+    code: |
+      def count_groups(n, links):
+          neighbours = [[] for _ in range(n)]
+          for a, b in links:
+              neighbours[a].append(b)
+          seen = [False] * n
+          groups = 0
+          for office in range(n):
+              if seen[office]:
+                  continue
+              groups += 1
+              seen[office] = True
+              stack = [office]
+              while stack:
+                  current = stack.pop()
+                  for nxt in neighbours[current]:
+                      if not seen[nxt]:
+                          seen[nxt] = True
+                          stack.append(nxt)
+          return groups
+  - label: 'Subtracts the number of lines from the number of offices'
+    code: |
+      def count_groups(n, links):
+          return max(n - len(links), 1) if n else 0
+patternExplanation: |
+  A graph is a set of nodes joined by edges. Here a graph is a dict that maps each node to the list of nodes it points to. Graphs can contain cycles, so any walk through one must remember which nodes it has already visited, or it can loop forever. A group is a connected component. Count them by starting a search from every office that has not been seen yet: that search marks the whole group, so each new start means one more group. Build the neighbour lists for both directions, because a line works both ways. Loop over all n offices, not only those that appear in a link, so an office with no lines counts as its own group. Use a stack in a loop, not recursion, because a chain of 100000 offices exceeds Python's recursion limit. Another method is union-find: start with n groups and subtract one each time a line joins two different groups. Both run in about O(n + m).
+commonMistakes:
+  - 'Looping only over offices that appear in a link'
+  - 'Adding each line in one direction only'
+  - 'Subtracting the number of lines, which breaks when lines repeat or form a cycle'
+followUps:
+  - 'How would you find the size of the biggest group?'
+  - 'How would you do it with union-find, and when is that better?'

@@ -1,0 +1,92 @@
+id: gym-heap-01
+title: 'The slowest calls'
+pattern: heaps
+competencies: [int.heaps]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A call log lists the duration of each call in seconds. Write `slowest_calls(durations, k)` that returns the `k` longest durations as a list, longest first. If there are fewer than `k` calls, return all of them. The input list must not be changed.
+examples:
+  - 'slowest_calls([30, 120, 45, 300, 60], 2) returns [300, 120]'
+  - 'slowest_calls([5], 3) returns [5]'
+constraints:
+  - '0 to 100000 durations'
+  - '0 <= k <= 100000'
+  - 'Durations are ints and may repeat'
+starter: |
+  def slowest_calls(durations, k):
+      ...
+visibleTests: |
+  def test_example():
+      assert slowest_calls([30, 120, 45, 300, 60], 2) == [300, 120]
+
+  def test_fewer_calls_than_k():
+      assert slowest_calls([5], 3) == [5]
+hiddenTests: |
+  def test_no_calls():
+      assert slowest_calls([], 3) == []
+
+  def test_k_is_zero():
+      assert slowest_calls([4, 9], 0) == []
+
+  def test_repeated_durations():
+      assert slowest_calls([7, 7, 3, 7], 3) == [7, 7, 7]
+
+  def test_longest_first():
+      assert slowest_calls([1, 2, 3, 4, 5], 5) == [5, 4, 3, 2, 1]
+
+  def test_input_is_not_changed():
+      durations = [3, 1, 2]
+      slowest_calls(durations, 2)
+      assert durations == [3, 1, 2]
+
+  def test_large_input():
+      durations = list(range(100000))
+      assert slowest_calls(durations, 3) == [99999, 99998, 99997]
+referenceSolutions:
+  - code: |
+      import heapq
+
+      def slowest_calls(durations, k):
+          return heapq.nlargest(k, durations)
+    time: 'O(n log k)'
+    space: 'O(k)'
+  - code: |
+      import heapq
+
+      def slowest_calls(durations, k):
+          heap = []
+          for duration in durations:
+              heapq.heappush(heap, duration)
+              if len(heap) > k:
+                  heapq.heappop(heap)
+          return sorted(heap, reverse=True)
+    time: 'O(n log k)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Returns the shortest calls'
+    code: |
+      import heapq
+
+      def slowest_calls(durations, k):
+          return heapq.nsmallest(k, durations)
+  - label: 'Returns the right calls, shortest first'
+    code: |
+      import heapq
+
+      def slowest_calls(durations, k):
+          return sorted(heapq.nlargest(k, durations))
+  - label: "Sorts the caller's list in place"
+    code: |
+      def slowest_calls(durations, k):
+          durations.sort(reverse=True)
+          return durations[:k]
+patternExplanation: |
+  A heap is a structure that always gives you the smallest item fast. Python's heapq module keeps a plain list as a min-heap: heappush adds an item and heappop removes the smallest, each in O(log n). To get the largest items, keep a heap of the items you want and push the weakest one out. For the k largest, keep a min-heap that never holds more than k items. Push each duration, and when the heap grows past k, pop the smallest: whatever is left are the k largest seen so far. Because only k items are ever stored, the work is n pushes of O(log k) each. At the end, the heap is not sorted, so sort the k survivors in descending order. heapq.nlargest does exactly this. Sorting the whole list also gives the right answer in O(n log n), which is fine for small inputs but wasteful when k is much smaller than n.
+commonMistakes:
+  - 'Taking the smallest items instead of the largest'
+  - "Forgetting that the heap's list is not in sorted order"
+  - "Sorting the caller's list in place"
+followUps:
+  - 'What changes if k is close to n?'
+  - 'How would you do it when the durations arrive one at a time and never fit in memory?'

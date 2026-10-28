@@ -1,0 +1,111 @@
+id: gym-int-02
+title: 'Merge the overlapping bookings'
+pattern: intervals
+competencies: [int.intervals]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A resource has bookings, each a pair `[start, end]` with `start <= end`, in any order. Two bookings that overlap, or that touch (one ends exactly where the next starts), should become one booking that covers both. Write `merge_bookings(bookings)` that returns the merged bookings as a list of `[start, end]` lists, sorted by start. The input must not be changed.
+examples:
+  - 'merge_bookings([[1, 3], [2, 6], [8, 10]]) returns [[1, 6], [8, 10]]'
+  - 'merge_bookings([[1, 4], [4, 5]]) returns [[1, 5]]'
+constraints:
+  - '0 to 100000 bookings'
+  - '0 <= start <= end <= 1000000'
+starter: |
+  def merge_bookings(bookings):
+      ...
+visibleTests: |
+  def test_example():
+      assert merge_bookings([[1, 3], [2, 6], [8, 10]]) == [[1, 6], [8, 10]]
+
+  def test_touching_bookings_merge():
+      assert merge_bookings([[1, 4], [4, 5]]) == [[1, 5]]
+hiddenTests: |
+  def test_no_bookings():
+      assert merge_bookings([]) == []
+
+  def test_one_booking():
+      assert merge_bookings([[2, 3]]) == [[2, 3]]
+
+  def test_unsorted_input():
+      assert merge_bookings([[8, 10], [1, 3], [2, 6]]) == [[1, 6], [8, 10]]
+
+  def test_booking_inside_another_keeps_the_longer_end():
+      assert merge_bookings([[1, 10], [2, 3], [4, 5]]) == [[1, 10]]
+
+  def test_chain_of_overlaps():
+      assert merge_bookings([[1, 3], [3, 5], [5, 7], [9, 11]]) == [[1, 7], [9, 11]]
+
+  def test_gap_of_one_stays_apart():
+      assert merge_bookings([[1, 2], [3, 4]]) == [[1, 2], [3, 4]]
+
+  def test_identical_bookings():
+      assert merge_bookings([[2, 4], [2, 4]]) == [[2, 4]]
+
+  def test_input_is_not_changed():
+      bookings = [[5, 6], [1, 5]]
+      merge_bookings(bookings)
+      assert bookings == [[5, 6], [1, 5]]
+
+  def test_result_does_not_share_lists_with_input():
+      bookings = [[1, 2]]
+      result = merge_bookings(bookings)
+      result[0][1] = 99
+      assert bookings == [[1, 2]]
+
+  def test_large_input():
+      bookings = [[i * 3, i * 3 + 3] for i in range(100000)]
+      assert merge_bookings(bookings) == [[0, 300000]]
+referenceSolutions:
+  - code: |
+      def merge_bookings(bookings):
+          merged = []
+          for start, end in sorted(bookings):
+              if merged and start <= merged[-1][1]:
+                  merged[-1][1] = max(merged[-1][1], end)
+              else:
+                  merged.append([start, end])
+          return merged
+    time: 'O(n log n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Does not sort the bookings first'
+    code: |
+      def merge_bookings(bookings):
+          merged = []
+          for start, end in bookings:
+              if merged and start <= merged[-1][1]:
+                  merged[-1][1] = max(merged[-1][1], end)
+              else:
+                  merged.append([start, end])
+          return merged
+  - label: 'Keeps the end of the newest booking, not the larger end'
+    code: |
+      def merge_bookings(bookings):
+          merged = []
+          for start, end in sorted(bookings):
+              if merged and start <= merged[-1][1]:
+                  merged[-1][1] = end
+              else:
+                  merged.append([start, end])
+          return merged
+  - label: 'Does not merge bookings that only touch'
+    code: |
+      def merge_bookings(bookings):
+          merged = []
+          for start, end in sorted(bookings):
+              if merged and start < merged[-1][1]:
+                  merged[-1][1] = max(merged[-1][1], end)
+              else:
+                  merged.append([start, end])
+          return merged
+patternExplanation: |
+  An interval is a pair (start, end). Interval problems almost always become simple after you sort the intervals by start time, because then every overlap is with the interval just before it. Sorting costs O(n log n), and the pass after it is linear. Walk through the sorted bookings and keep the merged list. For each booking, compare its start with the end of the last merged booking. If it starts at or before that end, the two join: extend the last merged booking to the larger of the two ends. Use max, because the new booking can sit entirely inside the last one and must not shorten it. Otherwise there is a gap, so start a new merged booking. The <= is what makes bookings that touch merge. Build new [start, end] lists so the caller's data is not changed.
+commonMistakes:
+  - 'Skipping the sort'
+  - "Setting the end to the new booking's end instead of the larger of the two"
+  - 'Using < so that touching bookings stay separate'
+followUps:
+  - 'How would you merge only if the gap is under 10 minutes?'
+  - 'How would you find the free time between merged bookings? (see the free-slots problem)'

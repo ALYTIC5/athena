@@ -1,0 +1,132 @@
+id: gym-graph-02
+title: 'Fewest forwards between switches'
+pattern: graphs
+competencies: [int.graphs]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A phone network is a dict that maps each switch to the list of switches it forwards to. Write `fewest_forwards(network, start, goal)` that returns the smallest number of forwards needed to get a call from `start` to `goal`, or `-1` if there is no route. The answer for `start == goal` is 0. A switch with no entry in the dict forwards to nowhere. The network can contain cycles.
+examples:
+  - "fewest_forwards({'a': ['b', 'c'], 'b': ['d'], 'c': ['d'], 'd': []}, 'a', 'd') returns 2"
+  - "fewest_forwards({'a': ['b']}, 'b', 'a') returns -1"
+constraints:
+  - '0 to 100000 switches'
+  - 'Names are strings or ints'
+  - 'The network may contain cycles'
+starter: |
+  def fewest_forwards(network, start, goal):
+      ...
+visibleTests: |
+  def test_example():
+      network = {"a": ["b", "c"], "b": ["d"], "c": ["d"], "d": []}
+      assert fewest_forwards(network, "a", "d") == 2
+
+  def test_no_route():
+      assert fewest_forwards({"a": ["b"]}, "b", "a") == -1
+hiddenTests: |
+  def test_same_switch():
+      assert fewest_forwards({}, "a", "a") == 0
+
+  def test_direct_forward():
+      assert fewest_forwards({"a": ["b"]}, "a", "b") == 1
+
+  def test_short_route_listed_second():
+      network = {"a": ["b", "d"], "b": ["c"], "c": ["d"], "d": []}
+      assert fewest_forwards(network, "a", "d") == 1
+
+  def test_long_route_found_first_by_depth():
+      network = {"a": ["b", "e"], "b": ["c"], "c": ["d"], "d": ["f"], "e": ["f"], "f": []}
+      assert fewest_forwards(network, "a", "f") == 2
+
+  def test_cycle():
+      network = {"a": ["b"], "b": ["a", "c"], "c": []}
+      assert fewest_forwards(network, "a", "c") == 2
+
+  def test_goal_missing_from_the_network():
+      assert fewest_forwards({"a": ["b"]}, "a", "z") == -1
+
+  def test_long_chain():
+      network = {i: [i + 1] for i in range(100000)}
+      assert fewest_forwards(network, 0, 100000) == 100000
+
+  def test_wide_network():
+      network = {0: list(range(1, 50001))}
+      network.update({i: [50001] for i in range(1, 50001)})
+      assert fewest_forwards(network, 0, 50001) == 2
+referenceSolutions:
+  - code: |
+      from collections import deque
+
+      def fewest_forwards(network, start, goal):
+          distance = {start: 0}
+          queue = deque([start])
+          while queue:
+              switch = queue.popleft()
+              if switch == goal:
+                  return distance[switch]
+              for nxt in network.get(switch, []):
+                  if nxt not in distance:
+                      distance[nxt] = distance[switch] + 1
+                      queue.append(nxt)
+          return -1
+    time: 'O(V + E)'
+    space: 'O(V)'
+wrongSolutions:
+  - label: 'Returns the first route found by going deep, not the shortest'
+    code: |
+      def fewest_forwards(network, start, goal):
+          seen = {start}
+
+          def walk(switch, steps):
+              if switch == goal:
+                  return steps
+              for nxt in network.get(switch, []):
+                  if nxt not in seen:
+                      seen.add(nxt)
+                      found = walk(nxt, steps + 1)
+                      if found != -1:
+                          return found
+              return -1
+
+          return walk(start, 0)
+  - label: 'Counts switches on the route, one too many'
+    code: |
+      from collections import deque
+
+      def fewest_forwards(network, start, goal):
+          distance = {start: 1}
+          queue = deque([start])
+          while queue:
+              switch = queue.popleft()
+              if switch == goal:
+                  return distance[switch]
+              for nxt in network.get(switch, []):
+                  if nxt not in distance:
+                      distance[nxt] = distance[switch] + 1
+                      queue.append(nxt)
+          return -1
+  - label: 'Returns 0 instead of -1 when there is no route'
+    code: |
+      from collections import deque
+
+      def fewest_forwards(network, start, goal):
+          distance = {start: 0}
+          queue = deque([start])
+          while queue:
+              switch = queue.popleft()
+              if switch == goal:
+                  return distance[switch]
+              for nxt in network.get(switch, []):
+                  if nxt not in distance:
+                      distance[nxt] = distance[switch] + 1
+                      queue.append(nxt)
+          return 0
+patternExplanation: |
+  A graph is a set of nodes joined by edges. Here a graph is a dict that maps each node to the list of nodes it points to. Graphs can contain cycles, so any walk through one must remember which nodes it has already visited, or it can loop forever. When every forward counts as one step, breadth-first search finds the shortest route: it visits all switches 1 forward away, then all switches 2 forwards away, and so on, so the first time it reaches the goal is by the fewest forwards. Use a deque as the queue, and a dict from switch to distance that also serves as the visited set. A depth-first search can reach the goal by a long route first and has no reason to stop looking for a shorter one. Return -1 only after the queue is empty. Each switch and forward is handled once. The queue also avoids recursion, which would hit Python's limit on a chain of 100000 switches.
+commonMistakes:
+  - 'Using depth-first search, which returns the first route found, not the shortest'
+  - 'Starting the distance at 1, which counts switches instead of forwards'
+  - 'Returning the wrong value when the goal cannot be reached'
+followUps:
+  - 'How would you return the route itself?'
+  - 'What if some forwards cost more than others?'

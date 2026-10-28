@@ -1,0 +1,96 @@
+id: gym-int-01
+title: 'Can one person attend every meeting?'
+pattern: intervals
+competencies: [int.intervals]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Each meeting is a pair `(start, end)` with `start < end`, in minutes. Meetings are listed in any order. Write `can_attend_all(meetings)` that returns `True` if no two meetings overlap, and `False` otherwise. A meeting that ends at minute 60 and one that starts at minute 60 do not overlap.
+examples:
+  - 'can_attend_all([(0, 30), (30, 60)]) returns True'
+  - 'can_attend_all([(0, 30), (20, 40)]) returns False'
+constraints:
+  - '0 to 100000 meetings'
+  - '0 <= start < end <= 1000000'
+starter: |
+  def can_attend_all(meetings):
+      ...
+visibleTests: |
+  def test_example():
+      assert can_attend_all([(0, 30), (30, 60)]) is True
+      assert can_attend_all([(0, 30), (20, 40)]) is False
+hiddenTests: |
+  def test_no_meetings():
+      assert can_attend_all([]) is True
+
+  def test_one_meeting():
+      assert can_attend_all([(5, 6)]) is True
+
+  def test_unsorted_without_overlap():
+      assert can_attend_all([(40, 50), (0, 10), (20, 30)]) is True
+
+  def test_unsorted_with_overlap():
+      assert can_attend_all([(40, 50), (0, 10), (45, 60)]) is False
+
+  def test_overlap_not_between_neighbours_in_the_input():
+      assert can_attend_all([(0, 10), (50, 60), (5, 8)]) is False
+
+  def test_one_meeting_inside_another():
+      assert can_attend_all([(0, 100), (10, 20)]) is False
+
+  def test_identical_meetings():
+      assert can_attend_all([(3, 7), (3, 7)]) is False
+
+  def test_input_is_not_changed():
+      meetings = [(5, 6), (1, 2)]
+      can_attend_all(meetings)
+      assert meetings == [(5, 6), (1, 2)]
+
+  def test_large_input():
+      meetings = [(i * 2, i * 2 + 2) for i in range(100000)]
+      assert can_attend_all(meetings) is True
+      meetings.append((50, 52))
+      assert can_attend_all(meetings) is False
+referenceSolutions:
+  - code: |
+      def can_attend_all(meetings):
+          ordered = sorted(meetings)
+          for before, after in zip(ordered, ordered[1:]):
+              if after[0] < before[1]:
+                  return False
+          return True
+    time: 'O(n log n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Does not sort the meetings first'
+    code: |
+      def can_attend_all(meetings):
+          for before, after in zip(meetings, meetings[1:]):
+              if after[0] < before[1] and before[0] < after[1]:
+                  return False
+          return True
+  - label: 'Counts meetings that touch as overlapping'
+    code: |
+      def can_attend_all(meetings):
+          ordered = sorted(meetings)
+          for before, after in zip(ordered, ordered[1:]):
+              if after[0] <= before[1]:
+                  return False
+          return True
+  - label: "Sorts the caller's list in place"
+    code: |
+      def can_attend_all(meetings):
+          meetings.sort()
+          for before, after in zip(meetings, meetings[1:]):
+              if after[0] < before[1]:
+                  return False
+          return True
+patternExplanation: |
+  An interval is a pair (start, end). Interval problems almost always become simple after you sort the intervals by start time, because then every overlap is with the interval just before it. Sorting costs O(n log n), and the pass after it is linear. Here, once the meetings are sorted by start, a meeting overlaps an earlier one only if it starts before the one just before it ends, so compare each meeting with its predecessor. Use a strict < because a meeting that starts exactly when the previous one ends is fine. Use sorted() to leave the caller's list alone. Without the sort, two overlapping meetings can sit far apart in the input and a neighbour-only check misses them. Note that checking just the previous meeting is enough: if an earlier meeting overlapped, the one in between would too.
+commonMistakes:
+  - 'Comparing neighbours without sorting'
+  - 'Using <= so back-to-back meetings count as a clash'
+  - "Sorting the caller's list in place"
+followUps:
+  - 'How would you return the first pair that clashes?'
+  - 'How many rooms would you need? (see the rooms problem)'

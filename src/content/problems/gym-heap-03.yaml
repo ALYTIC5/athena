@@ -1,0 +1,119 @@
+id: gym-heap-03
+title: 'Merge the sorted call logs'
+pattern: heaps
+competencies: [int.heaps]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  Each office keeps its call times in a sorted list (earliest first). Write `merge_logs(logs)` that takes a list of these sorted lists and returns one sorted list with every call time from every office. Some offices may have empty logs. Equal times all stay in the result.
+examples:
+  - 'merge_logs([[1, 4, 9], [2, 3], [5]]) returns [1, 2, 3, 4, 5, 9]'
+  - 'merge_logs([[], [7]]) returns [7]'
+constraints:
+  - '0 to 1000 logs, 0 to 1000 times each'
+  - 'Each log is sorted from earliest to latest'
+  - 'Times are ints'
+starter: |
+  def merge_logs(logs):
+      ...
+visibleTests: |
+  def test_example():
+      assert merge_logs([[1, 4, 9], [2, 3], [5]]) == [1, 2, 3, 4, 5, 9]
+
+  def test_empty_log():
+      assert merge_logs([[], [7]]) == [7]
+hiddenTests: |
+  def test_no_logs():
+      assert merge_logs([]) == []
+
+  def test_all_empty():
+      assert merge_logs([[], [], []]) == []
+
+  def test_one_log():
+      assert merge_logs([[1, 2, 3]]) == [1, 2, 3]
+
+  def test_equal_times_are_all_kept():
+      assert merge_logs([[1, 5], [1, 5], [5]]) == [1, 1, 5, 5, 5]
+
+  def test_one_log_is_much_longer():
+      assert merge_logs([[1, 2, 3, 4, 5, 6], [10]]) == [1, 2, 3, 4, 5, 6, 10]
+
+  def test_input_is_not_changed():
+      logs = [[1, 3], [2]]
+      merge_logs(logs)
+      assert logs == [[1, 3], [2]]
+
+  def test_many_logs():
+      logs = [list(range(i, 100000, 100)) for i in range(100)]
+      assert merge_logs(logs) == list(range(100000))
+referenceSolutions:
+  - code: |
+      import heapq
+
+      def merge_logs(logs):
+          heap = []
+          for log_index, log in enumerate(logs):
+              if log:
+                  heapq.heappush(heap, (log[0], log_index, 0))
+          result = []
+          while heap:
+              value, log_index, position = heapq.heappop(heap)
+              result.append(value)
+              if position + 1 < len(logs[log_index]):
+                  heapq.heappush(heap, (logs[log_index][position + 1], log_index, position + 1))
+          return result
+    time: 'O(n log k)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Crashes on an empty log'
+    code: |
+      import heapq
+
+      def merge_logs(logs):
+          heap = []
+          for log_index, log in enumerate(logs):
+              heapq.heappush(heap, (log[0], log_index, 0))
+          result = []
+          while heap:
+              value, log_index, position = heapq.heappop(heap)
+              result.append(value)
+              if position + 1 < len(logs[log_index]):
+                  heapq.heappush(heap, (logs[log_index][position + 1], log_index, position + 1))
+          return result
+  - label: 'Takes only the first time of each log'
+    code: |
+      import heapq
+
+      def merge_logs(logs):
+          heap = [(log[0], i) for i, log in enumerate(logs) if log]
+          heapq.heapify(heap)
+          result = []
+          while heap:
+              value, i = heapq.heappop(heap)
+              result.append(value)
+          return result
+  - label: 'Drops the last time of every log'
+    code: |
+      import heapq
+
+      def merge_logs(logs):
+          heap = []
+          for log_index, log in enumerate(logs):
+              if log:
+                  heapq.heappush(heap, (log[0], log_index, 0))
+          result = []
+          while heap:
+              value, log_index, position = heapq.heappop(heap)
+              if position + 1 < len(logs[log_index]):
+                  result.append(value)
+                  heapq.heappush(heap, (logs[log_index][position + 1], log_index, position + 1))
+          return result
+patternExplanation: |
+  A heap is a structure that always gives you the smallest item fast. Python's heapq module keeps a plain list as a min-heap: heappush adds an item and heappop removes the smallest, each in O(log n). To get the largest items, keep a heap of the items you want and push the weakest one out. Merging k sorted lists: the next time in the result is always the smallest of the current front items of the lists. Keep those k front items in a min-heap as tuples of (time, which log, position). Pop the smallest, add its time to the result, and push the next item from the same log if there is one. The heap never holds more than k items, so each of the n times costs O(log k). Skip empty logs when you seed the heap. The index in the tuple also settles ties without comparing anything else. Sorting all the times together gives the same answer in O(n log n); the heap version wins when k is small, and it is the method used when the logs are too large to load at once.
+commonMistakes:
+  - 'Indexing log[0] on an empty log'
+  - 'Pushing only the first item of each log and never the next one'
+  - 'Dropping the last item by testing the position at the wrong moment'
+followUps:
+  - 'How would you merge logs that are too big to fit in memory?'
+  - 'How would you return which office each time came from?'

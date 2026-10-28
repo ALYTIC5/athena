@@ -1,0 +1,108 @@
+id: gym-graph-01
+title: 'Can the call be routed there?'
+pattern: graphs
+competencies: [int.graphs]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A phone network is a dict that maps each switch to the list of switches it can forward a call to. Write `can_route(network, start, goal)` that returns `True` if a call can get from `start` to `goal` by following forwards, and `False` otherwise. A switch can always reach itself. A switch that has no entry in the dict forwards to nowhere. The network can contain cycles.
+examples:
+  - "can_route({'a': ['b'], 'b': ['c'], 'c': []}, 'a', 'c') returns True"
+  - "can_route({'a': ['b'], 'b': ['a']}, 'a', 'z') returns False"
+constraints:
+  - '0 to 100000 switches'
+  - 'Names are strings'
+  - 'The network may contain cycles'
+starter: |
+  def can_route(network, start, goal):
+      ...
+visibleTests: |
+  def test_example():
+      assert can_route({"a": ["b"], "b": ["c"], "c": []}, "a", "c") is True
+
+  def test_cycle_and_no_route():
+      assert can_route({"a": ["b"], "b": ["a"]}, "a", "z") is False
+hiddenTests: |
+  def test_start_is_the_goal():
+      assert can_route({}, "a", "a") is True
+
+  def test_direction_matters():
+      assert can_route({"a": ["b"]}, "b", "a") is False
+
+  def test_switch_missing_from_the_dict():
+      assert can_route({"a": ["b"]}, "a", "b") is True
+
+  def test_route_through_a_cycle():
+      network = {"a": ["b"], "b": ["c", "a"], "c": ["a", "d"], "d": []}
+      assert can_route(network, "a", "d") is True
+
+  def test_dead_end_branch_first():
+      network = {"a": ["x", "b"], "x": [], "b": ["c"], "c": []}
+      assert can_route(network, "a", "c") is True
+
+  def test_unreachable_in_a_connected_cycle():
+      network = {"a": ["b"], "b": ["c"], "c": ["a"], "z": []}
+      assert can_route(network, "a", "z") is False
+
+  def test_long_chain():
+      network = {i: [i + 1] for i in range(100000)}
+      assert can_route(network, 0, 100000) is True
+      assert can_route(network, 5, 3) is False
+referenceSolutions:
+  - code: |
+      def can_route(network, start, goal):
+          seen = {start}
+          stack = [start]
+          while stack:
+              switch = stack.pop()
+              if switch == goal:
+                  return True
+              for nxt in network.get(switch, []):
+                  if nxt not in seen:
+                      seen.add(nxt)
+                      stack.append(nxt)
+          return False
+    time: 'O(V + E)'
+    space: 'O(V)'
+wrongSolutions:
+  - label: 'Does not remember visited switches'
+    code: |
+      def can_route(network, start, goal):
+          if start == goal:
+              return True
+          for nxt in network.get(start, []):
+              if can_route(network, nxt, goal):
+                  return True
+          return False
+  - label: 'Only looks at the switches the start forwards to directly'
+    code: |
+      def can_route(network, start, goal):
+          return start == goal or goal in network.get(start, [])
+  - label: 'Treats forwards as two-way'
+    code: |
+      def can_route(network, start, goal):
+          links = {}
+          for a, targets in network.items():
+              for b in targets:
+                  links.setdefault(a, []).append(b)
+                  links.setdefault(b, []).append(a)
+          seen = {start}
+          stack = [start]
+          while stack:
+              switch = stack.pop()
+              if switch == goal:
+                  return True
+              for nxt in links.get(switch, []):
+                  if nxt not in seen:
+                      seen.add(nxt)
+                      stack.append(nxt)
+          return False
+patternExplanation: |
+  A graph is a set of nodes joined by edges. Here a graph is a dict that maps each node to the list of nodes it points to. Graphs can contain cycles, so any walk through one must remember which nodes it has already visited, or it can loop forever. To see whether one node can reach another, explore from the start: keep a stack (depth-first) or a queue (breadth-first) of nodes to visit, and a set of nodes already seen. Take a node, stop if it is the goal, and add each neighbour that has not been seen. Marking nodes when you add them, not when you take them, keeps every node in the stack at most once. Use dict.get(node, []) because a node can appear only as a target. A loop on a stack avoids Python's recursion limit on a chain of 100000 switches. Each node and edge is handled once.
+commonMistakes:
+  - 'Forgetting the visited set, which loops forever on a cycle or hits the recursion limit'
+  - 'Checking only direct neighbours'
+  - 'Treating a one-way link as a two-way link'
+followUps:
+  - 'How would you return the route itself?'
+  - 'How would you find the closest route?'

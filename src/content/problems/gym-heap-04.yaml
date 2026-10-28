@@ -1,0 +1,100 @@
+id: gym-heap-04
+title: 'How many rooms do the meetings need?'
+pattern: heaps
+competencies: [int.heaps, int.intervals]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  Each meeting is a pair `(start, end)` with `start < end`, in minutes. Meetings can be listed in any order. Two meetings overlap if one starts before the other ends. A meeting that ends at minute 60 and one that starts at minute 60 do not overlap and can share a room. Write `rooms_needed(meetings)` that returns the smallest number of rooms that holds all the meetings.
+examples:
+  - 'rooms_needed([(0, 30), (5, 10), (15, 20)]) returns 2'
+  - 'rooms_needed([(0, 60), (60, 120)]) returns 1'
+constraints:
+  - '0 to 100000 meetings'
+  - '0 <= start < end <= 1000000'
+starter: |
+  def rooms_needed(meetings):
+      ...
+visibleTests: |
+  def test_example():
+      assert rooms_needed([(0, 30), (5, 10), (15, 20)]) == 2
+
+  def test_back_to_back_meetings_share_a_room():
+      assert rooms_needed([(0, 60), (60, 120)]) == 1
+hiddenTests: |
+  def test_no_meetings():
+      assert rooms_needed([]) == 0
+
+  def test_one_meeting():
+      assert rooms_needed([(3, 4)]) == 1
+
+  def test_unsorted_input():
+      assert rooms_needed([(15, 20), (0, 30), (5, 10)]) == 2
+
+  def test_everything_overlaps():
+      assert rooms_needed([(0, 10), (1, 10), (2, 10), (3, 10)]) == 4
+
+  def test_room_is_reused_after_a_gap():
+      assert rooms_needed([(0, 5), (10, 15), (20, 25)]) == 1
+
+  def test_one_long_meeting_covers_several_short_ones():
+      assert rooms_needed([(0, 100), (10, 20), (30, 40), (50, 60)]) == 2
+
+  def test_identical_meetings():
+      assert rooms_needed([(5, 9), (5, 9)]) == 2
+
+  def test_large_input():
+      meetings = [(i, i + 5) for i in range(100000)]
+      assert rooms_needed(meetings) == 5
+referenceSolutions:
+  - code: |
+      import heapq
+
+      def rooms_needed(meetings):
+          rooms = []
+          for start, end in sorted(meetings):
+              if rooms and rooms[0] <= start:
+                  heapq.heapreplace(rooms, end)
+              else:
+                  heapq.heappush(rooms, end)
+          return len(rooms)
+    time: 'O(n log n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Counts meetings that touch as overlapping'
+    code: |
+      import heapq
+
+      def rooms_needed(meetings):
+          rooms = []
+          for start, end in sorted(meetings):
+              if rooms and rooms[0] < start:
+                  heapq.heapreplace(rooms, end)
+              else:
+                  heapq.heappush(rooms, end)
+          return len(rooms)
+  - label: 'Does not sort the meetings by start time'
+    code: |
+      import heapq
+
+      def rooms_needed(meetings):
+          rooms = []
+          for start, end in meetings:
+              if rooms and rooms[0] <= start:
+                  heapq.heapreplace(rooms, end)
+              else:
+                  heapq.heappush(rooms, end)
+          return len(rooms)
+  - label: 'Returns the number of meetings'
+    code: |
+      def rooms_needed(meetings):
+          return len(meetings)
+patternExplanation: |
+  A heap is a structure that always gives you the smallest item fast. Python's heapq module keeps a plain list as a min-heap: heappush adds an item and heappop removes the smallest, each in O(log n). To get the largest items, keep a heap of the items you want and push the weakest one out. Handle the meetings in order of start time and keep a min-heap of the end times of the rooms in use. The root is the room that frees up first. If that room is free by the time the next meeting starts (its end is at or before the start), reuse it: replace its end time with the new meeting's end. Otherwise every room is busy, so open a new one by pushing the new end time. The heap's size at the end is the number of rooms. Comparing with <= and not < is what lets back-to-back meetings share a room. The sort costs O(n log n) and each heap step O(log n).
+commonMistakes:
+  - 'Treating a meeting that starts exactly when another ends as an overlap'
+  - 'Processing the meetings in the order they were given'
+  - 'Using the number of meetings as the answer'
+followUps:
+  - 'How would you also say which room each meeting gets?'
+  - 'Could you solve it by sorting the starts and the ends separately? What is the trade-off?'
