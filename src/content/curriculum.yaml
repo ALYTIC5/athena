@@ -8,7 +8,7 @@
     - id: git-01
       title: 'Git and GitHub as a team member'
       durationMin: 120
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Think-aloud approach'

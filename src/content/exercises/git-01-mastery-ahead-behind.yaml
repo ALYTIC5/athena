@@ -1,0 +1,155 @@
+id: git-01-mastery-ahead-behind
+lesson: git-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Count how far a branch is ahead of and behind main
+difficulty: 3
+competencies:
+  - git.branching
+  - git.rebase-merge
+timeoutMs: 5000
+packages: []
+prompt: |
+  When you run `git status` on a branch that tracks another, Git says something like "ahead 2, behind 1". Using the toy
+  model from the lesson, write `ahead_behind(parents, upstream, branch)`.
+
+  `parents` maps each commit id to the list of its parents. `reachable(parents, tip)` is given and returns every commit
+  you can reach from `tip` by following all parents, including `tip`.
+
+  Return a tuple `(ahead, behind)`: `ahead` is the number of commits that `branch` has and `upstream` does not, and
+  `behind` is the number that `upstream` has and `branch` does not.
+
+  Example: with `parents = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"]}`, `ahead_behind(parents, "c", "x")` returns `(1, 1)`.
+starter: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def ahead_behind(parents: dict[str, list[str]], upstream: str, branch: str) -> tuple[int, int]:
+      ...
+visibleTests: |
+  P = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"], "z": ["y"]}
+
+  def test_diverged_branch():
+      assert ahead_behind(P, "c", "z") == (3, 1)
+
+  def test_same_tip():
+      assert ahead_behind(P, "c", "c") == (0, 0)
+hiddenTests: |
+  P = {"a": [], "b": ["a"], "c": ["b"], "x": ["b"], "y": ["x"], "z": ["y"]}
+  M = {
+      "r": [],
+      "u1": ["r"],
+      "s1": ["r"],
+      "mu": ["u1", "s1"],
+      "b1": ["s1"],
+      "b2": ["b1"],
+  }
+
+  def test_branch_behind_only():
+      assert ahead_behind(P, "c", "b") == (0, 1)
+
+  def test_branch_ahead_only():
+      assert ahead_behind(P, "b", "c") == (1, 0)
+
+  def test_merge_commits_count_every_parent():
+      assert ahead_behind(M, "mu", "b2") == (2, 2)
+
+  def test_returns_a_tuple_of_ints():
+      result = ahead_behind(P, "c", "z")
+      assert isinstance(result, tuple)
+      assert all(isinstance(n, int) for n in result)
+feedback:
+  - test: test_diverged_branch
+    message: 'Count only the commits the other side does not have. Subtract one set of reachable commits from the other, in both directions.'
+  - test: test_branch_ahead_only
+    message: "`ahead` counts the branch's own commits and `behind` counts upstream's. Check that they are not swapped."
+  - test: test_merge_commits_count_every_parent
+    message: 'Follow every parent of a merge commit when you collect the history, not just the first one. `reachable` already does.'
+hints:
+  - 'What does each side have that the other does not? Two set differences answer both questions.'
+  - 'Get the history of `branch` and of `upstream` with `reachable`. `ahead` is the size of branch minus upstream. `behind` is the size of upstream minus branch.'
+  - |-
+    mine = reachable(parents, ____)
+    theirs = reachable(parents, ____)
+    return (len(____ - theirs), len(theirs - ____))
+referenceSolution: |
+  def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+      seen: set[str] = set()
+      todo = [tip]
+      while todo:
+          commit = todo.pop()
+          if commit not in seen:
+              seen.add(commit)
+              todo.extend(parents[commit])
+      return seen
+
+
+  def ahead_behind(parents: dict[str, list[str]], upstream: str, branch: str) -> tuple[int, int]:
+      mine = reachable(parents, branch)
+      theirs = reachable(parents, upstream)
+      return (len(mine - theirs), len(theirs - mine))
+wrongSolutions:
+  - label: Swaps ahead and behind
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def ahead_behind(parents: dict[str, list[str]], upstream: str, branch: str) -> tuple[int, int]:
+          mine = reachable(parents, branch)
+          theirs = reachable(parents, upstream)
+          return (len(theirs - mine), len(mine - theirs))
+  - label: Counts all commits on each side instead of the difference
+    code: |
+      def reachable(parents: dict[str, list[str]], tip: str) -> set[str]:
+          seen: set[str] = set()
+          todo = [tip]
+          while todo:
+              commit = todo.pop()
+              if commit not in seen:
+                  seen.add(commit)
+                  todo.extend(parents[commit])
+          return seen
+
+
+      def ahead_behind(parents: dict[str, list[str]], upstream: str, branch: str) -> tuple[int, int]:
+          return (len(reachable(parents, branch)), len(reachable(parents, upstream)))
+  - label: Follows only the first parent when counting
+    code: |
+      def first_line(parents: dict[str, list[str]], tip: str) -> set[str]:
+          line = set()
+          commit = tip
+          while True:
+              line.add(commit)
+              if not parents[commit]:
+                  return line
+              commit = parents[commit][0]
+
+
+      def ahead_behind(parents: dict[str, list[str]], upstream: str, branch: str) -> tuple[int, int]:
+          mine = first_line(parents, branch)
+          theirs = first_line(parents, upstream)
+          return (len(mine - theirs), len(theirs - mine))
+explanation: |
+  Both numbers are set differences of reachable commits: what my branch has that upstream lacks (ahead) and what upstream
+  has that mine lacks (behind). Commits both sides share cancel out, which is why a branch that has just been fast-forwarded
+  shows (0, 0). With merge commits you must follow every parent, otherwise commits that arrived through the second parent
+  are miscounted. Alternative: `len(mine ^ theirs)` gives the total number of commits in which the two sides differ, but it
+  cannot tell ahead from behind.
