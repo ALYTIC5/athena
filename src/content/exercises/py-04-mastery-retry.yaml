@@ -1,0 +1,289 @@
+id: py-04-mastery-retry
+lesson: py-04
+runtime: python
+kind: make
+pools:
+  - mastery
+title: A retry decorator that retries only the errors you list
+difficulty: 3
+competencies:
+  - py.exceptions
+  - py.decorators
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write a decorator factory `retry(max_attempts, exceptions)` for calls to a flaky service. `max_attempts` is the most times the function may be called, and `exceptions` is a tuple of exception types that are worth trying again.
+
+  - Call the function. If it returns, return its result at once.
+  - If it raises one of the listed exceptions (or a subclass), call it again, up to `max_attempts` calls in total. If the last attempt also fails, let that exception go to the caller.
+  - Any other exception is not retried: it goes straight to the caller after one call.
+  - Pass all arguments through, and keep the original function's name and docstring.
+  - `max_attempts` below 1 raises `ValueError` as soon as `retry(...)` is called.
+  - Do not wait between attempts.
+
+  Example: with `retry(3, (TimeoutError,))`, a function that raises `TimeoutError` twice and then returns `"ok"` is called three times and returns `"ok"`.
+starter: |
+  def retry(max_attempts, exceptions):
+      ...
+visibleTests: |
+  def flaky(failures, error=TimeoutError):
+      calls = []
+
+      def function(*args, **kwargs):
+          calls.append((args, kwargs))
+          if len(calls) <= failures:
+              raise error("try again")
+          return "ok"
+
+      function.calls = calls
+      return function
+
+
+  def test_succeeds_after_two_failures():
+      function = flaky(2)
+      decorated = retry(3, (TimeoutError,))(function)
+      assert decorated() == "ok"
+      assert len(function.calls) == 3
+
+  def test_gives_up_after_the_last_attempt():
+      function = flaky(5)
+      decorated = retry(3, (TimeoutError,))(function)
+      try:
+          decorated()
+      except TimeoutError:
+          pass
+      else:
+          raise AssertionError("expected TimeoutError")
+      assert len(function.calls) == 3
+hiddenTests: |
+  def flaky(failures, error=TimeoutError):
+      calls = []
+
+      def function(*args, **kwargs):
+          calls.append((args, kwargs))
+          if len(calls) <= failures:
+              raise error("try again")
+          return "ok"
+
+      function.calls = calls
+      return function
+
+
+  def test_other_exceptions_are_not_retried():
+      function = flaky(5, error=KeyError)
+      decorated = retry(3, (TimeoutError,))(function)
+      try:
+          decorated()
+      except KeyError:
+          pass
+      else:
+          raise AssertionError("expected KeyError")
+      assert len(function.calls) == 1
+
+  def test_subclasses_of_listed_exceptions_are_retried():
+      function = flaky(1, error=ConnectionResetError)
+      decorated = retry(2, (ConnectionError,))(function)
+      assert decorated() == "ok"
+      assert len(function.calls) == 2
+
+  def test_several_exception_types():
+      function = flaky(1, error=ValueError)
+      decorated = retry(2, (TimeoutError, ValueError))(function)
+      assert decorated() == "ok"
+
+  def test_max_attempts_one_means_no_retry():
+      function = flaky(1)
+      decorated = retry(1, (TimeoutError,))(function)
+      try:
+          decorated()
+      except TimeoutError:
+          pass
+      assert len(function.calls) == 1
+
+  def test_success_on_the_first_call_calls_once():
+      function = flaky(0)
+      decorated = retry(5, (TimeoutError,))(function)
+      assert decorated() == "ok"
+      assert len(function.calls) == 1
+
+  def test_arguments_are_passed_on_every_attempt():
+      function = flaky(1)
+      decorated = retry(2, (TimeoutError,))(function)
+      decorated(1, key="a")
+      assert function.calls == [((1,), {"key": "a"}), ((1,), {"key": "a"})]
+
+  def test_the_last_exception_is_the_one_raised():
+      calls = []
+
+      def function():
+          calls.append(1)
+          raise TimeoutError("attempt " + str(len(calls)))
+
+      decorated = retry(3, (TimeoutError,))(function)
+      try:
+          decorated()
+      except TimeoutError as error:
+          assert str(error) == "attempt 3"
+
+  def test_name_and_docstring_are_kept():
+      @retry(2, (TimeoutError,))
+      def fetch():
+          """Fetch a booking."""
+          return 1
+
+      assert fetch.__name__ == "fetch"
+      assert fetch.__doc__ == "Fetch a booking."
+
+  def test_zero_attempts_is_rejected():
+      try:
+          retry(0, (TimeoutError,))
+      except ValueError:
+          return
+      raise AssertionError("expected ValueError")
+feedback:
+  - test: test_other_exceptions_are_not_retried
+    message: Catch only the exceptions in the list. Catching every exception hides real bugs and retries things that will never succeed.
+  - test: test_succeeds_after_two_failures
+    message: Try the function again after a listed exception, until it returns or you run out of attempts.
+  - test: test_gives_up_after_the_last_attempt
+    message: max_attempts is the total number of calls. After the last failed call, let the exception go to the caller instead of swallowing it.
+  - test: test_max_attempts_one_means_no_retry
+    message: With max_attempts of 1 the function is called once. Count attempts, not retries.
+  - test: test_subclasses_of_listed_exceptions_are_retried
+    message: Use the tuple directly in the except clause. It also matches subclasses of the listed types.
+  - test: test_name_and_docstring_are_kept
+    message: Use functools.wraps on the wrapper so the decorated function keeps its name and docstring.
+  - test: test_zero_attempts_is_rejected
+    message: Check max_attempts when the decorator is created, before you return the decorator.
+  - test: test_arguments_are_passed_on_every_attempt
+    message: Pass *args and **kwargs to the original function on every attempt.
+hints:
+  - Which exceptions should the loop catch, and what should happen on the last attempt?
+  - 'There are three levels, as with any decorator that takes a setting: retry, the decorator, and the wrapper. In the wrapper, loop over the attempts. Put the call in a try block that catches only `exceptions`, and re-raise when it is the last attempt.'
+  - |
+    import functools
+
+    def retry(max_attempts, exceptions):
+        if max_attempts < ____:
+            raise ValueError("max_attempts must be at least 1")
+
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                for attempt in range(1, max_attempts + 1):
+                    try:
+                        return func(*args, **kwargs)
+                    except ____:
+                        if attempt == ____:
+                            raise
+
+            return wrapper
+
+        return decorator
+referenceSolution: |
+  import functools
+
+
+  def retry(max_attempts, exceptions):
+      if max_attempts < 1:
+          raise ValueError("max_attempts must be at least 1")
+
+      def decorator(func):
+          @functools.wraps(func)
+          def wrapper(*args, **kwargs):
+              for attempt in range(1, max_attempts + 1):
+                  try:
+                      return func(*args, **kwargs)
+                  except exceptions:
+                      if attempt == max_attempts:
+                          raise
+
+          return wrapper
+
+      return decorator
+wrongSolutions:
+  - label: Catches every exception, so errors that will never succeed are retried
+    code: |
+      import functools
+
+
+      def retry(max_attempts, exceptions):
+          if max_attempts < 1:
+              raise ValueError("max_attempts must be at least 1")
+
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  for attempt in range(1, max_attempts + 1):
+                      try:
+                          return func(*args, **kwargs)
+                      except Exception:
+                          if attempt == max_attempts:
+                              raise
+
+              return wrapper
+
+          return decorator
+  - label: Retries max_attempts times after the first call, so it calls the function once too often
+    code: |
+      import functools
+
+
+      def retry(max_attempts, exceptions):
+          if max_attempts < 1:
+              raise ValueError("max_attempts must be at least 1")
+
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  for attempt in range(0, max_attempts + 1):
+                      try:
+                          return func(*args, **kwargs)
+                      except exceptions:
+                          if attempt == max_attempts:
+                              raise
+
+              return wrapper
+
+          return decorator
+  - label: Swallows the final failure and returns None
+    code: |
+      import functools
+
+
+      def retry(max_attempts, exceptions):
+          if max_attempts < 1:
+              raise ValueError("max_attempts must be at least 1")
+
+          def decorator(func):
+              @functools.wraps(func)
+              def wrapper(*args, **kwargs):
+                  for attempt in range(1, max_attempts + 1):
+                      try:
+                          return func(*args, **kwargs)
+                      except exceptions:
+                          pass
+
+              return wrapper
+
+          return decorator
+  - label: Leaves out functools.wraps, so the name and docstring are lost
+    code: |
+      def retry(max_attempts, exceptions):
+          if max_attempts < 1:
+              raise ValueError("max_attempts must be at least 1")
+
+          def decorator(func):
+              def wrapper(*args, **kwargs):
+                  for attempt in range(1, max_attempts + 1):
+                      try:
+                          return func(*args, **kwargs)
+                      except exceptions:
+                          if attempt == max_attempts:
+                              raise
+
+              return wrapper
+
+          return decorator
+explanation: |
+  The factory `retry` checks its settings once and returns `decorator`, which wraps the function in a loop. The `except exceptions` clause takes the tuple directly, so only the listed types (and their subclasses) are retried. Anything else propagates at once, because retrying a `KeyError` or a bug would only waste time. On the last attempt the bare `raise` re-raises the exception that is being handled, so the caller sees the real error. Alternative: a `while` loop with an attempt counter does the same thing. In production code, you would usually also wait between attempts, with a growing delay, and only retry calls that are safe to repeat (idempotent), which is why the list of exceptions is a parameter and not a default.

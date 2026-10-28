@@ -1,0 +1,147 @@
+id: py-04-faded-load-bookings
+lesson: py-04
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: Load bookings from JSON and check the fields
+difficulty: 2
+competencies:
+  - py.exceptions
+  - py.files-json
+timeoutMs: 5000
+estMin: 6
+packages: []
+prompt: |
+  `load_bookings(text)` takes the text of a JSON file that holds a list of bookings (dicts) and returns that list.
+
+  - If the text is not valid JSON, raise `ValueError("not valid JSON")`, and keep the original error as the cause.
+  - If any booking has no `"hour"` key, raise `ValueError("missing hour")`.
+
+  Fill in the two blanks: the specific exception that `json.loads` raises for bad text, and the operator that tests whether the key is missing.
+starter: |
+  import json
+
+
+  def load_bookings(text):
+      try:
+          bookings = json.loads(text)
+      except ____ as error:
+          raise ValueError("not valid JSON") from error
+      for booking in bookings:
+          if "hour" ____ booking:
+              raise ValueError("missing hour")
+      return bookings
+visibleTests: |
+  def message_of(text):
+      try:
+          load_bookings(text)
+      except ValueError as error:
+          return str(error)
+      return None
+
+
+  def test_returns_the_bookings():
+      assert load_bookings('[{"id": "b1", "hour": 9}]') == [{"id": "b1", "hour": 9}]
+
+  def test_bad_json_is_reported():
+      assert message_of("[{") == "not valid JSON"
+
+  def test_missing_hour_is_reported():
+      assert message_of('[{"id": "b1"}]') == "missing hour"
+hiddenTests: |
+  def message_of(text):
+      try:
+          load_bookings(text)
+      except ValueError as error:
+          return str(error)
+      return None
+
+
+  def test_empty_list_is_fine():
+      assert load_bookings("[]") == []
+
+  def test_second_booking_is_checked_too():
+      assert message_of('[{"id": "b1", "hour": 9}, {"id": "b2"}]') == "missing hour"
+
+  def test_the_original_error_is_kept_as_the_cause():
+      try:
+          load_bookings("not json")
+      except ValueError as error:
+          assert error.__cause__ is not None
+      else:
+          raise AssertionError("expected ValueError")
+
+  def test_empty_text_is_bad_json():
+      assert message_of("") == "not valid JSON"
+feedback:
+  - test: test_bad_json_is_reported
+    message: Catch the exception that json.loads raises for text that is not JSON. If you catch a different type, the original error escapes instead of your ValueError.
+  - test: test_missing_hour_is_reported
+    message: Raise when the key is missing from the dict. Check the operator you chose.
+  - test: test_returns_the_bookings
+    message: A booking that has an hour must pass the check. Raise only when the key is missing.
+  - test: test_the_original_error_is_kept_as_the_cause
+    message: Keep `from error` on the raise, so the traceback shows the original JSON error as the cause.
+hints:
+  - Which exception does json.loads raise when the text cannot be parsed, and which operator checks that a key is absent?
+  - 'The exception is `json.JSONDecodeError`, and the operator for "is absent from" is two words.'
+  - 'except ____ as error:   and   if "hour" ____ booking:   where the first blank has the module name and the exception name, and the second blank has two words'
+referenceSolution: |
+  import json
+
+
+  def load_bookings(text):
+      try:
+          bookings = json.loads(text)
+      except json.JSONDecodeError as error:
+          raise ValueError("not valid JSON") from error
+      for booking in bookings:
+          if "hour" not in booking:
+              raise ValueError("missing hour")
+      return bookings
+wrongSolutions:
+  - label: Catches KeyError, which json.loads never raises, so bad text escapes as JSONDecodeError
+    code: |
+      import json
+
+
+      def load_bookings(text):
+          try:
+              bookings = json.loads(text)
+          except KeyError as error:
+              raise ValueError("not valid JSON") from error
+          for booking in bookings:
+              if "hour" not in booking:
+                  raise ValueError("missing hour")
+          return bookings
+  - label: Tests the key the wrong way round, so valid bookings are rejected
+    code: |
+      import json
+
+
+      def load_bookings(text):
+          try:
+              bookings = json.loads(text)
+          except json.JSONDecodeError as error:
+              raise ValueError("not valid JSON") from error
+          for booking in bookings:
+              if "hour" in booking:
+                  raise ValueError("missing hour")
+          return bookings
+  - label: Drops the original error, so the cause is lost
+    code: |
+      import json
+
+
+      def load_bookings(text):
+          try:
+              bookings = json.loads(text)
+          except json.JSONDecodeError:
+              raise ValueError("not valid JSON") from None
+          for booking in bookings:
+              if "hour" not in booking:
+                  raise ValueError("missing hour")
+          return bookings
+explanation: |
+  `json.loads` raises `json.JSONDecodeError` for text that is not JSON, and that is the most specific exception to catch. Raising a `ValueError` with your own message, `from error`, keeps the original error as the cause, so the traceback shows both. A `ValueError` is a good type for "the data is not what we expect". Alternative: `json.JSONDecodeError` is a subclass of `ValueError`, so `except ValueError` would also work here, but it is wider and could hide other problems. Looking before you leap, with `if "hour" not in booking`, is fine here because no other code can change the dict between the check and the use.

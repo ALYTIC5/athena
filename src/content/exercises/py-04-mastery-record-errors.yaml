@@ -1,0 +1,177 @@
+id: py-04-mastery-record-errors
+lesson: py-04
+runtime: python
+kind: make
+pools:
+  - mastery
+title: A context manager that records some errors and lets others through
+difficulty: 3
+competencies:
+  - py.context-managers
+  - py.exceptions
+timeoutMs: 5000
+packages: []
+prompt: |
+  A nightly import should carry on after a bad record, but still stop for a real bug. Write a context manager `record_errors(errors, *types)` using `contextlib.contextmanager`.
+
+  - `errors` is a list. `types` are exception types.
+  - If the body of the `with` block raises one of those types (or a subclass), append the exception object to `errors` and carry on after the `with` block, with no error raised.
+  - Any other exception is not caught: it goes on to the caller, and `errors` stays unchanged.
+  - If nothing is raised, `errors` is unchanged.
+
+  Example: after `with record_errors(errors, ValueError): int("x")`, the list `errors` holds one `ValueError` and the program continues.
+starter: |
+  import contextlib
+
+
+  @contextlib.contextmanager
+  def record_errors(errors, *types):
+      ...
+visibleTests: |
+  def test_listed_error_is_recorded_and_suppressed():
+      errors = []
+      with record_errors(errors, ValueError):
+          int("x")
+      assert len(errors) == 1
+      assert isinstance(errors[0], ValueError)
+
+  def test_nothing_raised_records_nothing():
+      errors = []
+      with record_errors(errors, ValueError):
+          int("5")
+      assert errors == []
+hiddenTests: |
+  def test_other_exceptions_pass_through():
+      errors = []
+      try:
+          with record_errors(errors, ValueError):
+              {}["missing"]
+      except KeyError:
+          pass
+      else:
+          raise AssertionError("expected KeyError")
+      assert errors == []
+
+  def test_subclasses_are_recorded():
+      errors = []
+      with record_errors(errors, OSError):
+          raise FileNotFoundError("gone")
+      assert isinstance(errors[0], FileNotFoundError)
+
+  def test_several_types():
+      errors = []
+      with record_errors(errors, ValueError, KeyError):
+          {}["missing"]
+      with record_errors(errors, ValueError, KeyError):
+          int("x")
+      assert [type(e) for e in errors] == [KeyError, ValueError]
+
+  def test_code_after_the_block_runs():
+      errors = []
+      reached = []
+      with record_errors(errors, ValueError):
+          raise ValueError("bad")
+      reached.append("after")
+      assert reached == ["after"]
+
+  def test_the_rest_of_the_block_is_skipped_after_an_error():
+      errors = []
+      steps = []
+      with record_errors(errors, ValueError):
+          steps.append("first")
+          raise ValueError("bad")
+          steps.append("second")
+      assert steps == ["first"]
+
+  def test_the_recorded_object_is_the_exception_itself():
+      errors = []
+      problem = ValueError("bad record")
+      with record_errors(errors, ValueError):
+          raise problem
+      assert errors == [problem]
+      assert errors[0] is problem
+
+  def test_no_types_records_nothing_and_lets_everything_through():
+      errors = []
+      try:
+          with record_errors(errors):
+              raise ValueError("bad")
+      except ValueError:
+          pass
+      else:
+          raise AssertionError("expected ValueError")
+      assert errors == []
+feedback:
+  - test: test_other_exceptions_pass_through
+    message: Catch only the listed types. If you catch Exception, real bugs are hidden inside the block.
+  - test: test_listed_error_is_recorded_and_suppressed
+    message: Wrap the yield in try and catch the listed types. Append the exception object and do not raise it again.
+  - test: test_the_recorded_object_is_the_exception_itself
+    message: Append the exception object itself, which you get from `except types as error`.
+  - test: test_no_types_records_nothing_and_lets_everything_through
+    message: An empty tuple in an except clause matches nothing, so with no types given every exception passes through. Use the tuple of types directly.
+  - test: test_the_rest_of_the_block_is_skipped_after_an_error
+    message: After an exception, the rest of the with block is skipped. That is how exceptions work, and the context manager only decides what happens next.
+hints:
+  - Where does the body of the with block run inside a generator-based context manager, and where would an exception from the body appear?
+  - 'The body runs at the yield. An exception raised in the body appears at the yield, so put the yield inside a try block and catch only the listed types. The types arrive as a tuple.'
+  - |
+    try:
+        ____
+    except ____ as error:
+        errors.append(error)
+referenceSolution: |
+  import contextlib
+
+
+  @contextlib.contextmanager
+  def record_errors(errors, *types):
+      try:
+          yield
+      except types as error:
+          errors.append(error)
+wrongSolutions:
+  - label: Catches every exception, so real bugs are hidden
+    code: |
+      import contextlib
+
+
+      @contextlib.contextmanager
+      def record_errors(errors, *types):
+          try:
+              yield
+          except Exception as error:
+              errors.append(error)
+  - label: Has no try around the yield, so listed errors are not caught
+    code: |
+      import contextlib
+
+
+      @contextlib.contextmanager
+      def record_errors(errors, *types):
+          yield
+  - label: Catches the listed errors but forgets to record them
+    code: |
+      import contextlib
+
+
+      @contextlib.contextmanager
+      def record_errors(errors, *types):
+          try:
+              yield
+          except types:
+              pass
+  - label: Records the error and then raises it again, so the program does not carry on
+    code: |
+      import contextlib
+
+
+      @contextlib.contextmanager
+      def record_errors(errors, *types):
+          try:
+              yield
+          except types as error:
+              errors.append(error)
+              raise
+explanation: |
+  With `contextlib.contextmanager`, everything before `yield` is setup, the `with` body runs at the `yield`, and everything after it is cleanup. An exception raised in the body is thrown back in at the `yield`, so a `try` around the `yield` can catch it. Catching it and not raising it again is what suppresses it. `except types` works because `types` is a tuple, and an empty tuple matches nothing, so with no types given every exception passes through. Alternative: `contextlib.suppress(*types)` does the suppression but does not record anything. A class with `__enter__` and `__exit__` can do the same job, but a generator is shorter.
