@@ -1,0 +1,89 @@
+id: gym-hash-06
+title: "Latest hour of each caller's calls"
+pattern: hashing
+competencies: [int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A call log is a list of `(caller, hour)` pairs, in no particular order, where `hour` is a whole number from 0 to 23. Write `latest_hour(calls)` that returns a dict that maps each caller to the largest hour at which they phoned.
+examples:
+  - "latest_hour([('a', 9), ('b', 10), ('a', 14)]) returns {'a': 14, 'b': 10}"
+  - 'latest_hour([]) returns {}'
+constraints:
+  - '0 to 100000 calls'
+  - 'Callers are non-empty strings'
+starter: |
+  def latest_hour(calls):
+      ...
+visibleTests: |
+  def test_example():
+      assert latest_hour([("a", 9), ("b", 10), ("a", 14)]) == {"a": 14, "b": 10}
+
+  def test_empty():
+      assert latest_hour([]) == {}
+hiddenTests: |
+  def test_hours_out_of_order_keep_the_largest_not_the_last():
+      assert latest_hour([("a", 14), ("a", 9)]) == {"a": 14}
+
+  def test_same_hour_twice():
+      assert latest_hour([("a", 9), ("a", 9)]) == {"a": 9}
+
+  def test_hour_zero_is_kept():
+      assert latest_hour([("a", 0)]) == {"a": 0}
+
+  def test_hour_zero_does_not_hide_a_later_call():
+      assert latest_hour([("a", 0), ("a", 5)]) == {"a": 5}
+
+  def test_input_unchanged():
+      calls = [("a", 1), ("a", 2)]
+      latest_hour(calls)
+      assert calls == [("a", 1), ("a", 2)]
+
+  def test_large_input():
+      calls = [(str(i % 5000), i % 24) for i in range(100000)]
+      result = latest_hour(calls)
+      assert len(result) == 5000
+      assert all(0 <= hour <= 23 for hour in result.values())
+      assert result["0"] == 16
+      assert result["4999"] == max(i % 24 for i in range(4999, 100000, 5000))
+referenceSolutions:
+  - code: |
+      def latest_hour(calls):
+          latest = {}
+          for caller, hour in calls:
+              if caller not in latest or hour > latest[caller]:
+                  latest[caller] = hour
+          return latest
+    time: 'O(n)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Keeps the last call in the log, not the latest hour'
+    code: |
+      def latest_hour(calls):
+          latest = {}
+          for caller, hour in calls:
+              latest[caller] = hour
+          return latest
+  - label: 'Keeps the first call seen for each caller'
+    code: |
+      def latest_hour(calls):
+          latest = {}
+          for caller, hour in calls:
+              latest.setdefault(caller, hour)
+          return latest
+  - label: 'Assumes a starting hour of 0, so a caller whose only calls are at hour 0 is left out'
+    code: |
+      def latest_hour(calls):
+          latest = {}
+          for caller, hour in calls:
+              if hour > latest.get(caller, 0):
+                  latest[caller] = hour
+          return latest
+patternExplanation: |
+  A dict holds one value for each key, so it can hold the best hour seen so far for each caller. For each call, update the entry only if the caller is new or the hour is larger. Test whether the key is in the dict instead of assuming a starting value such as 0: an hour of 0 is a real answer, and a caller with only hour-0 calls must still appear.
+commonMistakes:
+  - 'Overwriting the entry every time, which keeps the last call and not the largest hour'
+  - 'Assuming a starting value of 0 for new callers, which leaves out callers whose only calls are at hour 0'
+followUps:
+  - 'How would you also keep the id of the call at that hour?'
+  - 'What if you need the earliest hour for each caller as well?'

@@ -1,0 +1,102 @@
+id: gym-tp-01
+title: 'Merge two sorted call logs'
+pattern: two-pointers
+competencies: [int.two-pointers]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Two phone lines each log the minute of every call, in increasing order. Write `merge_logs(first, second)` that returns one list with all the minutes of both lines, in increasing order. Equal minutes are all kept. Do not change the lists you are given.
+examples:
+  - 'merge_logs([1, 4, 9], [2, 3, 10]) returns [1, 2, 3, 4, 9, 10]'
+  - 'merge_logs([], [5]) returns [5]'
+constraints:
+  - '0 to 100000 minutes in each list'
+  - 'Each list is sorted from smallest to largest'
+starter: |
+  def merge_logs(first, second):
+      ...
+visibleTests: |
+  def test_example():
+      assert merge_logs([1, 4, 9], [2, 3, 10]) == [1, 2, 3, 4, 9, 10]
+
+  def test_one_empty():
+      assert merge_logs([], [5]) == [5]
+hiddenTests: |
+  def test_both_empty():
+      assert merge_logs([], []) == []
+
+  def test_second_is_empty():
+      assert merge_logs([1, 2], []) == [1, 2]
+
+  def test_first_list_longer_with_a_leftover_tail():
+      assert merge_logs([1, 2, 3, 4, 5], [2]) == [1, 2, 2, 3, 4, 5]
+
+  def test_second_list_longer_with_a_leftover_tail():
+      assert merge_logs([5], [1, 2, 3, 6, 7]) == [1, 2, 3, 5, 6, 7]
+
+  def test_equal_minutes_are_all_kept():
+      assert merge_logs([1, 1, 2], [1, 2, 2]) == [1, 1, 1, 2, 2, 2]
+
+  def test_inputs_unchanged():
+      first, second = [1, 3], [2]
+      merge_logs(first, second)
+      assert first == [1, 3] and second == [2]
+
+  def test_large_input():
+      first = list(range(0, 200000, 2))
+      second = list(range(1, 200000, 2))
+      assert merge_logs(first, second) == list(range(200000))
+referenceSolutions:
+  - code: |
+      def merge_logs(first, second):
+          merged = []
+          i = j = 0
+          while i < len(first) and j < len(second):
+              if first[i] <= second[j]:
+                  merged.append(first[i])
+                  i += 1
+              else:
+                  merged.append(second[j])
+                  j += 1
+          merged.extend(first[i:])
+          merged.extend(second[j:])
+          return merged
+    time: 'O(n + m)'
+    space: 'O(n + m)'
+wrongSolutions:
+  - label: 'Stops when one list runs out and drops the rest of the other'
+    code: |
+      def merge_logs(first, second):
+          merged = []
+          i = j = 0
+          while i < len(first) and j < len(second):
+              if first[i] <= second[j]:
+                  merged.append(first[i])
+                  i += 1
+              else:
+                  merged.append(second[j])
+                  j += 1
+          return merged
+  - label: 'Removes equal minutes'
+    code: |
+      def merge_logs(first, second):
+          return sorted(set(first) | set(second))
+  - label: 'Takes items off the front of the input lists, which changes them'
+    code: |
+      def merge_logs(first, second):
+          merged = []
+          while first and second:
+              if first[0] <= second[0]:
+                  merged.append(first.pop(0))
+              else:
+                  merged.append(second.pop(0))
+          return merged + first + second
+patternExplanation: |
+  Both lists are already sorted, so the smallest unused item is always at the front of one of them. Keep one pointer in each list, take the smaller front item, and move that pointer. When one list runs out, the rest of the other is already in order and is added at the end. The result is built in one pass, without sorting again.
+commonMistakes:
+  - 'Forgetting the leftover tail when one list is longer'
+  - 'Deleting from the front of a list, which changes the input and costs a shift each time'
+  - 'Using a set, which removes equal items'
+followUps:
+  - 'How would you merge ten sorted logs?'
+  - 'How would you merge two logs that are too large for memory?'

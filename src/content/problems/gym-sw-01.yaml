@@ -1,0 +1,96 @@
+id: gym-sw-01
+title: 'The busiest stretch of hours'
+pattern: sliding-window
+competencies: [int.sliding-window]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `calls_per_hour` holds the number of calls in each hour of a day, in order. Write `busiest_stretch(calls_per_hour, k)` that returns the largest total number of calls in any `k` hours in a row.
+examples:
+  - 'busiest_stretch([2, 5, 1, 4, 3], 2) returns 7'
+  - 'busiest_stretch([2, 5, 1, 4, 3], 5) returns 15'
+constraints:
+  - '1 to 200000 hours'
+  - '1 <= k <= the number of hours'
+  - 'Counts are whole numbers, 0 or more'
+starter: |
+  def busiest_stretch(calls_per_hour, k):
+      ...
+visibleTests: |
+  def test_example():
+      assert busiest_stretch([2, 5, 1, 4, 3], 2) == 7
+
+  def test_whole_day():
+      assert busiest_stretch([2, 5, 1, 4, 3], 5) == 15
+hiddenTests: |
+  def test_one_hour_is_the_largest_count():
+      assert busiest_stretch([2, 5, 1, 4, 3], 1) == 5
+
+  def test_best_stretch_at_the_end():
+      assert busiest_stretch([1, 1, 1, 9, 9], 2) == 18
+
+  def test_best_stretch_at_the_start():
+      assert busiest_stretch([9, 9, 1, 1, 1], 2) == 18
+
+  def test_all_zero():
+      assert busiest_stretch([0, 0, 0], 2) == 0
+
+  def test_single_hour():
+      assert busiest_stretch([6], 1) == 6
+
+  def test_input_unchanged():
+      counts = [1, 2, 3]
+      busiest_stretch(counts, 2)
+      assert counts == [1, 2, 3]
+
+  def test_large_input():
+      assert busiest_stretch([1] * 200000, 100000) == 100000
+referenceSolutions:
+  - code: |
+      def busiest_stretch(calls_per_hour, k):
+          window = sum(calls_per_hour[:k])
+          best = window
+          for i in range(k, len(calls_per_hour)):
+              window += calls_per_hour[i] - calls_per_hour[i - k]
+              best = max(best, window)
+          return best
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Misses the last window'
+    code: |
+      def busiest_stretch(calls_per_hour, k):
+          window = sum(calls_per_hour[:k])
+          best = window
+          for i in range(k, len(calls_per_hour) - 1):
+              window += calls_per_hour[i] - calls_per_hour[i - k]
+              best = max(best, window)
+          return best
+  - label: 'Adds the new hour but forgets to remove the hour that left the window'
+    code: |
+      def busiest_stretch(calls_per_hour, k):
+          window = sum(calls_per_hour[:k])
+          best = window
+          for i in range(k, len(calls_per_hour)):
+              window += calls_per_hour[i]
+              best = max(best, window)
+          return best
+  - label: 'Adds up all k hours again for every start, so the work grows with n times k'
+    code: |
+      def busiest_stretch(calls_per_hour, k):
+          best = 0
+          for start in range(len(calls_per_hour) - k + 1):
+              total = 0
+              for i in range(start, start + k):
+                  total += calls_per_hour[i]
+              best = max(best, total)
+          return best
+patternExplanation: |
+  Adjacent windows share almost all their items. When the window moves one step to the right, one hour enters and one hour leaves, so the new total is the old total plus the entering hour minus the leaving hour. Compute the first window once, then update it in a single step for each position. That makes the work linear instead of n times k.
+commonMistakes:
+  - 'Forgetting to subtract the hour that leaves'
+  - 'Stopping one window early'
+  - 'Adding up every window from scratch'
+followUps:
+  - 'How would you also return where the busiest stretch starts?'
+  - 'What if k can be larger than the number of hours?'
