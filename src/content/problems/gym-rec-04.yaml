@@ -1,0 +1,115 @@
+id: gym-rec-04
+title: 'Ways to pay the exact amount'
+pattern: recursion
+competencies: [int.recursion]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A kiosk accepts coins of a few values and has an unlimited supply of each. Write `ways_to_pay(amount, coins)` that returns how many different combinations of coins add up to exactly `amount`. The order of the coins does not matter, so 2 + 1 and 1 + 2 are the same combination. Paying an amount of 0 has exactly one way: use no coins.
+examples:
+  - 'ways_to_pay(5, [1, 2, 5]) returns 4'
+  - 'ways_to_pay(3, [2]) returns 0'
+constraints:
+  - '0 <= amount <= 400'
+  - '0 to 8 distinct coin values, each from 1 to 200'
+starter: |
+  def ways_to_pay(amount, coins):
+      ...
+visibleTests: |
+  def test_example():
+      assert ways_to_pay(5, [1, 2, 5]) == 4
+
+  def test_impossible():
+      assert ways_to_pay(3, [2]) == 0
+hiddenTests: |
+  def test_zero_amount():
+      assert ways_to_pay(0, [1, 2]) == 1
+
+  def test_zero_amount_no_coins():
+      assert ways_to_pay(0, []) == 1
+
+  def test_no_coins():
+      assert ways_to_pay(5, []) == 0
+
+  def test_order_does_not_matter():
+      assert ways_to_pay(3, [1, 2]) == 2
+
+  def test_a_coin_can_be_used_many_times():
+      assert ways_to_pay(6, [3]) == 1
+
+  def test_four_coin_values():
+      assert ways_to_pay(10, [2, 5, 3, 6]) == 5
+
+  def test_large_amount():
+      coins = [1, 2, 5, 10, 20, 50]
+      ways = [1] + [0] * 400
+      for coin in coins:
+          for total in range(coin, 401):
+              ways[total] += ways[total - coin]
+      assert ways_to_pay(400, coins) == ways[400]
+referenceSolutions:
+  - code: |
+      def ways_to_pay(amount, coins):
+          memo = {}
+
+          def count(remaining, i):
+              if remaining == 0:
+                  return 1
+              if remaining < 0 or i == len(coins):
+                  return 0
+              if (remaining, i) not in memo:
+                  memo[(remaining, i)] = count(remaining - coins[i], i) + count(remaining, i + 1)
+              return memo[(remaining, i)]
+
+          return count(amount, 0)
+    time: 'O(amount * coins)'
+    space: 'O(amount * coins)'
+wrongSolutions:
+  - label: 'Same recursion without remembering results, far too slow'
+    code: |
+      def ways_to_pay(amount, coins):
+          def count(remaining, i):
+              if remaining == 0:
+                  return 1
+              if remaining < 0 or i == len(coins):
+                  return 0
+              return count(remaining - coins[i], i) + count(remaining, i + 1)
+
+          return count(amount, 0)
+  - label: 'Counts different orders as different ways'
+    code: |
+      def ways_to_pay(amount, coins):
+          memo = {}
+
+          def count(remaining):
+              if remaining == 0:
+                  return 1
+              if remaining not in memo:
+                  memo[remaining] = sum(count(remaining - c) for c in coins if c <= remaining)
+              return memo[remaining]
+
+          return count(amount)
+  - label: 'Lets each coin value be used only once'
+    code: |
+      def ways_to_pay(amount, coins):
+          memo = {}
+
+          def count(remaining, i):
+              if remaining == 0:
+                  return 1
+              if remaining < 0 or i == len(coins):
+                  return 0
+              if (remaining, i) not in memo:
+                  memo[(remaining, i)] = count(remaining - coins[i], i + 1) + count(remaining, i + 1)
+              return memo[(remaining, i)]
+
+          return count(amount, 0)
+patternExplanation: |
+  Recursion means a function solves a problem by calling itself on a smaller version of the same problem. Every recursive function needs a base case that stops the calls and a recursive case that moves toward it. Think of each coin value as a decision: use another coin of this value, or move on to the next value and never come back. That makes each combination appear exactly once, in a fixed order, which is how order stops mattering. The base cases are: the amount is reached (one way), or it was passed or the coins ran out (no way). The plain version calls itself with the same inputs many times over, so the work grows exponentially. Store each answer by (remaining, coin index) the first time and reuse it: that is memoization, and it cuts the work to amount times the number of coin values. A bottom-up table does the same without recursion.
+commonMistakes:
+  - 'Looping over all coins at every step, which counts 1 + 2 and 2 + 1 separately'
+  - 'Moving to the next coin after using one, so each value is used once'
+  - 'Skipping the memo, which makes amount 400 run for hours'
+followUps:
+  - 'How would you return the smallest number of coins instead of the number of ways?'
+  - 'How would you list the combinations themselves?'

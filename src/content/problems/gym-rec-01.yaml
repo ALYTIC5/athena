@@ -1,0 +1,87 @@
+id: gym-rec-01
+title: 'Items in nested boxes'
+pattern: recursion
+competencies: [int.recursion]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A warehouse packs items into boxes, and boxes can hold other boxes. A box is a Python list. Each element is either an `int` (a count of items) or another box. Write `total_items(box)` that returns the sum of every count inside the box, however deeply nested.
+examples:
+  - 'total_items([1, [2, 3], [[4]]]) returns 10'
+  - 'total_items([]) returns 0'
+constraints:
+  - 'Boxes are nested at most 500 levels deep'
+  - 'Every count is an int from 0 to 1000'
+starter: |
+  def total_items(box):
+      ...
+visibleTests: |
+  def test_example():
+      assert total_items([1, [2, 3], [[4]]]) == 10
+
+  def test_empty_box():
+      assert total_items([]) == 0
+hiddenTests: |
+  def test_only_empty_boxes():
+      assert total_items([[], [[]]]) == 0
+
+  def test_flat_box():
+      assert total_items([5, 6, 7]) == 18
+
+  def test_count_two_levels_down():
+      assert total_items([[1, [10]], 2]) == 13
+
+  def test_counts_are_added_not_counted():
+      assert total_items([100, [200]]) == 300
+
+  def test_deeply_nested():
+      box = [1]
+      for _ in range(450):
+          box = [box, 1]
+      assert total_items(box) == 451
+referenceSolutions:
+  - code: |
+      def total_items(box):
+          total = 0
+          for element in box:
+              if isinstance(element, list):
+                  total += total_items(element)
+              else:
+                  total += element
+          return total
+    time: 'O(n)'
+    space: 'O(d)'
+wrongSolutions:
+  - label: 'Ignores boxes inside boxes'
+    code: |
+      def total_items(box):
+          return sum(element for element in box if isinstance(element, int))
+  - label: 'Only looks one level down'
+    code: |
+      def total_items(box):
+          total = 0
+          for element in box:
+              if isinstance(element, list):
+                  total += sum(element)
+              else:
+                  total += element
+          return total
+  - label: 'Counts the elements instead of adding the counts'
+    code: |
+      def total_items(box):
+          total = 0
+          for element in box:
+              if isinstance(element, list):
+                  total += total_items(element)
+              else:
+                  total += 1
+          return total
+patternExplanation: |
+  Recursion means a function solves a problem by calling itself on a smaller version of the same problem. Every recursive function needs a base case that stops the calls and a recursive case that moves toward it. Here a box is a list of counts and smaller boxes. The base case is a plain number: add it. The recursive case is a nested list: ask total_items for that box and add the answer. A loop on its own only reaches a fixed number of levels, while recursion follows the nesting as deep as it goes. The depth of the calls matches the depth of the nesting, and Python allows about 1000 nested calls by default, which is why the constraint caps the depth.
+commonMistakes:
+  - 'Handling only the top level and one level below it'
+  - 'Adding 1 for each number instead of the number itself'
+  - 'Forgetting that an empty box is a valid answer of 0'
+followUps:
+  - 'How would you do it without recursion, using a stack?'
+  - 'What happens at 5000 levels of nesting, and how do you avoid it?'

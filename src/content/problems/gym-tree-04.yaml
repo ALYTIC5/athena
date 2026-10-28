@@ -1,0 +1,175 @@
+id: gym-tree-04
+title: 'Is the price tier tree valid?'
+pattern: trees
+competencies: [int.trees]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A pricing tool stores price tiers in a binary search tree. In a valid tree, for every node, every value in its left subtree is smaller than the node's value, and every value in its right subtree is larger. No value appears twice. Write `is_valid_tiers(root)` that returns the bool `True` if the tree is valid and `False` otherwise. An empty tree is valid.
+examples:
+  - 'A root 10 with left child 5 and right child 15 is valid, so it returns True'
+  - 'A root 10 with left child 5 and right child 15 that has a left child 6 returns False, because 6 sits in the right subtree of 10 but is smaller than 10'
+constraints:
+  - '0 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+  - 'Values are ints'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def is_valid_tiers(root):
+      ...
+visibleTests: |
+  def test_valid_tree():
+      assert is_valid_tiers(Node(10, Node(5), Node(15))) is True
+
+  def test_deep_value_on_the_wrong_side():
+      assert is_valid_tiers(Node(10, Node(5), Node(15, Node(6)))) is False
+hiddenTests: |
+  def from_sorted(values):
+      if not values:
+          return None
+      mid = len(values) // 2
+      return Node(values[mid], from_sorted(values[:mid]), from_sorted(values[mid + 1:]))
+
+
+  def test_empty_tree():
+      assert is_valid_tiers(None) is True
+
+  def test_single_node():
+      assert is_valid_tiers(Node(4)) is True
+
+  def test_left_child_too_big():
+      assert is_valid_tiers(Node(10, Node(12))) is False
+
+  def test_right_child_too_small():
+      assert is_valid_tiers(Node(10, None, Node(8))) is False
+
+  def test_duplicate_value():
+      assert is_valid_tiers(Node(10, Node(10))) is False
+
+  def test_duplicate_on_the_right():
+      assert is_valid_tiers(Node(10, None, Node(10))) is False
+
+  def test_grandchild_on_the_wrong_side_on_the_left():
+      assert is_valid_tiers(Node(10, Node(5, None, Node(12)), Node(20))) is False
+
+  def test_valid_tree_with_negative_values():
+      assert is_valid_tiers(Node(0, Node(-5, Node(-9), Node(-1)), Node(5, Node(1), Node(9)))) is True
+
+  def test_big_valid_tree():
+      assert is_valid_tiers(from_sorted(list(range(1, 2**14)))) is True
+
+  def test_big_tree_with_one_bad_leaf():
+      root = from_sorted(list(range(1, 2**14)))
+      node = root
+      while node.left is not None:
+          node = node.left
+      node.value = 10**9
+      assert is_valid_tiers(root) is False
+
+  def test_long_ascending_chain():
+      root = None
+      for value in range(500, 0, -1):
+          root = Node(value, None, root)
+      assert is_valid_tiers(root) is True
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def is_valid_tiers(root):
+          def check(node, low, high):
+              if node is None:
+                  return True
+              if low is not None and node.value <= low:
+                  return False
+              if high is not None and node.value >= high:
+                  return False
+              return check(node.left, low, node.value) and check(node.right, node.value, high)
+
+          return check(root, None, None)
+    time: 'O(n)'
+    space: 'O(h)'
+wrongSolutions:
+  - label: 'Only compares each node with its direct children'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def is_valid_tiers(root):
+          if root is None:
+              return True
+          if root.left is not None and root.left.value >= root.value:
+              return False
+          if root.right is not None and root.right.value <= root.value:
+              return False
+          return is_valid_tiers(root.left) and is_valid_tiers(root.right)
+  - label: 'Allows a value to appear twice'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def is_valid_tiers(root):
+          def check(node, low, high):
+              if node is None:
+                  return True
+              if low is not None and node.value < low:
+                  return False
+              if high is not None and node.value > high:
+                  return False
+              return check(node.left, low, node.value) and check(node.right, node.value, high)
+
+          return check(root, None, None)
+  - label: 'Treats an empty tree as invalid'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def is_valid_tiers(root):
+          if root is None:
+              return False
+
+          def check(node, low, high):
+              if node is None:
+                  return True
+              if low is not None and node.value <= low:
+                  return False
+              if high is not None and node.value >= high:
+                  return False
+              return check(node.left, low, node.value) and check(node.right, node.value, high)
+
+          return check(root, None, None)
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. In a binary search tree, being smaller than the parent is not enough: a node must fit inside the limits set by every ancestor. Pass those limits down. The root has no limits. Going left, the parent's value becomes the new upper limit; going right, it becomes the new lower limit. A node is valid only if its value is strictly between its limits, and both subtrees are valid with their own limits. Comparing only with direct children misses a value that is on the wrong side of a grandparent. Using strict comparisons rejects duplicates. Another way to check is an in-order walk, which must produce strictly increasing values. Each node is visited once.
+commonMistakes:
+  - 'Comparing a node only with its parent, so a deep value on the wrong side slips through'
+  - 'Using <= or >= the wrong way and accepting duplicates'
+  - 'Returning False for an empty tree'
+followUps:
+  - 'How would you check it with an in-order walk instead?'
+  - 'What if duplicates are allowed on the left?'

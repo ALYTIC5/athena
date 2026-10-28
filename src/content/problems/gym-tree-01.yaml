@@ -1,0 +1,133 @@
+id: gym-tree-01
+title: 'Total sales across branches'
+pattern: trees
+competencies: [int.trees]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A company's branches form a binary tree. Each node holds that branch's sales as an `int`, and a branch can have a left and a right sub-branch (`None` when missing). Write `total_sales(root)` that returns the sum of the sales of every branch in the tree. An empty tree (`root` is `None`) has total 0.
+examples:
+  - 'For a root with sales 5, a left branch with 3 and a right branch with 2, total_sales(root) returns 10'
+  - 'total_sales(None) returns 0'
+constraints:
+  - '0 to 100000 nodes'
+  - 'Trees are at most 500 levels deep'
+  - 'Sales are ints from -1000 to 1000'
+starter: |
+  class Node:
+      def __init__(self, value, left=None, right=None):
+          self.value = value
+          self.left = left
+          self.right = right
+
+
+  def total_sales(root):
+      ...
+visibleTests: |
+  def test_example():
+      assert total_sales(Node(5, Node(3), Node(2))) == 10
+
+  def test_empty_tree():
+      assert total_sales(None) == 0
+hiddenTests: |
+  def full(depth):
+      if depth == 0:
+          return None
+      return Node(1, full(depth - 1), full(depth - 1))
+
+
+  def chain(length, value=1):
+      root = None
+      for _ in range(length):
+          root = Node(value, root, None)
+      return root
+
+
+  def test_single_branch():
+      assert total_sales(Node(7)) == 7
+
+  def test_only_a_right_child():
+      assert total_sales(Node(1, None, Node(2, None, Node(3)))) == 6
+
+  def test_right_subtree_below_a_left_child():
+      assert total_sales(Node(1, Node(2, None, Node(4)), Node(8))) == 15
+
+  def test_negative_sales():
+      assert total_sales(Node(-5, Node(3), Node(-2))) == -4
+
+  def test_big_balanced_tree():
+      assert total_sales(full(15)) == 2**15 - 1
+
+  def test_long_chain():
+      assert total_sales(chain(500, 2)) == 1000
+referenceSolutions:
+  - code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def total_sales(root):
+          if root is None:
+              return 0
+          return root.value + total_sales(root.left) + total_sales(root.right)
+    time: 'O(n)'
+    space: 'O(h)'
+wrongSolutions:
+  - label: 'Ignores the right sub-branches'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def total_sales(root):
+          if root is None:
+              return 0
+          return root.value + total_sales(root.left)
+  - label: 'Counts the branches instead of adding their sales'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def total_sales(root):
+          if root is None:
+              return 0
+          return 1 + total_sales(root.left) + total_sales(root.right)
+  - label: 'Crashes on an empty tree'
+    code: |
+      class Node:
+          def __init__(self, value, left=None, right=None):
+              self.value = value
+              self.left = left
+              self.right = right
+
+
+
+      def total_sales(root):
+          total = root.value
+          if root.left is not None:
+              total += total_sales(root.left)
+          if root.right is not None:
+              total += total_sales(root.right)
+          return total
+patternExplanation: |
+  A binary tree is a set of nodes where each node holds a value and has at most two children, called left and right. A missing child is None. Most tree problems are solved by a function that handles one node and calls itself on the two children, so the base case is almost always `None`. To add up a tree, add the node's own value to the total of its left subtree and the total of its right subtree. The base case is None, which contributes 0, so you never have to ask whether a child exists before calling. Every node is visited once, so the time is linear. The extra memory is the call stack, which is as deep as the tree is tall.
+commonMistakes:
+  - 'Following only the left side'
+  - "Adding 1 per node instead of the node's value"
+  - 'Not handling None, which crashes on an empty tree or a missing child'
+followUps:
+  - 'How would you find the branch with the largest sales?'
+  - 'How would you add them up without recursion?'

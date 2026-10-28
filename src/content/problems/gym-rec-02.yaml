@@ -1,0 +1,132 @@
+id: gym-rec-02
+title: 'Every possible bundle of add-ons'
+pattern: recursion
+competencies: [int.recursion]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A booking page offers optional add-ons. A customer can pick any subset of them, including none. Write `bundles(addons)` that returns every possible bundle as a list of lists. Order the bundles by size first (smaller bundles first). Bundles of the same size follow the order of the add-ons in the input, as `itertools.combinations` would give them. Inside a bundle, keep the input order. The input has no duplicates and must not be changed.
+examples:
+  - "bundles(['a', 'b', 'c']) returns [[], ['a'], ['b'], ['c'], ['a', 'b'], ['a', 'c'], ['b', 'c'], ['a', 'b', 'c']]"
+  - 'bundles([]) returns [[]]'
+constraints:
+  - '0 to 12 add-ons'
+  - 'Add-ons are distinct strings'
+starter: |
+  def bundles(addons):
+      ...
+visibleTests: |
+  def test_example():
+      assert bundles(["a", "b", "c"]) == [[], ["a"], ["b"], ["c"], ["a", "b"], ["a", "c"], ["b", "c"], ["a", "b", "c"]]
+
+  def test_no_addons():
+      assert bundles([]) == [[]]
+hiddenTests: |
+  import itertools
+
+  def test_one_addon():
+      assert bundles(["x"]) == [[], ["x"]]
+
+  def test_four_addons_in_order():
+      result = bundles(["a", "b", "c", "d"])
+      assert len(result) == 16
+      assert result[:5] == [[], ["a"], ["b"], ["c"], ["d"]]
+      assert result[5:11] == [["a", "b"], ["a", "c"], ["a", "d"], ["b", "c"], ["b", "d"], ["c", "d"]]
+      assert result[-1] == ["a", "b", "c", "d"]
+
+  def test_input_is_not_changed():
+      addons = ["a", "b", "c"]
+      bundles(addons)
+      assert addons == ["a", "b", "c"]
+
+  def test_bundles_are_separate_lists():
+      result = bundles(["a", "b"])
+      result[1].append("z")
+      assert result[2] == ["b"]
+      assert bundles(["a", "b"]) == [[], ["a"], ["b"], ["a", "b"]]
+
+  def test_twelve_addons():
+      addons = [f"addon{i}" for i in range(12)]
+      expected = []
+      for size in range(13):
+          expected.extend([list(c) for c in itertools.combinations(addons, size)])
+      assert bundles(addons) == expected
+referenceSolutions:
+  - code: |
+      def bundles(addons):
+          result = []
+
+          def choose(start, size, current):
+              if len(current) == size:
+                  result.append(list(current))
+                  return
+              for i in range(start, len(addons)):
+                  current.append(addons[i])
+                  choose(i + 1, size, current)
+                  current.pop()
+
+          for size in range(len(addons) + 1):
+              choose(0, size, [])
+          return result
+    time: 'O(n * 2^n)'
+    space: 'O(n * 2^n)'
+wrongSolutions:
+  - label: 'Leaves out the empty bundle'
+    code: |
+      def bundles(addons):
+          result = []
+
+          def choose(start, size, current):
+              if len(current) == size:
+                  result.append(list(current))
+                  return
+              for i in range(start, len(addons)):
+                  current.append(addons[i])
+                  choose(i + 1, size, current)
+                  current.pop()
+
+          for size in range(1, len(addons) + 1):
+              choose(0, size, [])
+          return result
+  - label: 'Right bundles, but not grouped by size'
+    code: |
+      def bundles(addons):
+          result = []
+
+          def go(i, current):
+              if i == len(addons):
+                  result.append(list(current))
+                  return
+              go(i + 1, current)
+              current.append(addons[i])
+              go(i + 1, current)
+              current.pop()
+
+          go(0, [])
+          return result
+  - label: 'Stores the working list itself instead of a copy'
+    code: |
+      def bundles(addons):
+          result = []
+
+          def choose(start, size, current):
+              if len(current) == size:
+                  result.append(current)
+                  return
+              for i in range(start, len(addons)):
+                  current.append(addons[i])
+                  choose(i + 1, size, current)
+                  current.pop()
+
+          for size in range(len(addons) + 1):
+              choose(0, size, [])
+          return result
+patternExplanation: |
+  Recursion means a function solves a problem by calling itself on a smaller version of the same problem. Every recursive function needs a base case that stops the calls and a recursive case that moves toward it. To list every subset, build one bundle at a time: for a target size, try each add-on that comes after the last one you picked, add it, recurse to fill the rest, then remove it again. Removing it is called backtracking, and it lets one working list be reused for every branch. The base case is a bundle that has reached the target size. Save a copy of the working list, because the list keeps changing afterwards. Looping the target size from 0 up to the number of add-ons gives the required order. There are 2^n bundles, so output size, not the recursion, sets the cost.
+commonMistakes:
+  - 'Saving the working list instead of a copy of it, so every saved bundle ends up empty'
+  - 'Forgetting to undo a choice (the pop) before trying the next one'
+  - 'Starting the size loop at 1 and losing the empty bundle'
+followUps:
+  - 'How would you list only the bundles whose total price is under a budget, and stop early?'
+  - 'How does the output change if add-ons can repeat?'
