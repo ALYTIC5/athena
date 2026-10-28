@@ -1,0 +1,98 @@
+id: sql-04-mastery-top-call
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: The longest answered call for each reason
+difficulty: 4
+competencies:
+  - sql.window
+  - sql.subqueries-ctes
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL,
+    duration_s integer,
+    reason text NOT NULL,
+    started_at timestamp NOT NULL
+  );
+  INSERT INTO calls VALUES
+    (1, 1, 120,  'booking', '2026-11-02 09:00'),
+    (2, 1, 45,   'billing', '2026-11-06 10:00'),
+    (3, 2, 300,  'cancel',  '2026-11-02 11:00'),
+    (4, 3, NULL, 'booking', '2026-11-04 16:00'),
+    (5, 3, 200,  'booking', '2026-11-04 08:00'),
+    (6, 4, 400,  'billing', '2026-11-05 09:30'),
+    (7, 4, 20,   'booking', '2026-11-05 09:45'),
+    (8, 1, 90,   'info',    '2026-11-03 12:00'),
+    (9, 2, 400,  'billing', '2026-11-07 10:00'),
+    (10, 3, 200, 'booking', '2026-11-07 11:00');
+prompt: |
+  The `calls` table has `id`, `customer_id`, `duration_s` (NULL for an unanswered call), `reason` and `started_at`.
+
+  For each `reason`, return the `reason` and the `id` of its longest answered call (`duration_s` is not NULL). If two calls tie on duration, take the lower `id`. Order by `reason`. Return two columns: `reason` and `id`.
+starter: |
+  SELECT ...
+hints:
+  - You need one row per reason, and the winner is the call with the largest duration. Which window function picks a winner?
+  - Number the calls inside each reason, longest first, and keep number 1. Remember that DESC puts NULL first in PostgreSQL, so remove unanswered calls first.
+  - row_number() OVER (PARTITION BY ____ ORDER BY duration_s DESC, id) ... WHERE duration_s IS NOT ____
+referenceSolution: |
+  SELECT reason, id
+  FROM (
+    SELECT reason, id,
+           row_number() OVER (PARTITION BY reason ORDER BY duration_s DESC, id) AS rn
+    FROM calls
+    WHERE duration_s IS NOT NULL
+  ) AS ranked
+  WHERE rn = 1
+  ORDER BY reason;
+compare:
+  orderMatters: true
+  numericTolerance: 0.001
+checks: []
+wrongSolutions:
+  - label: Does not skip unanswered calls, and DESC puts NULL first
+    code: |
+      SELECT reason, id
+      FROM (
+        SELECT reason, id,
+               row_number() OVER (PARTITION BY reason ORDER BY duration_s DESC, id) AS rn
+        FROM calls
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY reason;
+  - label: Breaks ties towards the higher id
+    code: |
+      SELECT reason, id
+      FROM (
+        SELECT reason, id,
+               row_number() OVER (PARTITION BY reason ORDER BY duration_s DESC, id DESC) AS rn
+        FROM calls
+        WHERE duration_s IS NOT NULL
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY reason;
+  - label: Does not partition by reason, so only one row comes back
+    code: |
+      SELECT reason, id
+      FROM (
+        SELECT reason, id,
+               row_number() OVER (ORDER BY duration_s DESC, id) AS rn
+        FROM calls
+        WHERE duration_s IS NOT NULL
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY reason;
+  - label: Returns the longest duration instead of the call id
+    code: |
+      SELECT reason, max(duration_s) AS id
+      FROM calls
+      GROUP BY reason
+      ORDER BY reason;
+explanation: |
+  The window numbers calls separately for each reason, longest first, with `id` as the tie-breaker so the result is the same every time. In PostgreSQL a descending sort puts NULL first, so an unanswered call would win; the `WHERE duration_s IS NOT NULL` inside the subquery removes those before numbering. The filter on `rn` has to sit outside, because window functions run after `WHERE`. Alternative: `SELECT DISTINCT ON (reason) reason, id FROM calls WHERE duration_s IS NOT NULL ORDER BY reason, duration_s DESC, id` is shorter but PostgreSQL specific; `ORDER BY duration_s DESC NULLS LAST` is another way to handle NULLs.

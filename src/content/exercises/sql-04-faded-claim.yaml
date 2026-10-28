@@ -1,0 +1,119 @@
+id: sql-04-faded-claim
+lesson: sql-04
+runtime: sql
+kind: faded
+pools:
+  - lesson
+title: Claim the next job so that two workers never take the same one
+difficulty: 2
+competencies:
+  - sql.locking-queues
+  - sql.transactions
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE jobs (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id text NOT NULL UNIQUE,
+    status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'dead')),
+    attempts integer NOT NULL DEFAULT 0,
+    priority integer NOT NULL DEFAULT 0,
+    run_after timestamp NOT NULL,
+    payload jsonb NOT NULL
+  );
+  INSERT INTO jobs (event_id, status, attempts, priority, run_after, payload) VALUES
+    ('evt-1001', 'queued',  0, 0, '2026-11-02 08:00', '{"type": "call.ended", "call": {"id": "c-501", "duration_s": 120, "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]}'),
+    ('evt-1002', 'queued',  0, 5, '2026-11-02 08:30', '{"type": "call.ended", "call": {"id": "c-502", "duration_s": 45, "caller": {"name": "Jonas Weber"}}, "tags": ["billing", "urgent"]}'),
+    ('evt-1003', 'running', 1, 7, '2026-11-02 08:00', '{"type": "call.started", "call": {"id": "c-503", "caller": {"name": "Mei Tanaka"}}, "tags": ["booking"]}'),
+    ('evt-1004', 'queued',  0, 9, '2026-11-02 10:00', '{"type": "call.ended", "call": {"id": "c-504", "duration_s": 300, "caller": {"name": "Sofia Reyes"}}, "tags": ["booking"]}'),
+    ('evt-1005', 'done',    1, 0, '2026-11-02 07:30', '{"type": "call.ended", "call": {"id": "c-505", "duration_s": 200, "caller": {"name": "Tomas Novak"}}, "tags": ["cancel"]}'),
+    ('evt-1006', 'queued',  2, 5, '2026-11-02 08:45', '{"type": "call.ended", "call": {"id": "c-506", "duration_s": 90, "caller": {"name": "Ngozi Eze"}}, "tags": ["booking", "urgent"]}'),
+    ('evt-1007', 'dead',    3, 0, '2026-11-02 07:00', '{"type": "call.ended", "call": {"id": "c-507", "caller": {"name": "Lars Holm"}}, "tags": ["booking"]}'),
+    ('evt-1008', 'queued',  0, 0, '2026-11-02 08:15', '{"type": "call.ended", "call": {"id": "c-508", "duration_s": 30, "caller": {"name": "Priya Nair"}}, "tags": ["info"]}');
+prompt: |
+  The `jobs` table is a queue of webhook events. `status` is `queued`, `running`, `done` or `dead`; `attempts` counts tries; `priority` is higher for more urgent jobs; `run_after` is the earliest time a job may start; `payload` is the raw webhook body as `jsonb`. In this exercise the time now is `2026-11-02 09:00`.
+
+  Claim the oldest job that is `queued` and due (`run_after` at or before the time now), ordered by `run_after` and then `id`. In one statement, set its status to `running`, add 1 to `attempts`, and return its `id`, `event_id` and `attempts`.
+
+  Fill in the two missing words of the locking clause. The page cannot run two workers at once, so it checks the result and the shape of your statement.
+starter: |
+  UPDATE jobs
+  SET status = 'running', attempts = attempts + 1
+  WHERE id = (
+    SELECT id FROM jobs
+    WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+    ORDER BY run_after, id
+    LIMIT 1
+    FOR UPDATE ____ ____
+  )
+  RETURNING id, event_id, attempts;
+hints:
+  - What should a second worker do when the best job is already locked by the first worker?
+  - After FOR UPDATE you add two words that tell PostgreSQL to skip the rows that other transactions have locked.
+  - "FOR UPDATE ____ ____    -- the words are: skip, then a word meaning 'held by someone else'"
+referenceSolution: |
+  UPDATE jobs
+  SET status = 'running', attempts = attempts + 1
+  WHERE id = (
+    SELECT id FROM jobs
+    WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+    ORDER BY run_after, id
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED
+  )
+  RETURNING id, event_id, attempts;
+compare:
+  orderMatters: false
+  numericTolerance: 0.001
+checks:
+  - SELECT count(*) = 2 FROM jobs WHERE status = 'running'
+  - SELECT status = 'running' AND attempts = 1 FROM jobs WHERE id = 1
+  - SELECT count(*) = 4 FROM jobs WHERE status = 'queued'
+queueClaim: true
+wrongSolutions:
+  - label: Uses FOR UPDATE alone, so a second worker waits instead of taking another job
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 1
+        FOR UPDATE
+      )
+      RETURNING id, event_id, attempts;
+  - label: Leaves out LIMIT 1, so one worker claims every due job
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, event_id, attempts;
+  - label: Forgets to count the attempt
+    code: |
+      UPDATE jobs
+      SET status = 'running'
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, event_id, attempts;
+  - label: Only reads the job, so it is never marked as taken
+    code: |
+      SELECT id, event_id, attempts
+      FROM jobs
+      WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+      ORDER BY run_after, id
+      LIMIT 1
+      FOR UPDATE SKIP LOCKED;
+explanation: |
+  The inner `SELECT` picks the best due job and `FOR UPDATE` locks that row until the transaction ends. `SKIP LOCKED` tells a second worker to ignore rows that are already locked and take the next one, so two workers never claim the same job and never wait for each other. The outer `UPDATE ... RETURNING` marks the job and hands it back in the same statement, so there is no gap between reading and claiming. Plain `FOR UPDATE` makes the second worker wait, and when the first one commits, the second one's row no longer matches `status = 'queued'`, so it can get nothing even though other jobs are waiting. Alternative: a message broker avoids polling the table, at the price of one more system to run.

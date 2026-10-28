@@ -1,0 +1,224 @@
+id: sql-04-mastery-claim-job-python
+lesson: sql-04
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Claim a job from Python inside a transaction
+difficulty: 4
+competencies:
+  - sql.parameters
+  - sql.transactions
+  - sql.locking-queues
+timeoutMs: 5000
+estMin: 8
+packages: []
+prompt: |
+  A worker claims one job with psycopg 3. The page gives you a stand-in connection with the same two calls the real one has: `conn.transaction()` (a context manager that commits when the block ends and rolls back if an error leaves it) and `conn.execute(query, params)`, whose cursor has `fetchone()`.
+
+  Write `claim_job(conn, now)`. Run the claim inside `with conn.transaction():`. The statement must be one `UPDATE` that selects the next due job with `FOR UPDATE SKIP LOCKED` and returns `id` and `event_id`. The time `now` comes from the caller, so pass it as a `%s` parameter, not into the SQL text. Return the claimed row, or `None` when nothing is due. If the database raises an error, let it reach the caller.
+starter: |
+  def claim_job(conn, now):
+      ...
+visibleTests: |
+  class FakeTx:
+      def __init__(self, events):
+          self.events = events
+
+      def __enter__(self):
+          self.events.append("begin")
+          return self
+
+      def __exit__(self, exc_type, exc, tb):
+          self.events.append("rollback" if exc_type else "commit")
+          return False
+
+
+  class FakeCursor:
+      def __init__(self, row):
+          self._row = row
+
+      def fetchone(self):
+          return self._row
+
+
+  class FakeConn:
+      """Stands in for psycopg.Connection: records events, transactions and execute calls."""
+
+      def __init__(self, row=None, error=None):
+          self.row = row
+          self.error = error
+          self.events = []
+          self.calls = []
+
+      def transaction(self):
+          return FakeTx(self.events)
+
+      def execute(self, query, params=None):
+          self.events.append("execute")
+          self.calls.append((query, params))
+          if self.error is not None:
+              raise self.error
+          return FakeCursor(self.row)
+
+
+  def test_returns_the_claimed_row():
+      conn = FakeConn(row=(3, "evt-1003"))
+      assert claim_job(conn, "2026-11-02 09:00") == (3, "evt-1003")
+
+
+  def test_returns_none_when_nothing_is_due():
+      assert claim_job(FakeConn(row=None), "2026-11-02 09:00") is None
+hiddenTests: |
+  class FakeTx:
+      def __init__(self, events):
+          self.events = events
+
+      def __enter__(self):
+          self.events.append("begin")
+          return self
+
+      def __exit__(self, exc_type, exc, tb):
+          self.events.append("rollback" if exc_type else "commit")
+          return False
+
+
+  class FakeCursor:
+      def __init__(self, row):
+          self._row = row
+
+      def fetchone(self):
+          return self._row
+
+
+  class FakeConn:
+      """Stands in for psycopg.Connection: records events, transactions and execute calls."""
+
+      def __init__(self, row=None, error=None):
+          self.row = row
+          self.error = error
+          self.events = []
+          self.calls = []
+
+      def transaction(self):
+          return FakeTx(self.events)
+
+      def execute(self, query, params=None):
+          self.events.append("execute")
+          self.calls.append((query, params))
+          if self.error is not None:
+              raise self.error
+          return FakeCursor(self.row)
+
+
+  def test_the_claim_runs_inside_a_transaction():
+      conn = FakeConn(row=(1, "evt-1"))
+      claim_job(conn, "2026-11-02 09:00")
+      assert conn.events == ["begin", "execute", "commit"]
+
+
+  def test_an_error_rolls_back_and_reaches_the_caller():
+      conn = FakeConn(error=RuntimeError("connection lost"))
+      try:
+          claim_job(conn, "2026-11-02 09:00")
+      except RuntimeError:
+          pass
+      else:
+          raise AssertionError("the error was swallowed")
+      assert conn.events == ["begin", "execute", "rollback"]
+
+
+  def test_the_statement_locks_and_skips():
+      conn = FakeConn(row=None)
+      claim_job(conn, "2026-11-02 09:00")
+      query = " ".join(conn.calls[0][0].upper().split())
+      assert query.startswith("UPDATE")
+      assert "FOR UPDATE SKIP LOCKED" in query
+      assert "RETURNING" in query
+
+
+  def test_the_time_is_a_parameter():
+      conn = FakeConn(row=None)
+      hostile = "2026-11-02' OR '1'='1"
+      claim_job(conn, hostile)
+      query, params = conn.calls[0]
+      assert hostile not in query
+      assert query.count("%s") == 1
+      assert tuple(params) == (hostile,)
+
+
+  def test_one_statement_is_sent():
+      conn = FakeConn(row=None)
+      claim_job(conn, "2026-11-02 09:00")
+      assert len(conn.calls) == 1
+feedback:
+  - test: test_the_claim_runs_inside_a_transaction
+    message: Wrap the execute call in `with conn.transaction():` so the claim commits or rolls back as one unit.
+  - test: test_an_error_rolls_back_and_reaches_the_caller
+    message: Do not catch the error. Leaving the with block through an exception is what triggers the rollback, and the caller needs to know.
+  - test: test_the_statement_locks_and_skips
+    message: The claim must be a single UPDATE with FOR UPDATE SKIP LOCKED in its subquery, and RETURNING.
+  - test: test_the_time_is_a_parameter
+    message: Put %s where the time goes and pass (now,) as the second argument of execute.
+hints:
+  - 'Which three things must happen together: the transaction, the one statement, and the value that comes from the caller?'
+  - Use `with conn.transaction():`, and inside it call conn.execute(CLAIM_SQL, (now,)).fetchone(). The SQL has one %s, for the time.
+  - "with conn.transaction():\n    return conn.execute(\"UPDATE jobs ... run_after <= ____ ... FOR UPDATE SKIP LOCKED ... RETURNING id, event_id\", (____,)).fetchone()"
+referenceSolution: |
+  CLAIM_SQL = (
+      "UPDATE jobs SET status = 'running', attempts = attempts + 1 "
+      "WHERE id = ("
+      "SELECT id FROM jobs WHERE status = 'queued' AND run_after <= %s "
+      "ORDER BY run_after, id LIMIT 1 FOR UPDATE SKIP LOCKED"
+      ") RETURNING id, event_id"
+  )
+
+
+  def claim_job(conn, now):
+      with conn.transaction():
+          return conn.execute(CLAIM_SQL, (now,)).fetchone()
+wrongSolutions:
+  - label: Pastes the time into the SQL with an f-string
+    code: |
+      def claim_job(conn, now):
+          query = (
+              "UPDATE jobs SET status = 'running', attempts = attempts + 1 WHERE id = ("
+              f"SELECT id FROM jobs WHERE status = 'queued' AND run_after <= '{now}' "
+              "ORDER BY run_after, id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, event_id"
+          )
+          with conn.transaction():
+              return conn.execute(query).fetchone()
+  - label: Runs the statement without a transaction block
+    code: |
+      def claim_job(conn, now):
+          query = (
+              "UPDATE jobs SET status = 'running', attempts = attempts + 1 WHERE id = ("
+              "SELECT id FROM jobs WHERE status = 'queued' AND run_after <= %s "
+              "ORDER BY run_after, id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, event_id"
+          )
+          return conn.execute(query, (now,)).fetchone()
+  - label: Catches every error and returns None, so a failed claim looks like an empty queue
+    code: |
+      def claim_job(conn, now):
+          query = (
+              "UPDATE jobs SET status = 'running', attempts = attempts + 1 WHERE id = ("
+              "SELECT id FROM jobs WHERE status = 'queued' AND run_after <= %s "
+              "ORDER BY run_after, id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, event_id"
+          )
+          try:
+              with conn.transaction():
+                  return conn.execute(query, (now,)).fetchone()
+          except Exception:
+              return None
+  - label: Locks the row but forgets SKIP LOCKED
+    code: |
+      def claim_job(conn, now):
+          query = (
+              "UPDATE jobs SET status = 'running', attempts = attempts + 1 WHERE id = ("
+              "SELECT id FROM jobs WHERE status = 'queued' AND run_after <= %s "
+              "ORDER BY run_after, id LIMIT 1 FOR UPDATE) RETURNING id, event_id"
+          )
+          with conn.transaction():
+              return conn.execute(query, (now,)).fetchone()
+explanation: |
+  The claim is one `UPDATE ... RETURNING` with `FOR UPDATE SKIP LOCKED`, so two workers never take the same job. `with conn.transaction():` makes psycopg commit when the block ends normally and roll back if an exception leaves it, so a half-finished claim never stays. The exception must be allowed to reach the caller: catching it and returning `None` makes a database failure look like an empty queue, and the worker would sit idle without noticing. The time goes in as a `%s` parameter, never into the text. Alternative: open the connection with `autocommit=True` and let the single statement be its own transaction; that is fine for a one-statement claim, but `conn.transaction()` keeps working when you later add a second statement.

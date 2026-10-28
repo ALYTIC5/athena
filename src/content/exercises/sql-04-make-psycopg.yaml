@@ -1,0 +1,157 @@
+id: sql-04-make-psycopg
+lesson: sql-04
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Query PostgreSQL from Python without pasting values into SQL
+difficulty: 3
+competencies:
+  - sql.parameters
+timeoutMs: 5000
+estMin: 8
+packages: []
+prompt: |
+  psycopg 3 is not available in the browser, so this exercise uses a stand-in connection that records what you send. It has the same `conn.execute(query, params)` call as psycopg, and the cursor it returns has `fetchall()`.
+
+  Write `job_ids(conn, status, min_attempts)`. It returns, as a list of integers in the order the database gives them, the `id` of every job in the `jobs` table with that `status` and at least `min_attempts` attempts. Both values come from users, so neither may be pasted into the SQL text. Use psycopg's `%s` placeholders and pass the values as a tuple in the second argument. Each row is a tuple such as `(4,)`.
+starter: |
+  def job_ids(conn, status, min_attempts):
+      ...
+visibleTests: |
+  class FakeCursor:
+      def __init__(self, rows):
+          self._rows = rows
+
+      def fetchall(self):
+          return self._rows
+
+
+  class FakeConn:
+      """Stands in for psycopg.Connection and records every execute call."""
+
+      def __init__(self, rows):
+          self.rows = rows
+          self.calls = []
+
+      def execute(self, query, params=None):
+          self.calls.append((query, params))
+          return FakeCursor(self.rows)
+
+
+  def test_returns_the_ids():
+      conn = FakeConn([(1,), (4,)])
+      assert job_ids(conn, "queued", 0) == [1, 4]
+
+
+  def test_sends_the_values_as_parameters():
+      conn = FakeConn([])
+      job_ids(conn, "queued", 2)
+      query, params = conn.calls[0]
+      assert tuple(params) == ("queued", 2)
+      assert query.count("%s") == 2
+hiddenTests: |
+  class FakeCursor:
+      def __init__(self, rows):
+          self._rows = rows
+
+      def fetchall(self):
+          return self._rows
+
+
+  class FakeConn:
+      """Stands in for psycopg.Connection and records every execute call."""
+
+      def __init__(self, rows):
+          self.rows = rows
+          self.calls = []
+
+      def execute(self, query, params=None):
+          self.calls.append((query, params))
+          return FakeCursor(self.rows)
+
+
+  def test_hostile_status_never_reaches_the_sql_text():
+      conn = FakeConn([])
+      hostile = "x' OR '1'='1"
+      job_ids(conn, hostile, 0)
+      query, params = conn.calls[0]
+      assert hostile not in query
+      assert tuple(params)[0] == hostile
+
+
+  def test_the_number_is_a_parameter_too():
+      conn = FakeConn([])
+      job_ids(conn, "queued", 7391)
+      query, params = conn.calls[0]
+      assert "7391" not in query
+      assert tuple(params) == ("queued", 7391)
+
+
+  def test_one_statement_only():
+      conn = FakeConn([])
+      job_ids(conn, "done; DROP TABLE jobs; --", 0)
+      assert len(conn.calls) == 1
+      assert "DROP" not in conn.calls[0][0]
+
+
+  def test_empty_result():
+      assert job_ids(FakeConn([]), "dead", 3) == []
+
+
+  def test_ids_are_plain_integers_not_tuples():
+      result = job_ids(FakeConn([(5,), (9,)]), "done", 1)
+      assert result == [5, 9]
+      assert all(isinstance(n, int) for n in result)
+
+
+  def test_the_query_reads_the_jobs_table():
+      conn = FakeConn([])
+      job_ids(conn, "queued", 0)
+      query = conn.calls[0][0].lower()
+      assert "select" in query and "from jobs" in query
+feedback:
+  - test: test_hostile_status_never_reaches_the_sql_text
+    message: The status was pasted into the SQL text. Put %s in the query and pass the value in the second argument of execute.
+  - test: test_the_number_is_a_parameter_too
+    message: The number is user input too. Use a second %s and pass both values in one tuple.
+  - test: test_ids_are_plain_integers_not_tuples
+    message: fetchall gives a list of tuples. Return only the first item of each row.
+  - test: test_sends_the_values_as_parameters
+    message: Call conn.execute(query, (status, min_attempts)) with two %s placeholders in the query.
+hints:
+  - 'Where do the two values go: into the SQL text, or into the second argument of execute?'
+  - Write the SQL with two %s placeholders, call conn.execute(sql, (status, min_attempts)), then build the list of ids from the rows with fetchall().
+  - rows = conn.execute("SELECT id FROM jobs WHERE status = ____ AND attempts >= ____ ORDER BY id", (____, ____)).fetchall()
+referenceSolution: |
+  def job_ids(conn, status, min_attempts):
+      rows = conn.execute(
+          "SELECT id FROM jobs WHERE status = %s AND attempts >= %s ORDER BY id",
+          (status, min_attempts),
+      ).fetchall()
+      return [row[0] for row in rows]
+wrongSolutions:
+  - label: Builds the SQL with an f-string
+    code: |
+      def job_ids(conn, status, min_attempts):
+          query = f"SELECT id FROM jobs WHERE status = '{status}' AND attempts >= {min_attempts} ORDER BY id"
+          return [row[0] for row in conn.execute(query).fetchall()]
+  - label: Uses a placeholder for the status but pastes the number into the SQL
+    code: |
+      def job_ids(conn, status, min_attempts):
+          query = f"SELECT id FROM jobs WHERE status = %s AND attempts >= {min_attempts} ORDER BY id"
+          return [row[0] for row in conn.execute(query, (status,)).fetchall()]
+  - label: Fills the %s placeholders in Python with the % operator
+    code: |
+      def job_ids(conn, status, min_attempts):
+          query = "SELECT id FROM jobs WHERE status = '%s' AND attempts >= %s ORDER BY id" % (status, min_attempts)
+          return [row[0] for row in conn.execute(query).fetchall()]
+  - label: Returns the rows instead of a list of ids
+    code: |
+      def job_ids(conn, status, min_attempts):
+          return conn.execute(
+              "SELECT id FROM jobs WHERE status = %s AND attempts >= %s ORDER BY id",
+              (status, min_attempts),
+          ).fetchall()
+explanation: |
+  psycopg sends the SQL text and the values separately, so a value can only ever be data. `%s` is psycopg's placeholder for every type, numbers included (sqlite3 uses `?`, so the style changes between drivers, but the idea does not). The `%` operator and f-strings build the SQL in Python before psycopg sees it, so they paste the value in and bring injection back; the third wrong solution shows that writing `%s` in the text is not enough, because the values must go in the second argument. `fetchall()` returns tuples, so the ids are picked out of each row. Alternative: pass `row_factory=dict_row` to `psycopg.connect` to get dictionaries, and use `= ANY(%s)` with a list when a statement must match many values.

@@ -1,0 +1,73 @@
+lesson: sql-04
+cards:
+  - id: sql-04-c-index-what
+    type: explain
+    competencies: [sql.indexes]
+    front: What does an index do for a query, and what does it cost?
+    back: A B-tree index keeps a column's values sorted, so the database can jump to the matching rows instead of reading the whole table. It helps =, ranges and ORDER BY on that column. The cost is disk space and slower inserts, updates and deletes, because every index must be changed too.
+  - id: sql-04-c-explain
+    type: basic
+    competencies: [sql.indexes]
+    front: What is the difference between EXPLAIN and EXPLAIN ANALYZE?
+    back: EXPLAIN shows the plan PostgreSQL would use without running the statement. EXPLAIN ANALYZE runs it and adds real row counts and times, so an UPDATE or DELETE really happens. Wrap writes in BEGIN and ROLLBACK to look at them safely.
+  - id: sql-04-c-seq-scan
+    type: explain
+    competencies: [sql.indexes]
+    front: An index exists on the column, yet EXPLAIN shows Seq Scan. Give two reasons this can be right.
+    back: The query returns a large share of the table, so reading it all is cheaper than jumping around. Or the table is small. A function on the column (lower(col)) also stops a plain index from being used. Stale statistics (fixed by ANALYZE) can also mislead the planner.
+  - id: sql-04-c-composite
+    type: basic
+    competencies: [sql.indexes]
+    front: In an index on (status, run_after), which queries match it best?
+    back: Queries that test status with = and then run_after with a range or ORDER BY. The index is sorted by status first, so a query without a test on the leading column gets little help.
+  - id: sql-04-c-atomicity
+    type: explain
+    competencies: [sql.transactions]
+    front: What does a transaction guarantee, and what do BEGIN, COMMIT and ROLLBACK do?
+    back: Its statements take effect all together or not at all (atomicity). BEGIN starts it, COMMIT makes its changes permanent and visible to others, and ROLLBACK throws them all away. ACID adds consistency (constraints hold), isolation and durability.
+  - id: sql-04-c-read-committed
+    type: explain
+    competencies: [sql.transactions]
+    front: What does READ COMMITTED, PostgreSQL's default isolation level, let a statement see?
+    back: Only data committed before that statement began, never another transaction's unfinished changes. It does not stop two workers from reading the same row before either updates it, which is why a queue claim needs a row lock.
+  - id: sql-04-c-skip-locked
+    type: explain
+    competencies: [sql.locking-queues]
+    front: Why does SELECT ... FOR UPDATE SKIP LOCKED let several workers share one queue table?
+    back: FOR UPDATE locks the row a worker takes until its transaction ends. SKIP LOCKED makes other workers pass over locked rows instead of waiting, so each gets a different job. Plain FOR UPDATE would make them queue up behind each other.
+  - id: sql-04-c-claim-shape
+    type: basic
+    competencies: [sql.locking-queues]
+    front: Describe the shape of a safe single-statement job claim.
+    back: UPDATE jobs SET status = 'running', attempts = attempts + 1 WHERE id = (SELECT id FROM jobs WHERE status = 'queued' AND run_after <= now ORDER BY ... LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING ... Reading and claiming happen in one statement, so there is no gap.
+  - id: sql-04-c-window
+    type: explain
+    competencies: [sql.window]
+    front: How does a window function differ from GROUP BY?
+    back: GROUP BY collapses each group to one row. A window function (func() OVER (PARTITION BY ... ORDER BY ...)) calculates over a set of related rows but keeps every row and adds a column, which suits rankings and running totals.
+  - id: sql-04-c-where-window
+    type: explain
+    competencies: [sql.window, sql.subqueries-ctes]
+    front: Why can you not write WHERE row_number() OVER (...) = 1, and what do you do instead?
+    back: Window functions are calculated after WHERE, so WHERE cannot see them. Compute the number in a subquery or CTE, then filter on it in the outer query. This is how you take the latest row for each group.
+  - id: sql-04-c-cte
+    type: basic
+    competencies: [sql.subqueries-ctes]
+    front: What is a CTE, and when do you use one?
+    back: A common table expression, WITH name AS (query), is a named step that exists for one statement. Use it to break a long query into steps that read from top to bottom, or to use a result twice. It is for readability, not a promise of speed.
+  - id: sql-04-c-jsonb
+    type: basic
+    competencies: [sql.jsonb]
+    front: Which jsonb operators do you need to read a webhook payload?
+    back: |-
+      -> steps into an object or array and returns jsonb, ->> returns text, and @> tests containment (payload @> '{"tags": ["urgent"]}'). A missing key gives NULL. Cast with brackets, (payload->>'n')::int. A GIN index speeds up @>.
+  - id: sql-04-c-migration
+    type: explain
+    competencies: [sql.migrations]
+    front: What is a migration, and why do you never edit one that has already run?
+    back: A migration is a versioned file of schema changes with an up part (apply) and a down part (undo), tracked by a tool such as Alembic. Others have already applied the old version, so editing it makes databases disagree. A fix goes in a new migration.
+  - id: sql-04-c-psycopg
+    type: explain
+    competencies: [sql.parameters]
+    front: How do you pass user input to PostgreSQL from Python with psycopg 3?
+    back: Write the SQL with %s placeholders and pass the values as a tuple in the second argument, conn.execute("... WHERE reason = %s", (reason,)). The SQL and the values travel separately, so a value is only ever data. Names of tables or columns cannot be placeholders.

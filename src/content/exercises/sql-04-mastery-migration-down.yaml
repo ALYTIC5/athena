@@ -1,0 +1,77 @@
+id: sql-04-mastery-migration-down
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: Write the down migration for cancellations
+difficulty: 3
+competencies:
+  - sql.migrations
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE bookings (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    customer_name text NOT NULL,
+    starts_at timestamp NOT NULL,
+    status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled')),
+    cancelled_at timestamp
+  );
+  CREATE TABLE booking_notes (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    booking_id integer NOT NULL REFERENCES bookings(id),
+    note text NOT NULL
+  );
+  CREATE INDEX bookings_status_starts_idx ON bookings (status, starts_at);
+  INSERT INTO bookings (customer_name, starts_at) VALUES
+    ('Amara Okafor', '2026-11-02 09:00'),
+    ('Jonas Weber',  '2026-11-03 14:00'),
+    ('Mei Tanaka',   '2026-11-04 11:30');
+  INSERT INTO booking_notes (booking_id, note) VALUES (1, 'Prefers a morning slot');
+prompt: |
+  The up migration for cancellations has been applied: `bookings` now has the columns `status` and `cancelled_at`, there is a `booking_notes` table that refers to `bookings`, and there is an index `bookings_status_starts_idx`.
+
+  Write the **down** migration that undoes all of that and puts the schema back as it was. The three bookings must still be there afterwards. Undo the steps in the opposite order to the up migration.
+starter: |
+  -- down migration
+hints:
+  - List what the up migration created or added. A down migration removes each of them.
+  - 'There are four things to remove: an index, a table, and two columns. Remove them in the reverse of the order they were added.'
+  - DROP INDEX ____;  DROP TABLE ____;  ALTER TABLE bookings DROP COLUMN ____;  ALTER TABLE bookings DROP COLUMN ____;
+referenceSolution: |
+  DROP INDEX bookings_status_starts_idx;
+  DROP TABLE booking_notes;
+  ALTER TABLE bookings DROP COLUMN cancelled_at;
+  ALTER TABLE bookings DROP COLUMN status;
+compare: none
+checks:
+  - SELECT count(*) = 3 FROM bookings
+  - SELECT count(*) = 0 FROM information_schema.columns WHERE table_name = 'bookings' AND column_name IN ('status', 'cancelled_at')
+  - SELECT count(*) = 0 FROM information_schema.tables WHERE table_name = 'booking_notes'
+  - SELECT count(*) = 0 FROM pg_indexes WHERE indexname = 'bookings_status_starts_idx'
+  - SELECT count(*) = 3 FROM information_schema.columns WHERE table_name = 'bookings'
+wrongSolutions:
+  - label: Drops the whole bookings table, so the bookings are lost
+    code: |
+      DROP INDEX bookings_status_starts_idx;
+      DROP TABLE booking_notes;
+      DROP TABLE bookings;
+      CREATE TABLE bookings (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, customer_name text NOT NULL, starts_at timestamp NOT NULL);
+  - label: Forgets the booking_notes table
+    code: |
+      DROP INDEX bookings_status_starts_idx;
+      ALTER TABLE bookings DROP COLUMN cancelled_at;
+      ALTER TABLE bookings DROP COLUMN status;
+  - label: Removes status but leaves cancelled_at behind
+    code: |
+      DROP INDEX bookings_status_starts_idx;
+      DROP TABLE booking_notes;
+      ALTER TABLE bookings DROP COLUMN status;
+  - label: Deletes the rows instead of changing the structure
+    code: |
+      DELETE FROM booking_notes;
+      DELETE FROM bookings;
+explanation: |
+  A down migration reverses the up migration step by step, last step first: the index, then the table that refers to `bookings`, then the two columns. It changes only structure, so the three bookings survive; dropping a column does discard that column's values, which is why a down migration for a column that held real data loses it. Dropping a column also drops any index that uses it, so naming the index first is for clarity rather than need. Alternative: in production many teams do not write down migrations and move forward with a new migration instead, because data removed by a down migration cannot be brought back.

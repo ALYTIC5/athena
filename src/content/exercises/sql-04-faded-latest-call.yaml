@@ -1,0 +1,94 @@
+id: sql-04-faded-latest-call
+lesson: sql-04
+runtime: sql
+kind: faded
+pools:
+  - lesson
+title: Each customer's most recent call
+difficulty: 2
+competencies:
+  - sql.window
+  - sql.subqueries-ctes
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL,
+    duration_s integer,
+    reason text NOT NULL,
+    started_at timestamp NOT NULL
+  );
+  INSERT INTO calls VALUES
+    (1, 1, 120,  'booking', '2026-11-02 09:00'),
+    (2, 1, 45,   'billing', '2026-11-06 10:00'),
+    (3, 2, 300,  'cancel',  '2026-11-02 11:00'),
+    (4, 3, NULL, 'booking', '2026-11-04 16:00'),
+    (5, 3, 200,  'booking', '2026-11-04 08:00'),
+    (6, 4, 400,  'billing', '2026-11-05 09:30'),
+    (7, 4, 20,   'booking', '2026-11-05 09:45'),
+    (8, 1, 90,   'info',    '2026-11-03 12:00');
+prompt: |
+  The `calls` table has `id`, `customer_id`, `duration_s` (NULL for an unanswered call), `reason` and `started_at`.
+
+  Return the `id` and `customer_id` of each customer's most recent call (by `started_at`), ordered by `customer_id`. Number each customer's calls from newest to oldest with `row_number()`, then keep number 1. Fill in the three blanks.
+starter: |
+  SELECT id, customer_id
+  FROM (
+    SELECT id, customer_id,
+           row_number() OVER (PARTITION BY ____ ORDER BY ____ DESC) AS rn
+    FROM calls
+  ) AS ranked
+  WHERE rn = ____
+  ORDER BY customer_id;
+hints:
+  - Which column splits the calls into one group per customer, and which column says which call is newest?
+  - PARTITION BY the customer, ORDER BY the start time with the newest first, and keep the row numbered 1.
+  - row_number() OVER (PARTITION BY customer_id ORDER BY ____ DESC) ... WHERE rn = ____
+referenceSolution: |
+  SELECT id, customer_id
+  FROM (
+    SELECT id, customer_id,
+           row_number() OVER (PARTITION BY customer_id ORDER BY started_at DESC) AS rn
+    FROM calls
+  ) AS ranked
+  WHERE rn = 1
+  ORDER BY customer_id;
+compare:
+  orderMatters: true
+  numericTolerance: 0.001
+checks: []
+wrongSolutions:
+  - label: Does not partition, so only one call is numbered 1 for the whole table
+    code: |
+      SELECT id, customer_id
+      FROM (
+        SELECT id, customer_id,
+               row_number() OVER (ORDER BY started_at DESC) AS rn
+        FROM calls
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY customer_id;
+  - label: Orders oldest first, so it returns each customer's first call
+    code: |
+      SELECT id, customer_id
+      FROM (
+        SELECT id, customer_id,
+               row_number() OVER (PARTITION BY customer_id ORDER BY started_at) AS rn
+        FROM calls
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY customer_id;
+  - label: Orders by id instead of by the time of the call
+    code: |
+      SELECT id, customer_id
+      FROM (
+        SELECT id, customer_id,
+               row_number() OVER (PARTITION BY customer_id ORDER BY id DESC) AS rn
+        FROM calls
+      ) AS ranked
+      WHERE rn = 1
+      ORDER BY customer_id;
+explanation: |
+  `row_number() OVER (PARTITION BY customer_id ORDER BY started_at DESC)` restarts the numbering for every customer and gives 1 to the newest call, without collapsing any rows. A window function runs after `WHERE`, so you cannot write `WHERE rn = 1` at the same query level; the subquery lets the outer query filter on `rn`. Ordering by `id` is a plausible mistake because ids often rise with time, but here customer 1's newest call has a lower id than an older one. Alternative: `SELECT DISTINCT ON (customer_id) id, customer_id FROM calls ORDER BY customer_id, started_at DESC` is shorter and PostgreSQL specific; the window version works in most databases and extends to 'the newest three'.

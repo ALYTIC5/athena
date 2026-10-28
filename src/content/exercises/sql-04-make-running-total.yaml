@@ -1,0 +1,96 @@
+id: sql-04-make-running-total
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: Calls per day with a running total
+difficulty: 3
+competencies:
+  - sql.window
+  - sql.subqueries-ctes
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL,
+    duration_s integer,
+    reason text NOT NULL,
+    started_at timestamp NOT NULL
+  );
+  INSERT INTO calls VALUES
+    (1, 1, 120,  'booking', '2026-11-02 09:00'),
+    (2, 1, 45,   'billing', '2026-11-06 10:00'),
+    (3, 2, 300,  'cancel',  '2026-11-02 11:00'),
+    (4, 3, NULL, 'booking', '2026-11-04 16:00'),
+    (5, 3, 200,  'booking', '2026-11-04 08:00'),
+    (6, 4, 400,  'billing', '2026-11-05 09:30'),
+    (7, 4, 20,   'booking', '2026-11-05 09:45'),
+    (8, 1, 90,   'info',    '2026-11-03 12:00');
+prompt: |
+  The `calls` table has `id`, `customer_id`, `duration_s` (NULL for an unanswered call), `reason` and `started_at`.
+
+  For each day on which there was at least one call, return three columns: `day` (the date of `started_at`; write `started_at::date` to cut a timestamp down to its date), `calls` (the number of calls that day) and `running_total` (the number of calls from the first day up to and including this day). Order by `day`. Use a CTE for the daily counts and a window function for the running total.
+starter: |
+  WITH per_day AS (
+    SELECT ...
+  )
+  SELECT ...
+hints:
+  - 'First get one row per day with its count. Then ask: what turns a per-row number into a running sum?'
+  - Count the calls per day in a CTE (group by the date), then in the final SELECT use sum(calls) as a window function with ORDER BY day.
+  - sum(calls) OVER (ORDER BY ____) AS running_total
+referenceSolution: |
+  WITH per_day AS (
+    SELECT started_at::date AS day, count(*) AS calls
+    FROM calls
+    GROUP BY started_at::date
+  )
+  SELECT day, calls, sum(calls) OVER (ORDER BY day) AS running_total
+  FROM per_day
+  ORDER BY day;
+compare:
+  orderMatters: true
+  numericTolerance: 0.001
+checks: []
+wrongSolutions:
+  - label: Partitions by day, so every running total restarts and equals that day's count
+    code: |
+      WITH per_day AS (
+        SELECT started_at::date AS day, count(*) AS calls
+        FROM calls
+        GROUP BY started_at::date
+      )
+      SELECT day, calls, sum(calls) OVER (PARTITION BY day ORDER BY day) AS running_total
+      FROM per_day
+      ORDER BY day;
+  - label: Orders the window newest first, so the totals run backwards
+    code: |
+      WITH per_day AS (
+        SELECT started_at::date AS day, count(*) AS calls
+        FROM calls
+        GROUP BY started_at::date
+      )
+      SELECT day, calls, sum(calls) OVER (ORDER BY day DESC) AS running_total
+      FROM per_day
+      ORDER BY day;
+  - label: Numbers every call instead of every day
+    code: |
+      SELECT started_at::date AS day, 1 AS calls,
+             count(*) OVER (ORDER BY started_at::date, id) AS running_total
+      FROM calls
+      ORDER BY day, id;
+  - label: Leaves the window ORDER BY out, so every row shows the grand total
+    code: |
+      WITH per_day AS (
+        SELECT started_at::date AS day, count(*) AS calls
+        FROM calls
+        GROUP BY started_at::date
+      )
+      SELECT day, calls, sum(calls) OVER () AS running_total
+      FROM per_day
+      ORDER BY day;
+explanation: |
+  The CTE `per_day` turns calls into one row per day. Then `sum(calls) OVER (ORDER BY day)` adds up the counts from the first day to the current row. With an `ORDER BY` and no frame, the window sums from the start up to the current row and its equal-day peers; that cannot matter here because each day has one row. Without `ORDER BY` in the window, the sum covers the whole table and every row shows the grand total. Alternative: `count(*) OVER (ORDER BY started_at::date)` on the raw calls gives the same totals without a CTE, but it returns one row per call.
