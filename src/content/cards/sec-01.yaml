@@ -1,0 +1,67 @@
+lesson: sec-01
+cards:
+  - id: sec-01-c-deleted-still-leaked
+    type: explain
+    competencies: [sec.history, sec.secrets]
+    front: Why is a secret still compromised after you delete the file and push the deletion?
+    back: Git keeps every commit. The earlier commit that contains the secret is still in the history that was pushed, and forks and clones may already hold a copy. Treat the secret as compromised.
+  - id: sec-01-c-incident-order
+    type: explain
+    competencies: [sec.history, sec.secrets]
+    front: You pushed a key. What are the steps, in order, and why that order?
+    back: Revoke or rotate the key first, because only that makes the leaked value useless. Then check the provider's logs for use, then purge history if it is still worth it, then add prevention. Purging first leaves a working key exposed in the meantime.
+  - id: sec-01-c-rewrite-limits
+    type: explain
+    competencies: [sec.history]
+    front: What can rewriting history with git filter-repo not remove the secret from?
+    back: Forks made earlier and other people's existing clones. It also does not make the key stop working. That is why you revoke or rotate first.
+  - id: sec-01-c-gitignore-tracked
+    type: basic
+    competencies: [sec.secrets, sec.history]
+    front: .env was already committed. You add it to .gitignore. How do you make Git stop tracking it, and what is still true?
+    back: Run `git rm --cached .env`. The old commits still contain the file, so if it held real secrets they must still be revoked.
+  - id: sec-01-c-gitignore-order
+    type: basic
+    competencies: [sec.secrets]
+    front: In .gitignore, when two patterns match the same file, which one wins?
+    back: The last matching pattern. So `!.env.example` must come after `.env.*`, or the example file is ignored again.
+  - id: sec-01-c-env-example
+    type: explain
+    competencies: [sec.secrets]
+    front: How do you manage secrets across environments without putting them in the repository?
+    back: Commit a .env.example with the setting names only. Keep real values in a git-ignored .env locally and in the secret store or environment variables of each platform (development, staging, production), using different keys for each.
+  - id: sec-01-c-hook-layers
+    type: explain
+    competencies: [sec.secrets]
+    front: Why is a pre-commit gitleaks hook not enough on its own?
+    back: It runs on one machine and `git commit --no-verify` skips it. Add a server-side layer such as GitHub push protection and a scan in CI.
+  - id: sec-01-c-push-protection
+    type: basic
+    competencies: [sec.secrets]
+    front: What does GitHub push protection do, and who can get past it?
+    back: It blocks a push that contains a detected secret before it reaches the repository. A user with write access can bypass it by giving a reason, which creates an alert and an audit entry.
+  - id: sec-01-c-client-public
+    type: explain
+    competencies: [sec.secrets]
+    front: Why is a secret key in client-side JavaScript public?
+    back: The browser must download the code to run it, so every visitor receives the key and can read it in the developer tools. Minifying does not hide it. Keep secret keys on a server you control.
+  - id: sec-01-c-least-privilege
+    type: explain
+    competencies: [sec.least-privilege]
+    front: What is least privilege for a key, and give two ways to apply it?
+    back: A key gets only the access its job needs. Give each service its own key, make it read-only if it only reads, and limit it to the repositories or resources it uses, for example with a GitHub fine-grained token.
+  - id: sec-01-c-a01
+    type: explain
+    competencies: [sec.owasp-basics]
+    front: What is broken access control (A01) and how do you prevent it?
+    back: A user can act outside their permissions, for example by changing an id in a URL to read someone else's record. Deny by default and check ownership and permission on the server for every request. Hiding a button in JavaScript is not access control.
+  - id: sec-01-c-a05
+    type: explain
+    competencies: [sec.owasp-basics]
+    front: What is injection (A05) and what is the preferred defence?
+    back: Untrusted input reaches an interpreter, such as a database, and part of it runs as a command. Keep data separate from commands with parameterised queries. Escaping by hand is fragile.
+  - id: sec-01-c-a07
+    type: explain
+    competencies: [sec.owasp-basics]
+    front: Name three defences against authentication failures (A07).
+    back: Multi-factor authentication, rate limits on failed logins, and checking new passwords against known breached ones. Also give the same message for every failed login, and invalidate sessions on logout.
