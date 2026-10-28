@@ -23,7 +23,7 @@
     - id: wri-01
       title: 'READMEs, pull requests and design notes'
       durationMin: 75
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Approach practice, untimed'

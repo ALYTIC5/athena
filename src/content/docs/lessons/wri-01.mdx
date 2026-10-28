@@ -1,0 +1,242 @@
+---
+title: READMEs, pull requests and design notes
+description: What a README must answer, how to write a pull request description a reviewer can act on, and how to write a one-page design note.
+sidebar:
+  order: 26
+lessonId: wri-01
+week: 2
+track: wri
+durationMin: 75
+anatomy: short
+competencies: [wri.readme, wri.pr-description, wri.design-note]
+prerequisites: [git-01, sec-01]
+whyItMatters: >
+  English communication appears in 59% of the postings you are targeting, and the writing a team sees first is a README,
+  a pull request description or a design note. A reader who has no context decides in a minute whether your work is
+  clear and safe to approve. Good short documents also save you hours of explaining the same thing in chat.
+objectives:
+  - List the questions a README must answer, and find the ones a README leaves unanswered
+  - Write a pull request description that gives the reviewer the reason, the change and the evidence
+  - Write a one-page design note with context, goals, non-goals, options, a decision and risks
+sources:
+  - title: "GitHub Docs: about READMEs"
+    url: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+  - title: "GitHub Docs: creating a pull request"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
+  - title: "GitHub Docs: linking a pull request to an issue"
+    url: https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue
+  - title: "GitHub Docs: creating a pull request template for your repository"
+    url: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository
+  - title: "PEP 12: sample reStructuredText PEP template"
+    url: https://peps.python.org/pep-0012/
+---
+
+## Why this matters
+
+English communication appears in 59% of the postings you are targeting, and the writing a team sees first is a README, a pull request description or a design note. A reader who has no context decides in a minute whether your work is clear and safe to approve. Good short documents also save you hours of explaining the same thing in chat.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. List the questions a README must answer, and find the ones a README leaves unanswered.
+2. Write a pull request description that gives the reviewer the reason, the change and the evidence.
+3. Write a one-page design note with context, goals, non-goals, options, a decision and risks.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know what a pull request and an issue are (git-01), and why a real key never goes in a repository (sec-01).
+
+The mastery exercises use a little Python: a loop, `startswith`, `strip`, `lower` and a true/false flag. Each has a three-step hint ladder that shows them.
+
+Markdown is the plain-text format that READMEs use. `#` starts a heading (`##` makes a level-2 heading), and three backticks start and end a code block.
+
+All example projects are invented. Practice in these documents varies between teams, so the lesson teaches the common core and tells you where teams differ.
+
+</Callout>
+
+<Chunk n={1} title="A README answers five questions">
+
+A **README** is the file a reader opens first, and GitHub shows it on the repository's front page. Write it for a stranger who has two minutes. This lesson teaches five questions, in this order (GitHub's own page suggests a slightly different list, and teams vary):
+
+1. What is this, and who is it for?
+2. How do I run it? This is the **quickstart**: exact commands, in order, that can be copied.
+3. How do I use it? One example with the output it produces.
+4. How do I configure it? List setting names and what they do. Never write a real key (see sec-01).
+5. How do I test it and change it?
+
+As headings these become Overview, Quickstart, Usage, Configuration and Tests, and the exercises and checklist use these names.
+
+Long reference material does not belong in front of these answers. Link to it instead. The two minutes are a target, not a rule, and teams add sections such as a licence or a status note.
+
+**Worked example.** The start of a README for an invented booking service. Each comment says which question the line answers.
+
+````markdown
+# Slotkeeper
+
+## Overview
+
+Slotkeeper reserves appointment slots for small salons and sends a     <!-- 1: what, who -->
+reminder the day before. It is for developers who run their own booking page.
+
+## Quickstart
+
+```bash
+git clone https://example.com/slotkeeper.git                           # 2: copyable commands
+cd slotkeeper && pip install -r requirements.txt
+python -m slotkeeper                                                   # the command that runs it
+```
+````
+
+Here is the same Quickstart with the key parts removed. Fill in the blanks before you open the answer.
+
+````markdown
+## Quickstart
+
+```bash
+git clone ____
+cd slotkeeper && ____
+python -m slotkeeper
+```
+````
+
+<details>
+<summary>Answer</summary>
+
+The clone line needs the repository address, and the second line needs the install command, `pip install -r requirements.txt`. The test: could a stranger run it without asking you anything?
+
+</details>
+
+<Quiz lesson="wri-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A longer README is a better README." Readers leave before the quickstart. Keep it to the first two minutes and link the rest.
+- "The quickstart works because it worked on my machine." Run it in a fresh clone. Anything you did once and forgot is a missing step.
+- "I can put a test key in the README to make starting easier." A key in the repository stays in the history (sec-01).
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="A pull request description gives the reviewer three things">
+
+A **pull request** asks a teammate to review and merge a change. The reviewer can read the diff (the lines that changed), but the diff cannot show the reason for the change or how you checked it. The description should give three things:
+
+- **Why:** the problem and who it affects. Link the issue.
+- **What changed:** the approach in a few sentences, and anything surprising. Do not retell the diff.
+- **Testing (how it was checked):** the exact commands and results, and what you did not check.
+
+The title says what the change does. Many teams write it as a command, such as "Reject overlapping bookings", keep it short (the exercise uses 72 characters) and leave off the full stop; these are conventions, not GitHub rules. Writing `Closes #42` links the pull request to issue 42, and GitHub closes the issue when the pull request is merged into the default branch (the branch the repository treats as its main line, usually `main`). A **pull request template** (a file such as `.github/pull_request_template.md`) pre-fills these headings in every new pull request.
+
+**Worked example.** Compare two descriptions of the same change.
+
+```markdown
+Title: Fixed bug
+Body:  Fixed the bug. Please review.
+```
+
+```markdown
+Title: Reject a booking that overlaps an existing one
+
+## Why
+Two guests could book the 10:00 slot at the same salon. Closes #42.
+
+## What changed
+`create_booking` now looks for an overlapping booking before it saves.
+The check is in `bookings.py`; `test_bookings.py` has three new tests.
+
+## Testing
+Ran `pytest tests/test_bookings.py`: 12 passed.
+Not checked: a booking that crosses midnight.
+```
+
+Now complete the sentence yourself: for a change that adds a daily reminder message, the "Why" would say ____, and "Testing" would name ____.
+
+<details>
+<summary>Possible answer</summary>
+
+"Guests miss appointments because nothing reminds them (#57)", and the command you ran, such as `pytest tests/test_reminders.py`, with its result and what you did not test, such as a guest in another time zone.
+
+</details>
+
+<Quiz lesson="wri-01" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "The diff speaks for itself." It shows what changed, not why, or what to run to check it.
+- "'Tested' is enough." It gives the reviewer nothing to repeat. Name the command and the result.
+- "A bigger pull request needs a longer description." Keep changes small so one short description covers them.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="A design note settles the choice before the code">
+
+A **design note** is a short document that proposes how to build something, written before you build it. Teams also call it a design doc or an RFC (request for comments). Python's own proposals, called [PEPs](https://peps.python.org/pep-0012/) (Python Enhancement Proposals), have sections for motivation and rejected ideas, which is the same idea. Disagreements are cheapest to settle in a page of text.
+
+Keep it to one page, with these parts:
+
+- **Context:** the problem, and why now.
+- **Goals:** what success looks like, in checkable terms.
+- **Non-goals:** tempting things you will not do, with a reason.
+- **Options:** at least two, each with what it costs and what it gives.
+- **Decision:** the option you choose, the reason tied to your goals, and what you accept losing.
+- **Risks and open questions:** what could go wrong and your first response.
+
+**Worked example.** A condensed note for an invented service.
+
+```markdown
+# Missed-call text-back
+
+Context: Callers who reach voicemail rarely call back. We want to text them.
+Goals: send a text within 5 minutes of a missed call; never text one number twice in a day;
+       never lose a text because the SMS provider is down for a while.
+Non-goals: two-way conversations (a later project).
+Options: A) send the text at once, inside the code that handles the call. Fast, but an outage loses messages.
+         B) save each message in a waiting list and send from a separate process. Survives outages.
+Decision: B. It meets "never lost" in the goals; we accept running one more process.
+Risks: a long waiting list delays texts. First response: alert at 100 waiting messages.
+```
+
+Fill in the blank: in the note above, the decision is tied to the goals because ____.
+
+<details>
+<summary>Answer</summary>
+
+It says option B was chosen because it meets the goal that messages are never lost, and it states the cost: one more process to run.
+
+</details>
+
+<Quiz lesson="wri-01" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "A design note should describe the best solution only." Without a real alternative, the reader cannot tell whether you chose or assumed.
+- "Longer means more careful." A note nobody finishes settles nothing. Cut to what changes the decision.
+- "Non-goals are things we have not thought of." They are things you considered and left out on purpose.
+
+</Callout>
+
+</Chunk>
+
+## Practise on your own work
+
+This checklist is self-assessed. Do it with one of your own repositories. Nothing is sent to Athena.
+
+<Checklist id="wri-01-checklist-readme-review" />
+
+Now write a design note, in a text editor, for this brief: **a booking reminder service** sends a text message the day before each appointment. Decide how the service finds the bookings that need a reminder, and when it sends them. Use the six parts from chunk 3, and keep it to one page. Then rate your note.
+
+<Rubric id="wri-01-rubric-design-note" />
+
+## Mastery check
+
+<MasteryCheck lesson="wri-01" count={6} />
+
+## Further reading
+
+- [GitHub Docs: about READMEs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes)
+- [GitHub Docs: creating a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
+- [GitHub Docs: creating a pull request template for your repository](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository)
