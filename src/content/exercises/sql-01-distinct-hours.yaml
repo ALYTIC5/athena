@@ -1,0 +1,56 @@
+id: sql-01-distinct-hours
+lesson: sql-01
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'Hours with calls'
+difficulty: 1
+competencies:
+  - sql.select
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    hour integer NOT NULL,
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO calls VALUES
+    (1, 'Amara', 11, 120, 'booking'),
+    (2, 'Bayu', 9, 45, 'billing'),
+    (3, 'Chen', 9, NULL, NULL),
+    (4, 'Dara', 9, 300, 'booking'),
+    (5, 'Esi', 16, 60, NULL),
+    (6, 'Farid', 10, 15, 'cancel'),
+    (7, 'Gita', 15, NULL, 'booking'),
+    (8, 'Hana', 12, 200, 'billing'),
+    (9, 'Ivo', 11, 90, 'booking'),
+    (10, 'Jun', 10, 30, 'cancel');
+prompt: |
+  The table `calls` has one row per call: `id`, `caller_name`, `hour` (0 to 23), `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if no reason was recorded). Keep the column names.
+
+  List each hour at which at least one call started, once each, earliest first. Return one column, `hour`.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT DISTINCT hour FROM calls ORDER BY hour;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Returns one row per call, so hours repeat'
+    code: |
+      SELECT hour FROM calls ORDER BY hour;
+  - label: 'Sorts the latest hour first'
+    code: |
+      SELECT DISTINCT hour FROM calls ORDER BY hour DESC;
+hints:
+  - 'Several calls can start in the same hour. How do you ask for each value only once?'
+  - 'Put the keyword that removes repeated rows straight after SELECT, and sort by hour.'
+  - 'SELECT ____ hour FROM calls ORDER BY hour;'
+explanation: |
+  `SELECT DISTINCT hour` removes repeated rows from the result, so each hour appears once. Without it you get one row per call. `DISTINCT` works on the whole row of selected columns, so with two columns it removes only pairs that repeat.

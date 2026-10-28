@@ -1,0 +1,59 @@
+id: sql-01-select-columns
+lesson: sql-01
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'Pick two columns'
+difficulty: 1
+competencies:
+  - sql.select
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    caller_name text NOT NULL,
+    hour integer NOT NULL,
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO calls VALUES
+    (1, 'Amara', 11, 120, 'booking'),
+    (2, 'Bayu', 9, 45, 'billing'),
+    (3, 'Chen', 9, NULL, NULL),
+    (4, 'Dara', 9, 300, 'booking'),
+    (5, 'Esi', 16, 60, NULL),
+    (6, 'Farid', 10, 15, 'cancel'),
+    (7, 'Gita', 15, NULL, 'booking'),
+    (8, 'Hana', 12, 200, 'billing'),
+    (9, 'Ivo', 11, 90, 'booking'),
+    (10, 'Jun', 10, 30, 'cancel');
+prompt: |
+  The table `calls` has one row per call: `id`, `caller_name`, `hour` (0 to 23), `duration_s` (seconds, or NULL if the call was not answered) and `reason` (NULL if no reason was recorded). Keep the column names.
+
+  Select `caller_name` and `hour` of every call, in `id` order.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT caller_name, hour FROM calls ORDER BY id;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Returns every column with SELECT *'
+    code: |
+      SELECT * FROM calls ORDER BY id;
+  - label: 'Leaves out the hour column'
+    code: |
+      SELECT caller_name FROM calls ORDER BY id;
+  - label: 'Puts the columns in the wrong order'
+    code: |
+      SELECT hour, caller_name FROM calls ORDER BY id;
+hints:
+  - 'Which columns does the question name, and in which order?'
+  - 'List the two column names after SELECT, separated by a comma, and sort with ORDER BY id.'
+  - 'SELECT ____, ____ FROM calls ORDER BY ____;'
+explanation: |
+  `SELECT` lists the columns you want, in the order you list them. `SELECT *` returns every column, which is handy for a quick look but not for a result another program will read, because the columns can change. `ORDER BY id` makes the row order certain. Without it, PostgreSQL does not promise any order.
