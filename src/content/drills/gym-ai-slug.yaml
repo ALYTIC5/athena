@@ -1,0 +1,113 @@
+id: gym-ai-slug
+kind: ai-assisted
+title: 'Slugs for page titles'
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `slugify` should turn a page title into a URL slug: lowercase, accents folded to plain letters, every run of spaces
+  or punctuation collapsed into a single hyphen, and no hyphen at either end. An optional `max_length` cuts the slug
+  short. The tests below fail. You may use an AI assistant. Before each prompt, write down what you think is wrong and
+  why. Verify any answer with the tests before you trust it, and re-run all of them after every change.
+files:
+  slugs.py: |
+    """Turn page titles into URL slugs."""
+    import re
+    import unicodedata
+
+
+    def fold_accents(text):
+        """Replace accented letters with their plain base letter and drop any other non-ASCII character."""
+        decomposed = unicodedata.normalize("NFC", text)
+        return decomposed.encode("ascii", "ignore").decode("ascii")
+
+
+    def slugify(title, max_length=None):
+        """Lowercase slug of a title, at most max_length characters, with no hyphen at either end."""
+        text = fold_accents(title).lower()
+        text = re.sub(r"[^a-z0-9]", "-", text)
+        text = text.strip("-")
+        if max_length is not None:
+            text = text[:max_length]
+        return text
+
+
+    def unique_slugs(titles):
+        """Slug for each title; a repeated slug gets -2, -3 and so on."""
+        seen = {}
+        result = []
+        for title in titles:
+            slug = slugify(title)
+            count = seen.get(slug, 0) + 1
+            seen[slug] = count
+            result.append(slug if count == 1 else f"{slug}-{count}")
+        return result
+failingTest: |
+  from slugs import slugify, unique_slugs
+
+
+  def test_plain_title():
+      assert slugify("Hello World") == "hello-world"
+      assert slugify("already-a-slug") == "already-a-slug"
+
+
+  def test_runs_of_punctuation_collapse_to_one_hyphen():
+      assert slugify("  Hello,   World!! ") == "hello-world"
+      assert slugify("a -- b") == "a-b"
+
+
+  def test_accents_are_folded_not_dropped():
+      assert slugify("Café Münster") == "cafe-munster"
+      assert slugify("naïve") == "naive"
+
+
+  def test_max_length_never_leaves_a_trailing_hyphen():
+      assert slugify("Hello World Again", 11) == "hello-world"
+      assert slugify("Hello World Again", 6) == "hello"
+
+
+  def test_title_without_letters_gives_empty_slug():
+      assert slugify("!!!") == ""
+      assert slugify("") == ""
+
+
+  def test_unique_slugs_numbers_repeats():
+      assert unique_slugs(["Intro", "Setup", "intro!", "Intro"]) == ["intro", "setup", "intro-2", "intro-3"]
+bugExplanation: |
+  There are three separate problems. The regex replaces each non-alphanumeric character on its own, so a run of
+  punctuation becomes several hyphens; it needs `[^a-z0-9]+`. `fold_accents` normalises with NFC, which keeps "é" as one
+  character that the ASCII encode then drops ("café" becomes "caf"); NFKD splits it into "e" plus a combining mark, and
+  only the mark is dropped. Finally the hyphen is stripped before the length cut, so a cut that lands just after a word
+  leaves a trailing hyphen; cut first, then strip.
+fixedFiles:
+  slugs.py: |
+    """Turn page titles into URL slugs."""
+    import re
+    import unicodedata
+
+
+    def fold_accents(text):
+        """Replace accented letters with their plain base letter and drop any other non-ASCII character."""
+        decomposed = unicodedata.normalize("NFKD", text)
+        return decomposed.encode("ascii", "ignore").decode("ascii")
+
+
+    def slugify(title, max_length=None):
+        """Lowercase slug of a title, at most max_length characters, with no hyphen at either end."""
+        text = fold_accents(title).lower()
+        text = re.sub(r"[^a-z0-9]+", "-", text)
+        if max_length is not None:
+            text = text[:max_length]
+        text = text.strip("-")
+        return text
+
+
+    def unique_slugs(titles):
+        """Slug for each title; a repeated slug gets -2, -3 and so on."""
+        seen = {}
+        result = []
+        for title in titles:
+            slug = slugify(title)
+            count = seen.get(slug, 0) + 1
+            seen[slug] = count
+            result.append(slug if count == 1 else f"{slug}-{count}")
+        return result

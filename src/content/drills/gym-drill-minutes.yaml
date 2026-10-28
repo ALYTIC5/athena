@@ -5,7 +5,16 @@ competencies: [int.code-reading]
 timeLimitMin: 30
 files:
   loader.py: |
-    """Read call-minute rows from simple text lines such as "Amara,9"."""
+    """Read call-minute rows from simple text lines such as "Amara,9".
+
+    Blank lines and lines starting with "#" are ignored.
+    """
+
+
+    def is_data_line(line):
+        """True for a line that holds a row (not blank, not a comment)."""
+        stripped = line.strip()
+        return bool(stripped) and not stripped.startswith("#")
 
 
     def parse_row(line):
@@ -15,8 +24,20 @@ files:
 
 
     def parse_rows(text):
-        """Parse every non-empty line of text."""
-        return [parse_row(line) for line in text.splitlines() if line.strip()]
+        """Parse every data line of text."""
+        return [parse_row(line) for line in text.splitlines() if is_data_line(line)]
+
+
+    def merge_agents(rows):
+        """Combine rows of the same agent into one row, keeping first-seen order."""
+        merged = {}
+        for row in rows:
+            name = row["agent"]
+            if name in merged:
+                merged[name]["minutes"] += row["minutes"]
+            else:
+                merged[name] = {"agent": name, "minutes": row["minutes"]}
+        return list(merged.values())
   stats.py: |
     """Statistics over parsed call-minute rows."""
 
@@ -42,11 +63,43 @@ files:
         """Names of the agents with more minutes than the average, in the order of the rows."""
         average = average_minutes(rows)
         return [row["agent"] for row in rows if row["minutes"] > average]
+
+
+    def median_minutes(rows):
+        """Median of the minutes (mean of the middle two for an even count). Zero for no rows."""
+        if not rows:
+            return 0
+        values = sorted(row["minutes"] for row in rows)
+        middle = len(values) // 2
+        if len(values) % 2:
+            return values[middle]
+        return (values[middle - 1] + values[middle]) / 2
+
+
+    def minutes_by_agent(rows):
+        """{agent: minutes} for rows, adding up repeated agents."""
+        totals = {}
+        for row in rows:
+            totals[row["agent"]] = totals.get(row["agent"], 0) + row["minutes"]
+        return totals
+
+
+    def share_of_total(rows):
+        """Percentage of all minutes handled by each agent, rounded to a whole number."""
+        total = total_minutes(rows)
+        if total == 0:
+            return {row["agent"]: 0 for row in rows}
+        return {row["agent"]: round(100 * row["minutes"] / total) for row in rows}
   report.py: |
     """A short text report on call minutes."""
 
-    from loader import parse_rows
-    from stats import average_minutes, busiest, total_minutes
+    from loader import merge_agents, parse_rows
+    from stats import average_minutes, busiest, median_minutes, share_of_total, total_minutes
+
+
+    def pluralize(count, word):
+        """Text such as "1 agent" or "2 agents"."""
+        return f"{count} {word}" if count == 1 else f"{count} {word}s"
 
 
     def report(text, top=2):
@@ -55,8 +108,27 @@ files:
         for row in busiest(rows, top):
             lines.append(f"{row['agent']}: {row['minutes']} min")
         return "\n".join(lines)
+
+
+    def shares_line(text):
+        """One line such as "Amara 33%, Bilal 67%" in the order of the rows."""
+        rows = merge_agents(parse_rows(text))
+        shares = share_of_total(rows)
+        return ", ".join(f"{name} {percent}%" for name, percent in shares.items())
+
+
+    def summary(text):
+        """Agent count, median and the shares line, separated by semicolons."""
+        rows = merge_agents(parse_rows(text))
+        parts = [
+            pluralize(len(rows), "agent"),
+            f"median {median_minutes(rows)} min",
+            shares_line(text),
+        ]
+        return "; ".join(parts)
 failingTest: |
-  from loader import parse_rows
+  from loader import merge_agents, parse_rows
+  from report import summary
   from stats import above_average, busiest, total_minutes
 
   DATA = "Amara,9\nBilal,40\nChen,10\nDeji,5\n"
@@ -71,13 +143,30 @@ failingTest: |
       rows = parse_rows(DATA)
       assert total_minutes(rows) == 64
       assert above_average(rows) == ["Bilal"]
+
+
+  def test_repeated_agents_are_added_up_and_summarised():
+      text = "# week 1\nAmara,9\nBilal,40\nAmara,11\n"
+      rows = merge_agents(parse_rows(text))
+      assert [(row["agent"], row["minutes"]) for row in rows] == [("Amara", 20), ("Bilal", 40)]
+      assert summary(text) == "2 agents; median 30.0 min; Amara 33%, Bilal 67%"
 bugExplanation: |
   `parse_row` returns the minutes as the text it read (`"9"`, `"40"`), not as numbers. Text compares letter by letter,
-  so `"9"` is greater than `"40"` and `busiest` puts the wrong agents first; `sum` over text raises a `TypeError`. The
-  conversion belongs where the data enters the program: use `int(minutes.strip())` in `parse_row`.
+  so `"9"` is greater than `"40"` and `busiest` puts the wrong agents first; `sum` over text raises a `TypeError`, and
+  `merge_agents` would glue `"9"` and `"11"` into `"911"`. The conversion belongs where the data enters the program: use
+  `int(minutes.strip())` in `parse_row`. The statistics functions are correct once they receive numbers.
 fixedFiles:
   loader.py: |
-    """Read call-minute rows from simple text lines such as "Amara,9"."""
+    """Read call-minute rows from simple text lines such as "Amara,9".
+
+    Blank lines and lines starting with "#" are ignored.
+    """
+
+
+    def is_data_line(line):
+        """True for a line that holds a row (not blank, not a comment)."""
+        stripped = line.strip()
+        return bool(stripped) and not stripped.startswith("#")
 
 
     def parse_row(line):
@@ -87,8 +176,20 @@ fixedFiles:
 
 
     def parse_rows(text):
-        """Parse every non-empty line of text."""
-        return [parse_row(line) for line in text.splitlines() if line.strip()]
+        """Parse every data line of text."""
+        return [parse_row(line) for line in text.splitlines() if is_data_line(line)]
+
+
+    def merge_agents(rows):
+        """Combine rows of the same agent into one row, keeping first-seen order."""
+        merged = {}
+        for row in rows:
+            name = row["agent"]
+            if name in merged:
+                merged[name]["minutes"] += row["minutes"]
+            else:
+                merged[name] = {"agent": name, "minutes": row["minutes"]}
+        return list(merged.values())
   stats.py: |
     """Statistics over parsed call-minute rows."""
 
@@ -114,11 +215,43 @@ fixedFiles:
         """Names of the agents with more minutes than the average, in the order of the rows."""
         average = average_minutes(rows)
         return [row["agent"] for row in rows if row["minutes"] > average]
+
+
+    def median_minutes(rows):
+        """Median of the minutes (mean of the middle two for an even count). Zero for no rows."""
+        if not rows:
+            return 0
+        values = sorted(row["minutes"] for row in rows)
+        middle = len(values) // 2
+        if len(values) % 2:
+            return values[middle]
+        return (values[middle - 1] + values[middle]) / 2
+
+
+    def minutes_by_agent(rows):
+        """{agent: minutes} for rows, adding up repeated agents."""
+        totals = {}
+        for row in rows:
+            totals[row["agent"]] = totals.get(row["agent"], 0) + row["minutes"]
+        return totals
+
+
+    def share_of_total(rows):
+        """Percentage of all minutes handled by each agent, rounded to a whole number."""
+        total = total_minutes(rows)
+        if total == 0:
+            return {row["agent"]: 0 for row in rows}
+        return {row["agent"]: round(100 * row["minutes"] / total) for row in rows}
   report.py: |
     """A short text report on call minutes."""
 
-    from loader import parse_rows
-    from stats import average_minutes, busiest, total_minutes
+    from loader import merge_agents, parse_rows
+    from stats import average_minutes, busiest, median_minutes, share_of_total, total_minutes
+
+
+    def pluralize(count, word):
+        """Text such as "1 agent" or "2 agents"."""
+        return f"{count} {word}" if count == 1 else f"{count} {word}s"
 
 
     def report(text, top=2):
@@ -127,3 +260,21 @@ fixedFiles:
         for row in busiest(rows, top):
             lines.append(f"{row['agent']}: {row['minutes']} min")
         return "\n".join(lines)
+
+
+    def shares_line(text):
+        """One line such as "Amara 33%, Bilal 67%" in the order of the rows."""
+        rows = merge_agents(parse_rows(text))
+        shares = share_of_total(rows)
+        return ", ".join(f"{name} {percent}%" for name, percent in shares.items())
+
+
+    def summary(text):
+        """Agent count, median and the shares line, separated by semicolons."""
+        rows = merge_agents(parse_rows(text))
+        parts = [
+            pluralize(len(rows), "agent"),
+            f"median {median_minutes(rows)} min",
+            shares_line(text),
+        ]
+        return "; ".join(parts)

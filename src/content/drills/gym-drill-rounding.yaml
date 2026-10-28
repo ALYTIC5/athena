@@ -1,0 +1,281 @@
+id: gym-drill-rounding
+kind: code-reading
+title: 'The invoice that is a cent short'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  money.py: |
+    """Money helpers. Amounts are integer cents; rates are integer basis points (1 bp = 0.01%)."""
+
+    BPS = 10_000
+
+
+    def to_cents(text):
+        """Parse a decimal string such as '12.5' or '3' into cents without using floats."""
+        whole, _, frac = text.strip().partition(".")
+        frac = (frac + "00")[:2]
+        return int(whole) * 100 + int(frac)
+
+
+    def format_cents(cents):
+        """Format cents as a string like '12.50'."""
+        sign = "-" if cents < 0 else ""
+        dollars, rest = divmod(abs(cents), 100)
+        return f"{sign}{dollars}.{rest:02d}"
+
+
+    def apply_bps(amount, bps):
+        """Return amount * bps / 10000 rounded to whole cents (half a cent rounds up)."""
+        return round(amount * bps / BPS)
+
+
+    def floor_bps(amount, bps):
+        """Return amount * bps / 10000 rounded down, for where the customer must never be overcharged."""
+        return amount * bps // BPS
+  invoice.py: |
+    """Invoices: line items, a percentage discount, tax and a total."""
+
+    from money import apply_bps, floor_bps, format_cents
+
+
+    class LineItem:
+        """A described item with a unit price in cents and a quantity."""
+
+        def __init__(self, description, unit_cents, quantity=1):
+            self.description = description
+            self.unit_cents = unit_cents
+            self.quantity = quantity
+
+        def total(self):
+            """Price of the whole line in cents."""
+            return self.unit_cents * self.quantity
+
+
+    class Invoice:
+        """An invoice whose discount (in bps) is applied before tax (in bps)."""
+
+        def __init__(self, number, tax_bps, discount_bps=0):
+            self.number = number
+            self.tax_bps = tax_bps
+            self.discount_bps = discount_bps
+            self.items = []
+
+        def add(self, description, unit_cents, quantity=1):
+            """Append a line item and return it."""
+            item = LineItem(description, unit_cents, quantity)
+            self.items.append(item)
+            return item
+
+        def subtotal(self):
+            """Sum of all line totals."""
+            return sum(item.total() for item in self.items)
+
+        def discount(self):
+            """Discount in cents; always rounded down so the customer is never overcharged."""
+            return floor_bps(self.subtotal(), self.discount_bps)
+
+        def taxable(self):
+            """Amount tax is charged on."""
+            return self.subtotal() - self.discount()
+
+        def tax(self):
+            """Tax in cents on the discounted amount."""
+            return apply_bps(self.taxable(), self.tax_bps)
+
+        def total(self):
+            """Amount due in cents."""
+            return self.taxable() + self.tax()
+
+        def lines(self):
+            """Printable lines for the invoice, ending with the total."""
+            rows = [f"{item.description} x{item.quantity}  {format_cents(item.total())}" for item in self.items]
+            rows.append(f"Subtotal  {format_cents(self.subtotal())}")
+            if self.discount_bps:
+                rows.append(f"Discount  -{format_cents(self.discount())}")
+            rows.append(f"Tax  {format_cents(self.tax())}")
+            rows.append(f"Total  {format_cents(self.total())}")
+            return rows
+  split.py: |
+    """Splitting an invoice between people."""
+
+    from money import apply_bps, format_cents
+
+
+    def split_evenly(total, people):
+        """Split total cents into `people` shares that differ by at most one cent and add up to total."""
+        if people < 1:
+            raise ValueError("need at least one person")
+        base, extra = divmod(total, people)
+        return [base + 1 if i < extra else base for i in range(people)]
+
+
+    def split_invoice(invoice, people, tip_bps=0):
+        """Split an invoice plus a tip (in bps of the invoice total) between people."""
+        total = invoice.total()
+        tip = apply_bps(total, tip_bps)
+        return split_evenly(total + tip, people)
+
+
+    def share_lines(shares):
+        """One printable line per person, numbered from 1."""
+        return [f"Person {i}: {format_cents(share)}" for i, share in enumerate(shares, start=1)]
+failingTest: |
+  from invoice import Invoice
+  from split import split_evenly, split_invoice
+
+
+  def test_shares_always_add_up_to_the_total():
+      assert sum(split_evenly(1001, 3)) == 1001
+      inv = Invoice("A-1", tax_bps=0)
+      inv.add("Dinner", 3333)
+      shares = split_invoice(inv, 4)
+      assert sum(shares) == 3333
+      assert max(shares) - min(shares) <= 1
+
+
+  def test_discount_rounds_down():
+      inv = Invoice("A-2", tax_bps=0, discount_bps=1250)
+      inv.add("Parts", 1001)
+      assert inv.discount() == 125
+      assert inv.total() == 876
+
+
+  def test_tax_of_half_a_cent_rounds_up():
+      inv = Invoice("A-3", tax_bps=1000)
+      inv.add("Pen", 25)
+      assert inv.tax() == 3
+      assert inv.total() == 28
+      other = Invoice("A-4", tax_bps=1000)
+      other.add("Ink", 45)
+      assert other.total() == 50
+
+
+  def test_less_than_half_a_cent_rounds_down():
+      inv = Invoice("A-6", tax_bps=1000)
+      inv.add("Clip", 24)
+      assert inv.tax() == 2
+      assert inv.total() == 26
+
+
+  def test_split_with_a_tip():
+      inv = Invoice("A-5", tax_bps=0)
+      inv.add("Coffee", 25)
+      assert split_invoice(inv, 1, tip_bps=1000) == [28]
+bugExplanation: |
+  `apply_bps` promises that half a cent rounds up, but it uses `round(amount * bps / BPS)`. Python's `round` rounds exact halves to the nearest even integer, so 2.5 becomes 2 and 4.5 becomes 4 while 3.5 becomes 4. Tax and tips that land exactly on half a cent are therefore sometimes a cent short, depending on the parity of the result. `floor_bps` and `split_evenly` are correct: the discount is meant to round down and `divmod` hands out the remainder cent by cent. Use integer arithmetic instead, for example `(amount * bps + BPS // 2) // BPS`.
+fixedFiles:
+  money.py: |
+    """Money helpers. Amounts are integer cents; rates are integer basis points (1 bp = 0.01%)."""
+
+    BPS = 10_000
+
+
+    def to_cents(text):
+        """Parse a decimal string such as '12.5' or '3' into cents without using floats."""
+        whole, _, frac = text.strip().partition(".")
+        frac = (frac + "00")[:2]
+        return int(whole) * 100 + int(frac)
+
+
+    def format_cents(cents):
+        """Format cents as a string like '12.50'."""
+        sign = "-" if cents < 0 else ""
+        dollars, rest = divmod(abs(cents), 100)
+        return f"{sign}{dollars}.{rest:02d}"
+
+
+    def apply_bps(amount, bps):
+        """Return amount * bps / 10000 rounded to whole cents (half a cent rounds up)."""
+        return (amount * bps + BPS // 2) // BPS
+
+
+    def floor_bps(amount, bps):
+        """Return amount * bps / 10000 rounded down, for where the customer must never be overcharged."""
+        return amount * bps // BPS
+  invoice.py: |
+    """Invoices: line items, a percentage discount, tax and a total."""
+
+    from money import apply_bps, floor_bps, format_cents
+
+
+    class LineItem:
+        """A described item with a unit price in cents and a quantity."""
+
+        def __init__(self, description, unit_cents, quantity=1):
+            self.description = description
+            self.unit_cents = unit_cents
+            self.quantity = quantity
+
+        def total(self):
+            """Price of the whole line in cents."""
+            return self.unit_cents * self.quantity
+
+
+    class Invoice:
+        """An invoice whose discount (in bps) is applied before tax (in bps)."""
+
+        def __init__(self, number, tax_bps, discount_bps=0):
+            self.number = number
+            self.tax_bps = tax_bps
+            self.discount_bps = discount_bps
+            self.items = []
+
+        def add(self, description, unit_cents, quantity=1):
+            """Append a line item and return it."""
+            item = LineItem(description, unit_cents, quantity)
+            self.items.append(item)
+            return item
+
+        def subtotal(self):
+            """Sum of all line totals."""
+            return sum(item.total() for item in self.items)
+
+        def discount(self):
+            """Discount in cents; always rounded down so the customer is never overcharged."""
+            return floor_bps(self.subtotal(), self.discount_bps)
+
+        def taxable(self):
+            """Amount tax is charged on."""
+            return self.subtotal() - self.discount()
+
+        def tax(self):
+            """Tax in cents on the discounted amount."""
+            return apply_bps(self.taxable(), self.tax_bps)
+
+        def total(self):
+            """Amount due in cents."""
+            return self.taxable() + self.tax()
+
+        def lines(self):
+            """Printable lines for the invoice, ending with the total."""
+            rows = [f"{item.description} x{item.quantity}  {format_cents(item.total())}" for item in self.items]
+            rows.append(f"Subtotal  {format_cents(self.subtotal())}")
+            if self.discount_bps:
+                rows.append(f"Discount  -{format_cents(self.discount())}")
+            rows.append(f"Tax  {format_cents(self.tax())}")
+            rows.append(f"Total  {format_cents(self.total())}")
+            return rows
+  split.py: |
+    """Splitting an invoice between people."""
+
+    from money import apply_bps, format_cents
+
+
+    def split_evenly(total, people):
+        """Split total cents into `people` shares that differ by at most one cent and add up to total."""
+        if people < 1:
+            raise ValueError("need at least one person")
+        base, extra = divmod(total, people)
+        return [base + 1 if i < extra else base for i in range(people)]
+
+
+    def split_invoice(invoice, people, tip_bps=0):
+        """Split an invoice plus a tip (in bps of the invoice total) between people."""
+        total = invoice.total()
+        tip = apply_bps(total, tip_bps)
+        return split_evenly(total + tip, people)
+
+
+    def share_lines(shares):
+        """One printable line per person, numbered from 1."""
+        return [f"Person {i}: {format_cents(share)}" for i, share in enumerate(shares, start=1)]

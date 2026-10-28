@@ -1,0 +1,141 @@
+id: gym-ai-csvtotals
+kind: ai-assisted
+title: 'Totals per customer'
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `total_by_customer` should add up the amounts per customer from CSV-like lines. The first non-blank line is a header,
+  blank lines are ignored, a customer name in double quotes may contain a comma, and amounts are kept in whole cents
+  ("12.5" means 12 dollars 50 cents). The tests below fail. You may use an AI assistant. Before each prompt, write down
+  what you think is wrong and why. Verify any answer with the tests before you trust it, and re-run all of them after
+  every change.
+files:
+  totals.py: |
+    """Total the amounts per customer from CSV-like lines."""
+
+
+    def split_line(line):
+        """Split a line on commas, except commas inside double quotes. The quote marks are removed."""
+        fields = []
+        current = ""
+        in_quotes = False
+        for ch in line:
+            if ch == '"':
+                in_quotes = not in_quotes
+            elif ch == ",":
+                fields.append(current)
+                current = ""
+            else:
+                current += ch
+        fields.append(current)
+        return fields
+
+
+    def parse_cents(text):
+        """Turn an amount such as ' 12.5 ' into whole cents (1250)."""
+        whole, _, frac = text.strip().partition(".")
+        return int(whole) * 100 + int(frac or "0")
+
+
+    def total_by_customer(lines):
+        """Cents per customer. The first non-blank line is the header; blank lines are skipped."""
+        totals = {}
+        for line in lines[1:]:
+            if not line.strip():
+                continue
+            fields = split_line(line)
+            customer = fields[0].strip()
+            totals[customer] = totals.get(customer, 0) + parse_cents(fields[1])
+        return totals
+
+
+    def format_total(cents):
+        """Cents as dollars, for example 1205 becomes '12.05'."""
+        return f"{cents // 100}.{cents % 100:02d}"
+failingTest: |
+  from totals import format_total, parse_cents, split_line, total_by_customer
+
+
+  def test_simple_totals():
+      lines = ["customer,amount", "ann,10.00", "bob,5.25", "ann,2.50"]
+      assert total_by_customer(lines) == {"ann": 1250, "bob": 525}
+
+
+  def test_blank_lines_and_spaces_are_ignored():
+      lines = ["customer,amount", "", " ann , 3.00 ", "   ", "ann,  1.50"]
+      assert total_by_customer(lines) == {"ann": 450}
+
+
+  def test_quoted_name_may_contain_a_comma():
+      assert split_line('"Smith, Jo",4.00') == ["Smith, Jo", "4.00"]
+      lines = ["customer,amount", '"Smith, Jo",4.00', '"Smith, Jo",1.00']
+      assert total_by_customer(lines) == {"Smith, Jo": 500}
+
+
+  def test_amount_with_one_decimal_digit():
+      assert parse_cents("12.5") == 1250
+      assert parse_cents(" 0.05 ") == 5
+      assert parse_cents("7") == 700
+
+
+  def test_blank_line_before_the_header():
+      lines = ["", "customer,amount", "ann,1.00", "bob,2.00"]
+      assert total_by_customer(lines) == {"ann": 100, "bob": 200}
+
+
+  def test_format_total():
+      assert format_total(1205) == "12.05"
+      assert format_total(5) == "0.05"
+bugExplanation: |
+  There are three separate problems. `split_line` toggles `in_quotes` but never checks it, so a comma inside quotes still
+  splits the field; the comma branch needs `and not in_quotes`. `parse_cents` reads the digits after the point as a
+  number of cents, so "12.5" becomes 12 dollars 5 cents; pad to two digits first with `int((frac + "00")[:2])`. And
+  `total_by_customer` skips the header by position (`lines[1:]`), which breaks when a blank line comes first; skip the
+  first non-blank line instead.
+fixedFiles:
+  totals.py: |
+    """Total the amounts per customer from CSV-like lines."""
+
+
+    def split_line(line):
+        """Split a line on commas, except commas inside double quotes. The quote marks are removed."""
+        fields = []
+        current = ""
+        in_quotes = False
+        for ch in line:
+            if ch == '"':
+                in_quotes = not in_quotes
+            elif ch == "," and not in_quotes:
+                fields.append(current)
+                current = ""
+            else:
+                current += ch
+        fields.append(current)
+        return fields
+
+
+    def parse_cents(text):
+        """Turn an amount such as ' 12.5 ' into whole cents (1250)."""
+        whole, _, frac = text.strip().partition(".")
+        return int(whole) * 100 + int((frac + "00")[:2])
+
+
+    def total_by_customer(lines):
+        """Cents per customer. The first non-blank line is the header; blank lines are skipped."""
+        totals = {}
+        header_seen = False
+        for line in lines:
+            if not line.strip():
+                continue
+            if not header_seen:
+                header_seen = True
+                continue
+            fields = split_line(line)
+            customer = fields[0].strip()
+            totals[customer] = totals.get(customer, 0) + parse_cents(fields[1])
+        return totals
+
+
+    def format_total(cents):
+        """Cents as dollars, for example 1205 becomes '12.05'."""
+        return f"{cents // 100}.{cents % 100:02d}"

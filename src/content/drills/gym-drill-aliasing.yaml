@@ -1,0 +1,275 @@
+id: gym-drill-aliasing
+kind: code-reading
+title: 'The log defaults that drift'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  defaults.py: |
+    """Built-in logging configuration shared by every service."""
+
+    LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+    DEFAULTS = {
+        "level": "INFO",
+        "format": "{time} {level} {message}",
+        "handlers": ["console"],
+        "rotation": {"max_bytes": 1_000_000, "keep": 3},
+        "fields": {"service": "unknown", "env": "dev"},
+    }
+  merge.py: |
+    """Building a service's logging config from the defaults plus overrides."""
+
+    import copy
+
+    from defaults import DEFAULTS
+
+
+    def deep_merge(base, overrides):
+        """Merge overrides into base in place and return it.
+
+        Nested dicts are merged key by key; any other value (including lists) replaces
+        what is in base. Values taken from overrides are copied, never shared.
+        """
+        for key, value in overrides.items():
+            if isinstance(value, dict) and isinstance(base.get(key), dict):
+                deep_merge(base[key], value)
+            else:
+                base[key] = copy.deepcopy(value)
+        return base
+
+
+    def build_config(overrides=None):
+        """Return a fresh config: the defaults with overrides applied."""
+        config = DEFAULTS.copy()
+        deep_merge(config, overrides or {})
+        return config
+
+
+    def merge_layers(*layers):
+        """Apply several override layers in order (later layers win) and build one config."""
+        combined = {}
+        for layer in layers:
+            deep_merge(combined, layer)
+        return build_config(combined)
+
+
+    def snapshot(config):
+        """An independent copy of a config, safe to keep while the original changes."""
+        return copy.deepcopy(config)
+
+
+    def changed_keys(config):
+        """Top-level keys whose value differs from the built-in defaults, sorted."""
+        return sorted(key for key in config if config[key] != DEFAULTS.get(key))
+  logsetup.py: |
+    """Using a logging config: levels, validation and rendering."""
+
+    from defaults import LEVELS
+    from merge import build_config
+
+
+    def level_index(level):
+        """Position of a level name in LEVELS (higher is more severe)."""
+        upper = level.upper()
+        if upper not in LEVELS:
+            raise ValueError(f"unknown level {level!r}")
+        return LEVELS.index(upper)
+
+
+    def should_emit(config, level):
+        """True when a record at `level` passes the config's threshold."""
+        return level_index(level) >= level_index(config["level"])
+
+
+    def render(config, level, message, time="00:00:00"):
+        """Format one record with the config's format string and a sorted field prefix."""
+        fields = config["fields"]
+        prefix = ",".join(f"{key}={fields[key]}" for key in sorted(fields))
+        text = config["format"].format(time=time, level=level.upper(), message=message)
+        return f"[{prefix}] {text}"
+
+
+    def validate(config):
+        """List of human-readable problems with a config (empty when it is fine)."""
+        problems = []
+        if config["level"].upper() not in LEVELS:
+            problems.append(f"unknown level {config['level']!r}")
+        if not config["handlers"]:
+            problems.append("no handlers configured")
+        if config["rotation"]["keep"] < 1:
+            problems.append("rotation must keep at least one file")
+        return problems
+
+
+    def describe(config):
+        """One-line summary used in start-up banners."""
+        fields = config["fields"]
+        handlers = "+".join(config["handlers"])
+        return f"{fields['service']}@{fields['env']} level={config['level']} handlers={handlers}"
+
+
+    def rotation_budget(config):
+        """Worst-case bytes on disk: the live file plus every kept rotation."""
+        rotation = config["rotation"]
+        return rotation["max_bytes"] * (rotation["keep"] + 1)
+
+
+    def for_service(name, env="dev", level=None, handlers=None):
+        """Config for one service; level and handlers fall back to the defaults."""
+        overrides = {"fields": {"service": name, "env": env}}
+        if level:
+            overrides["level"] = level
+        if handlers:
+            overrides["handlers"] = handlers
+        return build_config(overrides)
+failingTest: |
+  from defaults import DEFAULTS
+  from logsetup import for_service, render
+  from merge import build_config, snapshot
+
+
+  def test_override_is_applied():
+      cfg = for_service("billing", env="prod", level="ERROR")
+      assert cfg["fields"] == {"service": "billing", "env": "prod"}
+      assert cfg["level"] == "ERROR"
+      assert render(cfg, "error", "boom") == "[env=prod,service=billing] 00:00:00 ERROR boom"
+
+
+  def test_snapshot_is_independent_of_later_changes():
+      cfg = for_service("search")
+      snap = snapshot(cfg)
+      before = snap["fields"]["env"]
+      cfg["fields"]["env"] = "staging"
+      assert snap["fields"]["env"] == before
+
+
+  def test_second_service_starts_from_clean_defaults():
+      build_config({"fields": {"env": "prod"}})
+      cfg = build_config({"fields": {"service": "search"}})
+      assert cfg["fields"] == {"service": "search", "env": "dev"}
+
+
+  def test_building_a_config_leaves_the_defaults_alone():
+      build_config({"rotation": {"keep": 10}})
+      assert DEFAULTS["rotation"]["keep"] == 3
+bugExplanation: |
+  `build_config` starts from `DEFAULTS.copy()`, which is a shallow copy: the new top-level dict is separate, but `config["fields"]`, `config["rotation"]` and `config["handlers"]` are the very same objects held by `DEFAULTS`. `deep_merge` then updates nested dicts in place, so each call rewrites the built-in defaults and the next service inherits the previous service's values. `deep_merge` mutating its first argument and `snapshot` are fine, because `deep_merge` is documented as in place and `snapshot` deep-copies. Start from `copy.deepcopy(DEFAULTS)` so the merge only touches data the config owns.
+fixedFiles:
+  defaults.py: |
+    """Built-in logging configuration shared by every service."""
+
+    LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+    DEFAULTS = {
+        "level": "INFO",
+        "format": "{time} {level} {message}",
+        "handlers": ["console"],
+        "rotation": {"max_bytes": 1_000_000, "keep": 3},
+        "fields": {"service": "unknown", "env": "dev"},
+    }
+  merge.py: |
+    """Building a service's logging config from the defaults plus overrides."""
+
+    import copy
+
+    from defaults import DEFAULTS
+
+
+    def deep_merge(base, overrides):
+        """Merge overrides into base in place and return it.
+
+        Nested dicts are merged key by key; any other value (including lists) replaces
+        what is in base. Values taken from overrides are copied, never shared.
+        """
+        for key, value in overrides.items():
+            if isinstance(value, dict) and isinstance(base.get(key), dict):
+                deep_merge(base[key], value)
+            else:
+                base[key] = copy.deepcopy(value)
+        return base
+
+
+    def build_config(overrides=None):
+        """Return a fresh config: the defaults with overrides applied."""
+        config = copy.deepcopy(DEFAULTS)
+        deep_merge(config, overrides or {})
+        return config
+
+
+    def merge_layers(*layers):
+        """Apply several override layers in order (later layers win) and build one config."""
+        combined = {}
+        for layer in layers:
+            deep_merge(combined, layer)
+        return build_config(combined)
+
+
+    def snapshot(config):
+        """An independent copy of a config, safe to keep while the original changes."""
+        return copy.deepcopy(config)
+
+
+    def changed_keys(config):
+        """Top-level keys whose value differs from the built-in defaults, sorted."""
+        return sorted(key for key in config if config[key] != DEFAULTS.get(key))
+  logsetup.py: |
+    """Using a logging config: levels, validation and rendering."""
+
+    from defaults import LEVELS
+    from merge import build_config
+
+
+    def level_index(level):
+        """Position of a level name in LEVELS (higher is more severe)."""
+        upper = level.upper()
+        if upper not in LEVELS:
+            raise ValueError(f"unknown level {level!r}")
+        return LEVELS.index(upper)
+
+
+    def should_emit(config, level):
+        """True when a record at `level` passes the config's threshold."""
+        return level_index(level) >= level_index(config["level"])
+
+
+    def render(config, level, message, time="00:00:00"):
+        """Format one record with the config's format string and a sorted field prefix."""
+        fields = config["fields"]
+        prefix = ",".join(f"{key}={fields[key]}" for key in sorted(fields))
+        text = config["format"].format(time=time, level=level.upper(), message=message)
+        return f"[{prefix}] {text}"
+
+
+    def validate(config):
+        """List of human-readable problems with a config (empty when it is fine)."""
+        problems = []
+        if config["level"].upper() not in LEVELS:
+            problems.append(f"unknown level {config['level']!r}")
+        if not config["handlers"]:
+            problems.append("no handlers configured")
+        if config["rotation"]["keep"] < 1:
+            problems.append("rotation must keep at least one file")
+        return problems
+
+
+    def describe(config):
+        """One-line summary used in start-up banners."""
+        fields = config["fields"]
+        handlers = "+".join(config["handlers"])
+        return f"{fields['service']}@{fields['env']} level={config['level']} handlers={handlers}"
+
+
+    def rotation_budget(config):
+        """Worst-case bytes on disk: the live file plus every kept rotation."""
+        rotation = config["rotation"]
+        return rotation["max_bytes"] * (rotation["keep"] + 1)
+
+
+    def for_service(name, env="dev", level=None, handlers=None):
+        """Config for one service; level and handlers fall back to the defaults."""
+        overrides = {"fields": {"service": name, "env": env}}
+        if level:
+            overrides["level"] = level
+        if handlers:
+            overrides["handlers"] = handlers
+        return build_config(overrides)
