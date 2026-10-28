@@ -1,0 +1,80 @@
+id: sql-02-where-vs-having
+lesson: sql-02
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'Booking-call time per customer'
+difficulty: 3
+competencies:
+  - sql.aggregation
+  - sql.nulls
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE customers (
+    id integer PRIMARY KEY,
+    name text NOT NULL
+  );
+  CREATE TABLE bookings (
+    id integer PRIMARY KEY,
+    customer_id integer NOT NULL REFERENCES customers(id),
+    starts timestamp NOT NULL,
+    ends timestamp NOT NULL
+  );
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    customer_id integer REFERENCES customers(id),
+    duration_s integer,
+    reason text
+  );
+  INSERT INTO customers VALUES
+    (1, 'Amara Okafor'),
+    (2, 'Jonas Weber'),
+    (3, 'Mei Tanaka'),
+    (4, 'Sofia Reyes'),
+    (5, 'Tomas Novak');
+  INSERT INTO bookings VALUES
+    (10, 1, '2026-11-02 09:00', '2026-11-02 10:00'),
+    (11, 1, '2026-11-02 09:30', '2026-11-02 10:30'),
+    (12, 1, '2026-11-09 09:00', '2026-11-09 10:00'),
+    (13, 3, '2026-11-03 14:00', '2026-11-03 15:00'),
+    (14, 3, '2026-11-03 15:00', '2026-11-03 16:00'),
+    (15, 2, '2026-11-02 09:15', '2026-11-02 09:45');
+  INSERT INTO calls VALUES
+    (1, 1, 120, 'booking'),
+    (2, 1, 45, 'billing'),
+    (3, 2, 300, 'cancel'),
+    (4, 3, NULL, 'booking'),
+    (5, 3, 200, 'booking'),
+    (6, NULL, 60, NULL),
+    (7, 4, 400, 'billing'),
+    (8, 4, 20, 'booking');
+prompt: |
+  Three tables: `customers` (`id`, `name`), `bookings` (`id`, `customer_id`, `starts`, `ends`) and `calls` (`id`, `customer_id` which is NULL when the caller is unknown, `duration_s` which is NULL for an unanswered call, and `reason`). Each booking and each call belongs to at most one customer.
+
+  Select the `name` of every customer whose calls with the reason `'booking'` add up to at least 100 seconds in total, in `name` order. Unanswered calls (NULL `duration_s`) add nothing.
+starter: |
+  SELECT ...
+referenceSolution: |
+  SELECT c.name FROM customers c JOIN calls k ON k.customer_id = c.id WHERE k.reason = 'booking' GROUP BY c.id, c.name HAVING SUM(k.duration_s) >= 100 ORDER BY c.name;
+compare:
+  orderMatters: true
+checks: []
+wrongSolutions:
+  - label: 'Leaves out the reason filter, so all calls are added up'
+    code: |
+      SELECT c.name FROM customers c JOIN calls k ON k.customer_id = c.id GROUP BY c.id, c.name HAVING SUM(k.duration_s) >= 100 ORDER BY c.name;
+  - label: 'Uses a threshold of 200 instead of 100'
+    code: |
+      SELECT c.name FROM customers c JOIN calls k ON k.customer_id = c.id WHERE k.reason = 'booking' GROUP BY c.id, c.name HAVING SUM(k.duration_s) >= 200 ORDER BY c.name;
+  - label: 'Puts the aggregate in WHERE, which PostgreSQL rejects'
+    code: |
+      SELECT c.name FROM customers c JOIN calls k ON k.customer_id = c.id WHERE k.reason = 'booking' AND SUM(k.duration_s) >= 100 GROUP BY c.id, c.name ORDER BY c.name;
+hints:
+  - "One condition is about single calls and one is about a customer's total. Which clause handles each?"
+  - 'Filter the calls by reason with WHERE, which runs before the grouping. Group by customer, and then test the total with HAVING SUM(...).'
+  - "... WHERE k.reason = 'booking' GROUP BY c.id, c.name ____ SUM(k.duration_s) >= ____ ORDER BY c.name;"
+explanation: |
+  Use `WHERE` for a condition on individual rows, here the reason of one call, and `HAVING` for a condition on a group, here the total for a customer. WHERE runs first, so only booking calls are added up. `SUM` ignores NULL values, so an unanswered call adds nothing, and a customer whose booking calls are all unanswered would get a NULL total, which fails the HAVING test. Alternative: `SUM(k.duration_s) FILTER (WHERE k.reason = 'booking')` moves the row condition into the aggregate, which is useful when you need several differently filtered totals in one query.
