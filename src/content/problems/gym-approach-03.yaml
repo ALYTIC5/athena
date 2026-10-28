@@ -1,0 +1,94 @@
+id: gym-approach-03
+title: 'Percentage of missed calls'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A call log holds one status for each call, either `"answered"` or `"missed"`. Write `missed_percent(statuses)` that returns the share of missed calls as an `int` number of percent, rounded down. For an empty log, return `0`.
+examples:
+  - "missed_percent(['answered', 'missed', 'missed', 'answered']) returns 50"
+  - 'missed_percent([]) returns 0'
+constraints:
+  - '0 to 10000 statuses'
+  - "Every status is 'answered' or 'missed'"
+starter: |
+  def missed_percent(statuses):
+      ...
+visibleTests: |
+  def test_example():
+      assert missed_percent(["answered", "missed", "missed", "answered"]) == 50
+
+  def test_empty():
+      assert missed_percent([]) == 0
+hiddenTests: |
+  def test_all_missed():
+      assert missed_percent(["missed"] * 3) == 100
+
+  def test_none_missed():
+      assert missed_percent(["answered"] * 3) == 0
+
+  def test_one_in_three_rounds_down():
+      assert missed_percent(["missed", "answered", "answered"]) == 33
+
+  def test_two_in_three_rounds_down_not_up():
+      assert missed_percent(["missed", "missed", "answered"]) == 66
+
+  def test_result_is_a_whole_number():
+      assert isinstance(missed_percent(["missed", "answered"]), int)
+
+  def test_twenty_nine_in_a_hundred():
+      assert missed_percent(["missed"] * 29 + ["answered"] * 71) == 29
+referenceSolutions:
+  - code: |
+      def missed_percent(statuses):
+          if not statuses:
+              return 0
+          missed = sum(1 for s in statuses if s == "missed")
+          return 100 * missed // len(statuses)
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Divides by zero on an empty log'
+    code: |
+      def missed_percent(statuses):
+          missed = sum(1 for s in statuses if s == "missed")
+          return 100 * missed // len(statuses)
+  - label: 'Rounds to the nearest percent instead of down'
+    code: |
+      def missed_percent(statuses):
+          if not statuses:
+              return 0
+          missed = sum(1 for s in statuses if s == "missed")
+          return round(100 * missed / len(statuses))
+  - label: 'Returns a fraction, not a percent'
+    code: |
+      def missed_percent(statuses):
+          if not statuses:
+              return 0
+          missed = sum(1 for s in statuses if s == "missed")
+          return missed / len(statuses)
+  - label: 'Uses floating-point division, which loses a percent for 29 of 100'
+    code: |
+      def missed_percent(statuses):
+          if not statuses:
+              return 0
+          missed = sum(1 for s in statuses if s == "missed")
+          return int(missed / len(statuses) * 100)
+patternExplanation: |
+  The think-aloud checklist applied to this problem:
+
+  1. Clarify: what is returned for an empty log, and which way does the rounding go?
+  2. Examples: 2 of 4 missed is 50; 1 of 3 is 33; an empty log is 0.
+  3. Brute force: count the missed calls, divide by the total, multiply by 100, and round down.
+  4. Optimise: multiply by 100 before dividing and use whole-number division, which avoids floating-point error (29/100*100 is 28.999999999999996, which int() turns into 28).
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try the empty log, all missed, none missed, 1 of 3, 2 of 3 and 29 of 100.
+  7. Complexity: one pass, O(n) time and O(1) space.
+commonMistakes:
+  - 'Dividing by zero for an empty log'
+  - 'Rounding to nearest when the statement says down'
+  - 'Returning 0.5 for 50 percent'
+followUps:
+  - 'How would you report the percentage for each hour of the day?'
+  - "What if there is a third status, such as 'busy'?"

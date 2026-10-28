@@ -1,0 +1,94 @@
+id: gym-hash-02
+title: 'The most common reason for calling'
+pattern: hashing
+competencies: [int.hashing]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Each call has a reason, such as `"booking"` or `"billing"`. Write `top_reason(reasons)` that returns the reason that appears most often. If two reasons are equally common, return the one that comes first alphabetically. If there are no reasons, return `None`.
+examples:
+  - "top_reason(['booking', 'billing', 'booking']) returns 'booking'"
+  - 'top_reason([]) returns None'
+constraints:
+  - '0 to 100000 reasons'
+  - 'Reasons are non-empty lower-case strings'
+starter: |
+  def top_reason(reasons):
+      ...
+visibleTests: |
+  def test_example():
+      assert top_reason(["booking", "billing", "booking"]) == "booking"
+
+  def test_empty():
+      assert top_reason([]) is None
+hiddenTests: |
+  def test_tie_goes_to_the_alphabetically_first():
+      assert top_reason(["cancel", "billing"]) == "billing"
+
+  def test_tie_when_the_later_reason_was_seen_first():
+      assert top_reason(["b", "a", "b", "a"]) == "a"
+
+  def test_single_reason():
+      assert top_reason(["refund"]) == "refund"
+
+  def test_returns_the_reason_not_the_count():
+      assert top_reason(["x", "x", "y"]) == "x"
+
+  def test_large_input():
+      reasons = ["booking"] * 40000 + ["billing"] * 40000 + ["cancel"] * 10
+      assert top_reason(reasons) == "billing"
+
+  def test_input_unchanged():
+      reasons = ["b", "a"]
+      top_reason(reasons)
+      assert reasons == ["b", "a"]
+referenceSolutions:
+  - code: |
+      def top_reason(reasons):
+          counts = {}
+          for reason in reasons:
+              counts[reason] = counts.get(reason, 0) + 1
+          if not counts:
+              return None
+          return min(counts, key=lambda r: (-counts[r], r))
+    time: 'O(n)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Breaks ties by first appearance instead of alphabetically'
+    code: |
+      from collections import Counter
+
+
+      def top_reason(reasons):
+          if not reasons:
+              return None
+          return Counter(reasons).most_common(1)[0][0]
+  - label: 'Returns the count instead of the reason'
+    code: |
+      def top_reason(reasons):
+          counts = {}
+          for reason in reasons:
+              counts[reason] = counts.get(reason, 0) + 1
+          return max(counts.values()) if counts else None
+  - label: 'Calls list.count once for every item, which is slow and breaks ties by first appearance'
+    code: |
+      def top_reason(reasons):
+          if not reasons:
+              return None
+          return max(reasons, key=reasons.count)
+  - label: 'Crashes on an empty list'
+    code: |
+      def top_reason(reasons):
+          counts = {}
+          for reason in reasons:
+              counts[reason] = counts.get(reason, 0) + 1
+          return min(counts, key=lambda r: (-counts[r], r))
+patternExplanation: |
+  A dict can hold a count for each key, and looking a key up takes about one step. Build a dict from reason to count in one pass. The answer is the reason with the highest count, and choosing by the pair (negative count, reason) puts the alphabetical rule into the choice, so no separate tie handling is needed.
+commonMistakes:
+  - 'Relying on Counter.most_common, which keeps first-seen order for ties'
+  - 'Forgetting the empty case'
+  - 'Returning the count'
+followUps:
+  - 'What if you need the top three reasons?'
+  - 'What if the reasons arrive as a stream?'

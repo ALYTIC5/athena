@@ -1,0 +1,89 @@
+id: gym-approach-02
+title: 'The longest call'
+pattern: approach
+competencies: [int.approach]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  Each call is a dict with an `"id"` and the number of `"seconds"` it lasted. Write `longest_call(calls)` that returns the id of the longest call. If two calls are equally long, return the one that comes first in the list. If there are no calls, return `None`.
+examples:
+  - "longest_call([{'id': 'c1', 'seconds': 30}, {'id': 'c2', 'seconds': 90}]) returns 'c2'"
+  - 'longest_call([]) returns None'
+constraints:
+  - '0 to 10000 calls'
+  - 'Ids are non-empty strings and seconds are whole numbers, 0 or more'
+starter: |
+  def longest_call(calls):
+      ...
+visibleTests: |
+  def test_example():
+      calls = [{"id": "c1", "seconds": 30}, {"id": "c2", "seconds": 90}]
+      assert longest_call(calls) == "c2"
+
+  def test_no_calls():
+      assert longest_call([]) is None
+hiddenTests: |
+  def test_tie_goes_to_the_first_call():
+      calls = [{"id": "a", "seconds": 60}, {"id": "b", "seconds": 60}]
+      assert longest_call(calls) == "a"
+
+  def test_single_call():
+      assert longest_call([{"id": "only", "seconds": 0}]) == "only"
+
+  def test_longest_is_first():
+      calls = [{"id": "a", "seconds": 90}, {"id": "b", "seconds": 30}]
+      assert longest_call(calls) == "a"
+
+  def test_returns_the_id_not_the_length():
+      assert longest_call([{"id": "x", "seconds": 5}]) == "x"
+
+  def test_input_unchanged():
+      calls = [{"id": "a", "seconds": 1}, {"id": "b", "seconds": 2}]
+      longest_call(calls)
+      assert calls == [{"id": "a", "seconds": 1}, {"id": "b", "seconds": 2}]
+referenceSolutions:
+  - code: |
+      def longest_call(calls):
+          best = None
+          for call in calls:
+              if best is None or call["seconds"] > best["seconds"]:
+                  best = call
+          return best["id"] if best else None
+    time: 'O(n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Uses >= so a tie goes to the later call'
+    code: |
+      def longest_call(calls):
+          best = None
+          for call in calls:
+              if best is None or call["seconds"] >= best["seconds"]:
+                  best = call
+          return best["id"] if best else None
+  - label: 'Crashes on an empty list'
+    code: |
+      def longest_call(calls):
+          return max(calls, key=lambda c: c["seconds"])["id"]
+  - label: 'Returns the length instead of the id'
+    code: |
+      def longest_call(calls):
+          if not calls:
+              return None
+          return max(c["seconds"] for c in calls)
+patternExplanation: |
+  The think-aloud checklist applied to this problem:
+
+  1. Clarify: what happens on a tie, and what is returned for an empty list?
+  2. Examples: two calls of 60 seconds, and an empty list.
+  3. Brute force: sort the calls by length, largest first, and take the first (a stable sort keeps list order for ties).
+  4. Optimise: one pass that keeps the best call so far, and replaces it only when a call is strictly longer.
+  5. Code: write the simplest version that matches your examples.
+  6. Test: try a tie, a single call, the longest call first, and an empty list.
+  7. Complexity: one pass, O(n) time and O(1) space.
+commonMistakes:
+  - 'Forgetting the empty list'
+  - 'Returning the number instead of the id'
+  - 'Changing > to >= and flipping the tie rule'
+followUps:
+  - 'What if you need the three longest calls?'
+  - 'What if the calls arrive one at a time and you cannot keep them all?'
