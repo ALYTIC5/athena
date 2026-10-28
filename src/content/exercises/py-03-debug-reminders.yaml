@@ -1,0 +1,89 @@
+id: py-03-debug-reminders
+lesson: py-03
+runtime: python
+kind: debug
+pools:
+  - lesson
+title: Every reminder names the last guest
+difficulty: 2
+competencies:
+  - py.scope-closures
+timeoutMs: 5000
+packages: []
+prompt: |
+  `make_reminders(names)` returns a list of functions, one for each name. Calling one with no arguments should return the text `"Reminder for <name>"` for its own name. Every reminder currently names the last guest in the list.
+  Find the cause and fix it. Each returned function must still be called with no arguments, and the functions must work in any order.
+starter: |
+  def make_reminders(names):
+      reminders = []
+      for name in names:
+          reminders.append(lambda: "Reminder for " + name)
+      return reminders
+visibleTests: |
+  def test_each_reminder_names_its_own_guest():
+      reminders = make_reminders(["amara", "bayu", "chen"])
+      assert [r() for r in reminders] == [
+          "Reminder for amara",
+          "Reminder for bayu",
+          "Reminder for chen",
+      ]
+
+  def test_single_guest():
+      assert make_reminders(["mei"])[0]() == "Reminder for mei"
+hiddenTests: |
+  def test_order_of_calls_does_not_matter():
+      reminders = make_reminders(["amara", "bayu", "chen"])
+      assert reminders[2]() == "Reminder for chen"
+      assert reminders[0]() == "Reminder for amara"
+
+  def test_no_guests():
+      assert make_reminders([]) == []
+
+  def test_functions_take_no_arguments():
+      reminder = make_reminders(["amara"])[0]
+      assert callable(reminder)
+      assert reminder() == "Reminder for amara"
+
+  def test_reminders_can_be_called_twice():
+      reminder = make_reminders(["amara", "bayu"])[0]
+      assert reminder() == reminder() == "Reminder for amara"
+
+  def test_input_list_is_not_changed():
+      names = ["amara", "bayu"]
+      make_reminders(names)
+      assert names == ["amara", "bayu"]
+feedback:
+  - test: test_each_reminder_names_its_own_guest
+    message: Every lambda looks up `name` when it is called, and by then the loop has finished, so `name` holds the last guest. Give each function its own copy of the name when it is created.
+  - test: test_functions_take_no_arguments
+    message: The reminder must be called with no arguments. If you added a parameter, give it a default value.
+  - test: test_order_of_calls_does_not_matter
+    message: The first reminder still names the last guest. A function does not remember the value `name` had when it was created, only the name itself.
+hints:
+  - When does the lambda read the variable `name`, when it is created or when it is called?
+  - The lambda looks `name` up when it is called. Make each function carry its own value, for example with a default argument or with a helper function that is called once for each name.
+  - 'reminders.append(lambda name=____: "Reminder for " + name)   where the blank is the loop variable, so the default value is fixed at creation'
+referenceSolution: |
+  def make_reminders(names):
+      reminders = []
+      for name in names:
+          reminders.append(lambda name=name: "Reminder for " + name)
+      return reminders
+wrongSolutions:
+  - label: Builds the list with a comprehension, which is still late binding
+    code: |
+      def make_reminders(names):
+          return [lambda: "Reminder for " + name for name in names]
+  - label: Returns the finished texts instead of functions
+    code: |
+      def make_reminders(names):
+          return ["Reminder for " + name for name in names]
+  - label: Adds a required parameter, so the functions cannot be called with no arguments
+    code: |
+      def make_reminders(names):
+          reminders = []
+          for name in names:
+              reminders.append(lambda name: "Reminder for " + name)
+          return reminders
+explanation: |
+  A closure remembers the variable, not its value at the time the function was created. All the lambdas share one `name`, and it holds the last guest after the loop ends. A default argument is evaluated once, when the lambda is created, so `name=name` stores each guest's value in its own function. The first wrong solution only moves the same problem into a comprehension, and the second drops the functions. Alternative: a helper such as `def make_reminder(name): return lambda: "Reminder for " + name` gives each function its own enclosing `name`, and `functools.partial` can also bind a value ahead of time.

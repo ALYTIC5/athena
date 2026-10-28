@@ -56,7 +56,7 @@
     - id: py-03
       title: 'Functions in depth'
       durationMin: 165
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Hashing'

@@ -1,0 +1,78 @@
+id: py-03-faded-prefixer
+lesson: py-03
+runtime: python
+kind: faded
+pools:
+  - lesson
+title: A function that remembers its prefix
+difficulty: 1
+competencies:
+  - py.scope-closures
+timeoutMs: 5000
+estMin: 5
+packages: []
+prompt: |
+  `make_prefixer(prefix)` returns a function. That function takes some text and returns the prefix followed by the text. The returned function must still know `prefix` after `make_prefixer` has finished.
+  Fill in the two blanks: the name that holds the prefix inside `add`, and what `make_prefixer` returns.
+starter: |
+  def make_prefixer(prefix):
+      def add(text):
+          return ____ + text
+      return ____
+visibleTests: |
+  def test_adds_the_prefix():
+      assert make_prefixer("Dr ")("Amara") == "Dr Amara"
+
+  def test_two_prefixers_do_not_interfere():
+      mr = make_prefixer("Mr ")
+      ms = make_prefixer("Ms ")
+      assert mr("Bo") == "Mr Bo"
+      assert ms("Bo") == "Ms Bo"
+hiddenTests: |
+  def test_empty_prefix():
+      assert make_prefixer("")("Amara") == "Amara"
+
+  def test_can_be_called_many_times():
+      add = make_prefixer("#")
+      assert [add("a"), add("b")] == ["#a", "#b"]
+
+  def test_returns_a_function_not_text():
+      assert callable(make_prefixer("Dr "))
+feedback:
+  - test: test_returns_a_function_not_text
+    message: make_prefixer should return the function `add` itself, without calling it. Calling it would run it at once and give back text.
+  - test: test_two_prefixers_do_not_interfere
+    message: Each prefixer must keep its own prefix. Store the prefix in the enclosing function, not in a variable shared by all prefixers.
+  - test: test_adds_the_prefix
+    message: add should return the prefix followed by the text. The name `prefix` comes from the enclosing function.
+hints:
+  - Which name inside add comes from make_prefixer rather than from add itself?
+  - The inner function looks up `prefix` in the enclosing function, even after make_prefixer has returned. Return the inner function without calling it.
+  - return ____ + text   and   return ____   where the first blank is the parameter of make_prefixer and the second is the name of the inner function
+referenceSolution: |
+  def make_prefixer(prefix):
+      def add(text):
+          return prefix + text
+      return add
+wrongSolutions:
+  - label: Calls the inner function, so a string is returned instead of a function
+    code: |
+      def make_prefixer(prefix):
+          def add(text):
+              return prefix + text
+          return add("")
+  - label: Keeps the prefix in a global variable, so every prefixer uses the latest prefix
+    code: |
+      current = ""
+
+
+      def make_prefixer(prefix):
+          global current
+          current = prefix
+
+          def add(text):
+              return current + text
+
+          return add
+explanation: |
+  `add` is a closure: when `make_prefixer` returns, `add` keeps a reference to the enclosing `prefix`, so each call to `make_prefixer` creates a function with its own prefix. Returning `add` hands over the function itself, and returning `add(...)` would call it. A global variable is shared by every prefixer, so the last one created wins. Alternative: `functools.partial` can bind a first argument to an existing function, and a class with a `prefix` attribute and a `__call__` method does the same job with more code.
