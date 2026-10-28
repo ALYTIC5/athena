@@ -1,0 +1,71 @@
+id: sql-03-mastery-cascade
+lesson: sql-03
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: 'Bookings that disappear with their customer'
+difficulty: 3
+competencies:
+  - sql.schema
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE guests (id integer PRIMARY KEY, name text NOT NULL);
+  INSERT INTO guests VALUES (1, 'Amara Okafor'), (2, 'Bayu Singh');
+prompt: |
+  The table `guests` exists. Create a table `visits` with:
+
+  - `id`: a generated identity primary key.
+  - `guest_id`: an integer, required, that must refer to an existing guest. When a guest is deleted, their visits must be deleted too.
+  - `visited_on`: a date, required.
+starter: |
+  CREATE TABLE visits (
+    ...
+  );
+referenceSolution: |
+  CREATE TABLE visits (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    guest_id integer NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
+    visited_on date NOT NULL
+  );
+compare: none
+checks:
+  - "SELECT count(*) = 1 FROM information_schema.referential_constraints WHERE constraint_schema = current_schema() AND delete_rule = 'CASCADE'"
+  - sql: "INSERT INTO visits (guest_id, visited_on) VALUES (99, '2026-11-02');"
+    expectError: '23503'
+  - sql: "INSERT INTO visits (guest_id, visited_on) VALUES (NULL, '2026-11-02');"
+    expectError: '23502'
+  - sql: 'INSERT INTO visits (guest_id, visited_on) VALUES (1, NULL);'
+    expectError: '23502'
+  - "SELECT data_type = 'date' FROM information_schema.columns WHERE table_name = 'visits' AND column_name = 'visited_on'"
+  - "WITH i AS (INSERT INTO visits (guest_id, visited_on) VALUES (1, '2026-11-02') RETURNING 1) SELECT count(*) = 1 FROM i"
+wrongSolutions:
+  - label: 'Has a foreign key with no ON DELETE rule, so deleting a guest with visits is refused'
+    code: |
+      CREATE TABLE visits (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        guest_id integer NOT NULL REFERENCES guests(id),
+        visited_on date NOT NULL
+      );
+  - label: 'Sets the guest to NULL on delete, which a required column refuses'
+    code: |
+      CREATE TABLE visits (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        guest_id integer NOT NULL REFERENCES guests(id) ON DELETE SET NULL,
+        visited_on date NOT NULL
+      );
+  - label: 'Has no foreign key at all'
+    code: |
+      CREATE TABLE visits (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        guest_id integer NOT NULL,
+        visited_on date NOT NULL
+      );
+hints:
+  - 'What should the database do with the visits when the guest row is deleted?'
+  - 'Add an ON DELETE rule to the foreign key. The rule that deletes the dependent rows is named CASCADE.'
+  - 'guest_id integer NOT NULL REFERENCES guests(id) ON ____ ____'
+explanation: |
+  By default a foreign key refuses to delete a row that other rows still point to. `ON DELETE CASCADE` changes the rule: deleting the guest deletes their visits as well, so no visit is left pointing at nobody. It suits rows that have no meaning without their parent. `ON DELETE SET NULL` would leave the visits but remove the link, which needs a nullable column. For data you may need later, such as invoices, refusing the delete (the default) or marking the row as inactive is usually safer. Alternative: a soft delete column such as `deleted_at` keeps history and avoids cascades.

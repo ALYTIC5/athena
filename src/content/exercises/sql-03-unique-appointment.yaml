@@ -1,0 +1,85 @@
+id: sql-03-unique-appointment
+lesson: sql-03
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: 'One appointment per stylist and time'
+difficulty: 2
+competencies:
+  - sql.schema
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE stylists (id integer PRIMARY KEY, name text NOT NULL);
+  INSERT INTO stylists VALUES (1, 'Dara Obi'), (2, 'Ewa Nowak');
+prompt: |
+  The table `stylists` exists. Create a table `appointments` with:
+
+  - `id`: a generated identity primary key.
+  - `stylist_id`: an integer, required, that must refer to an existing stylist.
+  - `starts_at`: a timestamp with time zone, required.
+  - `customer`: text, required.
+
+  A stylist must not have two appointments at the same `starts_at`. Different stylists at the same time are fine, and so are different times for one stylist.
+starter: |
+  CREATE TABLE appointments (
+    ...
+  );
+referenceSolution: |
+  CREATE TABLE appointments (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    stylist_id integer NOT NULL REFERENCES stylists(id),
+    starts_at timestamptz NOT NULL,
+    customer text NOT NULL,
+    UNIQUE (stylist_id, starts_at)
+  );
+compare: none
+checks:
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Amara Okafor'); INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Bayu Singh');"
+    expectError: '23505'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (99, '2026-11-02 09:00+00', 'Amara Okafor');"
+    expectError: '23503'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, NULL, 'Amara Okafor');"
+    expectError: '23502'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (NULL, '2026-11-02 09:00+00', 'Amara Okafor');"
+    expectError: '23502'
+  - sql: "INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', NULL);"
+    expectError: '23502'
+  - "WITH a AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 09:00+00', 'Amara Okafor') RETURNING 1), b AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (1, '2026-11-02 10:00+00', 'Chen Wei') RETURNING 1), c AS (INSERT INTO appointments (stylist_id, starts_at, customer) VALUES (2, '2026-11-02 09:00+00', 'Bayu Singh') RETURNING 1) SELECT (SELECT count(*) FROM a) + (SELECT count(*) FROM b) + (SELECT count(*) FROM c) = 3"
+wrongSolutions:
+  - label: 'Has no unique constraint, so a stylist can be double-booked'
+    code: |
+      CREATE TABLE appointments (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        stylist_id integer NOT NULL REFERENCES stylists(id),
+        starts_at timestamptz NOT NULL,
+        customer text NOT NULL
+      );
+  - label: 'Makes stylist_id unique on its own, which allows each stylist only one appointment'
+    code: |
+      CREATE TABLE appointments (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        stylist_id integer NOT NULL UNIQUE REFERENCES stylists(id),
+        starts_at timestamptz NOT NULL,
+        customer text NOT NULL
+      );
+  - label: 'Has no foreign key, so an appointment can name a stylist who does not exist'
+    code: |
+      CREATE TABLE appointments (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        stylist_id integer NOT NULL,
+        starts_at timestamptz NOT NULL,
+        customer text NOT NULL,
+        UNIQUE (stylist_id, starts_at)
+      );
+hints:
+  - 'Two rules: a link to another table, and a pair of columns that must not repeat together.'
+  - 'REFERENCES stylists(id) makes the column a foreign key. A UNIQUE constraint over two columns refuses a second row with the same pair of values.'
+  - |-
+    stylist_id integer NOT NULL ____ stylists(id),
+    ...
+    UNIQUE (____, ____)
+explanation: |
+  A foreign key (`REFERENCES stylists(id)`) makes the database refuse an appointment for a stylist who does not exist (SQLSTATE 23503). The composite `UNIQUE (stylist_id, starts_at)` refuses a second row with the same pair of values (SQLSTATE 23505), while still allowing the same time for another stylist or another time for the same stylist. Checking in application code first is not enough, because two requests can pass the check at the same moment. The constraint is the guarantee. Alternative: a `UNIQUE` index created with `CREATE UNIQUE INDEX` has the same effect.

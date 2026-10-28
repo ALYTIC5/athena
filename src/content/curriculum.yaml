@@ -101,7 +101,7 @@
     - id: sql-03
       title: 'Designing schemas'
       durationMin: 45
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Stack'

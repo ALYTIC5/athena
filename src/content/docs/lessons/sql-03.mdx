@@ -1,0 +1,145 @@
+---
+title: Designing schemas
+description: Designing tables with keys and constraints, splitting a messy table into normalised tables, and writing parameterised queries so that user input can never change a command.
+sidebar:
+  order: 85
+lessonId: sql-03
+week: 8
+track: sql
+durationMin: 45
+anatomy: short
+competencies: [sql.schema, sql.normalisation, sql.parameters]
+prerequisites: [sql-02]
+whyItMatters: >
+  SQL appears in 37% of the postings you are targeting, and a backend is only as reliable as its tables. Constraints
+  stop impossible data, such as a double-booked slot, from being stored at all, and a well-split schema stops the same
+  fact from drifting apart in five places. Injection is also a well-known way to lose a database, and the fix, a
+  placeholder, costs nothing.
+objectives:
+  - Design tables with primary keys, foreign keys and constraints
+  - Split a messy table into normalised tables, and say when a deliberate copy is fine
+  - Explain why queries must be parameterised, and write one
+sources:
+  - title: "PostgreSQL documentation: constraints"
+    url: https://www.postgresql.org/docs/current/ddl-constraints.html
+  - title: "PostgreSQL documentation: identity columns"
+    url: https://www.postgresql.org/docs/current/ddl-identity-columns.html
+  - title: "PostgreSQL documentation: error codes"
+    url: https://www.postgresql.org/docs/current/errcodes-appendix.html
+  - title: "Python documentation: sqlite3, how to use placeholders"
+    url: https://docs.python.org/3/library/sqlite3.html#sqlite3-placeholders
+  - title: "OWASP: SQL Injection Prevention Cheat Sheet"
+    url: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+---
+
+## Why this matters
+
+SQL appears in 37% of the postings you are targeting, and a backend is only as reliable as its tables. Constraints stop impossible data, such as a double-booked slot, from being stored at all, and a well-split schema stops the same fact from drifting apart in five places. Injection is also a well-known way to lose a database, and the fix, a placeholder, costs nothing.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Design tables with primary keys, foreign keys and constraints.
+2. Split a messy table into normalised tables, and say when a deliberate copy is fine.
+3. Explain why queries must be parameterised, and write one.
+
+<Callout type="note" title="How the exercises work">
+
+In the exercises that ask you to create tables, your SQL runs in a PostgreSQL database in your browser, and then the page runs checks that insert rows to test every rule. The injection exercise is in Python, with the `sqlite3` module that comes with Python. All data is invented.
+
+</Callout>
+
+<Chunk n={1} title="Keys and constraints">
+
+A table definition is also a set of rules. A **primary key** identifies each row: it is unique and never NULL, and `GENERATED ALWAYS AS IDENTITY` lets the database number the rows and refuses an id you supply. A **foreign key** (`REFERENCES other(id)`) makes the database refuse a value that does not exist in the other table.
+
+`NOT NULL` makes a column required, and `UNIQUE` refuses repeats (`UNIQUE (a, b)` refuses a repeated pair, and NULLs never count as repeats). `CHECK (condition)` refuses a row that fails a test. A CHECK lets NULL through, so add `NOT NULL` too.
+
+A broken rule gives a **SQLSTATE** code: 23505 for unique, 23503 for foreign key, 23502 for not null and 23514 for check. Put the rules in the database even when the application checks them too, because two requests can pass a check at the same moment but cannot both pass a constraint. By default a foreign key refuses to delete a row that others point to, and `ON DELETE CASCADE` deletes the dependent rows with their parent (`ON DELETE SET NULL` clears the link instead).
+
+<Callout type="note" title="Two more pieces of table syntax">
+
+`DEFAULT now()` fills in a value when an insert leaves the column out. `timestamptz` is a date and time with a time zone, and `date` is a date only. The default rule for a foreign key is called `NO ACTION`: it refuses the delete.
+
+</Callout>
+
+**Worked example.** Two linked tables with their rules.
+
+```sql schema="sql-03-create-table"
+CREATE TABLE venues (
+  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name text NOT NULL UNIQUE,                    -- no two venues share a name
+  capacity integer NOT NULL CHECK (capacity > 0)
+);
+CREATE TABLE events (
+  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  venue_id integer NOT NULL REFERENCES venues(id),   -- the venue must exist
+  title text NOT NULL,
+  UNIQUE (venue_id, title)                      -- a venue cannot repeat a title
+);
+```
+
+<Quiz lesson="sql-03" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "My code checks for duplicates, so I do not need a constraint." Two requests can both pass the check. Only the constraint is certain.
+- "`CHECK (ends_at > starts_at)` also stops a NULL `ends_at`." A comparison with NULL is unknown, and a CHECK accepts unknown. Add `NOT NULL`.
+- "A foreign key means one row for each parent." It means every child must point to a real parent. A parent can have many children, or none.
+
+</Callout>
+
+</Chunk>
+
+## Write three tables
+
+<Exercise id="sql-03-create-table" />
+
+<Exercise id="sql-03-unique-appointment" />
+
+<Exercise id="sql-03-check-constraint" />
+
+## Normalisation: store each fact once
+
+A table is **normalised** when each fact is stored once, in the table about that thing. A messy table repeats facts: here the caller's name and phone number appear on every call row.
+
+```sql schema="sql-03-normalise"
+SELECT caller_phone, count(*) AS rows_with_this_phone
+FROM calls_raw
+GROUP BY caller_phone
+ORDER BY caller_phone;     -- each phone is stored 2, 2 and 1 times: the repeats are the problem
+```
+
+Repeated facts cause **anomalies**. Changing a phone number means updating many rows, and missing one leaves two numbers for one caller (update anomaly). You cannot record a caller who has not called yet (insert anomaly), and deleting a caller's only call loses the caller (delete anomaly). The fix is one table for each kind of thing, a primary key for each, and foreign keys to link them. Fill a new table from the old one with `INSERT INTO callers (name, phone) SELECT DISTINCT caller_name, caller_phone FROM calls_raw;`, where `DISTINCT` keeps one copy of each repeated row. A column belongs in the table of the thing it describes: a name belongs with the caller, not with the call.
+
+Copying a fact back on purpose, called **denormalising**, is sometimes right: a snapshot such as the price paid on an order must not change when the product price does. The cost is keeping copies in step, so do it for a reason.
+
+<Exercise id="sql-03-normalise" />
+
+## Parameterised queries
+
+Building SQL by pasting user text into a string lets the text become part of the command. That is **SQL injection**. A **parameterised query** sends the SQL with placeholders (`?` in `sqlite3`, `%s` in many PostgreSQL drivers) and the values separately, so a value can only ever be data. Escaping quotes by hand is easy to get wrong, and numbers need placeholders too. A placeholder cannot stand for a table or column name, so choose those from a fixed list in your code. An ORM (a library that builds queries for you) is safe only where it uses parameters, not when you paste raw SQL into it.
+
+```python
+import sqlite3
+
+db = sqlite3.connect(":memory:")
+db.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, topic TEXT)")
+db.executemany("INSERT INTO notes (topic) VALUES (?)", [("tea",), ("coffee",)])   # ? is a placeholder
+topic = "x' OR '1'='1"                                  # hostile input
+pasted = f"SELECT id FROM notes WHERE topic = '{topic}'"
+print(db.execute(pasted).fetchall())                    # fetchall gives the rows: [(1,), (2,)], the text became part of the SQL
+print(db.execute("SELECT id FROM notes WHERE topic = ?", (topic,)).fetchall())   # []: it stayed data
+```
+
+<Exercise id="sql-03-injection" />
+
+## Mastery check
+
+<MasteryCheck lesson="sql-03" count={6} />
+
+## Further reading
+
+- [PostgreSQL documentation: constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
+- [OWASP: SQL Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
