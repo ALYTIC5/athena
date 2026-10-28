@@ -1,0 +1,29 @@
+lesson: py-05
+questions:
+  - id: py-05-iq-dataclass-dict
+    competencies: [py.classes]
+    question: When would you use a dataclass instead of a dict?
+    modelAnswer: I use a dataclass when the same set of fields is passed around in several places, such as a booking with an id, a guest and a slot. It documents the fields, gives me a readable repr and equality for free, lets editors and type checkers help, and fails loudly if I misspell an attribute. A dict is better when the keys are only known at run time, or for a throwaway value such as a parsed JSON object that I convert at the edge of the program. I add frozen=True when the value should not change after it is created, and I use field(default_factory=list) for a list, because a plain default would be shared.
+    listenFor:
+      - fixed fields versus keys known at run time
+      - benefits such as repr, equality, hints and clear errors
+      - frozen for values that should not change
+      - knows about default_factory and the shared mutable default
+  - id: py-05-iq-type-hints
+    competencies: [py.typing]
+    question: Why do you use type hints if Python does not enforce them?
+    modelAnswer: Hints are read by tools. A checker such as mypy or pyright reports mismatches before the code runs, including in paths my tests do not reach, and editors use them for completion and refactoring. They also document what a function expects and returns, which helps the next person who reads it. I know that they are not checked at run time, so I still validate data that comes from outside, such as JSON from an API, at the edge of the program. For something that may be missing I write str | None, so the checker makes me handle it.
+    listenFor:
+      - hints are ignored at run time
+      - checkers and editors use them to find bugs early
+      - documentation value
+      - still validates external data
+  - id: py-05-iq-dependencies
+    competencies: [py.packages]
+    question: How do you manage dependencies in a Python project?
+    modelAnswer: Each project gets its own virtual environment, created with python -m venv or with uv, so packages do not clash between projects, and the .venv folder is in .gitignore. The project's dependencies are listed in pyproject.toml, and the exact versions are pinned, with a lock file or a frozen requirements file, so that every install and the production build get the same code. I update them on purpose, one at a time, and run the tests after each update. I do not install into the system Python, and I do not commit secrets or the environment itself.
+    listenFor:
+      - a virtual environment for each project
+      - dependencies recorded in a file, and versions pinned
+      - environment not committed
+      - updates made on purpose and tested
