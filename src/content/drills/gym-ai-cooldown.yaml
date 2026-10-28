@@ -1,0 +1,80 @@
+id: gym-ai-cooldown
+kind: ai-assisted
+title: 'Do not remind too often'
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `may_remind` should allow a reminder only if none was sent before, or the cool-down since the last one has passed.
+  The tests below fail. You may use an AI assistant. Before each prompt, write down what you think is wrong and why.
+  Verify any answer with the tests before you trust it.
+files:
+  cooldown.py: |
+    """Decide whether a reminder may be sent. Times are in seconds."""
+
+
+    def can_send(last_sent_at, now, cooldown_minutes):
+        """True if no reminder was sent yet, or the cool-down since the last one has passed.
+
+        `last_sent_at` is None when nothing has been sent. `cooldown_minutes` is in minutes.
+        """
+        return now - last_sent_at >= cooldown_minutes
+
+
+    def record_send(history, customer, now):
+        """Remember when a reminder went to a customer and return the history."""
+        history[customer] = now
+        return history
+
+
+    def may_remind(history, customer, now, cooldown_minutes):
+        """True if the customer may be sent a reminder now."""
+        return can_send(history.get(customer), now, cooldown_minutes)
+failingTest: |
+  from cooldown import can_send, may_remind, record_send
+
+
+  def test_first_reminder_is_always_allowed():
+      assert can_send(None, 1000, 30) is True
+
+
+  def test_too_soon_after_the_last_reminder():
+      assert can_send(1000, 1000 + 29 * 60, 30) is False
+
+
+  def test_allowed_exactly_when_the_cooldown_has_passed():
+      assert can_send(1000, 1000 + 30 * 60, 30) is True
+
+
+  def test_history_is_kept_per_customer():
+      history = record_send({}, "amara@example.com", 5000)
+      assert may_remind(history, "amara@example.com", 5000 + 60, 30) is False
+      assert may_remind(history, "bilal@example.com", 5000 + 60, 30) is True
+bugExplanation: |
+  There are two separate problems. `can_send` subtracts times in seconds but compares the result with
+  `cooldown_minutes` as if it were also seconds, so the cool-down is 60 times too short: convert it with
+  `cooldown_minutes * 60`. It also does not handle `last_sent_at` being `None` (nothing sent yet), so `now - None` raises
+  a `TypeError` for a customer who has never been reminded. Return `True` when `last_sent_at` is `None`.
+fixedFiles:
+  cooldown.py: |
+    """Decide whether a reminder may be sent. Times are in seconds."""
+
+
+    def can_send(last_sent_at, now, cooldown_minutes):
+        """True if no reminder was sent yet, or the cool-down since the last one has passed.
+
+        `last_sent_at` is None when nothing has been sent. `cooldown_minutes` is in minutes.
+        """
+        if last_sent_at is None:
+            return True
+        return now - last_sent_at >= cooldown_minutes * 60
+
+
+    def record_send(history, customer, now):
+        """Remember when a reminder went to a customer and return the history."""
+        history[customer] = now
+        return history
+
+
+    def may_remind(history, customer, now, cooldown_minutes):
+        """True if the customer may be sent a reminder now."""
+        return can_send(history.get(customer), now, cooldown_minutes)

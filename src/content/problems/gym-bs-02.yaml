@@ -1,0 +1,113 @@
+id: gym-bs-02
+title: 'Did anyone phone at exactly this minute?'
+pattern: binary-search
+competencies: [int.binary-search]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `minutes` holds the minute of each call in a day, in increasing order (two calls may share a minute). Write `has_call_at(minutes, t)` that returns `True` if some call happened at minute `t`, and `False` otherwise.
+examples:
+  - 'has_call_at([540, 570, 600], 570) returns True'
+  - 'has_call_at([540, 570, 600], 571) returns False'
+constraints:
+  - '0 to 200000 calls, sorted ascending'
+  - 'Minutes are whole numbers'
+starter: |
+  def has_call_at(minutes, t):
+      ...
+visibleTests: |
+  def test_example():
+      assert has_call_at([540, 570, 600], 570) is True
+
+  def test_missing_minute():
+      assert has_call_at([540, 570, 600], 571) is False
+hiddenTests: |
+  def test_empty_list():
+      assert has_call_at([], 5) is False
+
+  def test_single_call_found():
+      assert has_call_at([5], 5) is True
+
+  def test_single_call_missing():
+      assert has_call_at([5], 6) is False
+
+  def test_first_and_last():
+      assert has_call_at([1, 4, 9, 12], 1) is True
+      assert has_call_at([1, 4, 9, 12], 12) is True
+
+  def test_before_and_after_everything():
+      assert has_call_at([10, 20], 5) is False
+      assert has_call_at([10, 20], 25) is False
+
+  def test_repeated_minute():
+      assert has_call_at([3, 3, 3, 8], 3) is True
+
+  def test_input_unchanged():
+      minutes = [1, 2, 3]
+      has_call_at(minutes, 2)
+      assert minutes == [1, 2, 3]
+
+  def test_many_lookups_on_a_long_list():
+      minutes = list(range(0, 400000, 2))
+      for t in range(0, 400000, 100):
+          assert has_call_at(minutes, t) is (t % 2 == 0)
+      for t in range(1, 400000, 100):
+          assert has_call_at(minutes, t) is False
+referenceSolutions:
+  - code: |
+      def has_call_at(minutes, t):
+          low, high = 0, len(minutes) - 1
+          while low <= high:
+              mid = (low + high) // 2
+              if minutes[mid] == t:
+                  return True
+              if minutes[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid - 1
+          return False
+    time: 'O(log n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Checks every call in a loop, so a long list makes every lookup slow'
+    code: |
+      def has_call_at(minutes, t):
+          for minute in minutes:
+              if minute == t:
+                  return True
+          return False
+  - label: 'Uses low < high, so it never looks at the last remaining call'
+    code: |
+      def has_call_at(minutes, t):
+          low, high = 0, len(minutes) - 1
+          while low < high:
+              mid = (low + high) // 2
+              if minutes[mid] == t:
+                  return True
+              if minutes[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid - 1
+          return False
+  - label: 'Starts with high at len(minutes), so it crashes when t is later than every call'
+    code: |
+      def has_call_at(minutes, t):
+          low, high = 0, len(minutes)
+          while low <= high:
+              mid = (low + high) // 2
+              if minutes[mid] == t:
+                  return True
+              if minutes[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid - 1
+          return False
+patternExplanation: |
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving 200000 items takes about 18 steps. Here the range [low, high] holds the positions that could still contain t, and both ends are included. Compare the middle call with t: equal means found; smaller means t can only be to the right (low = mid + 1); larger means t can only be to the left (high = mid - 1). Because both ends are included, the loop must continue while low <= high, otherwise the last remaining call is never tested. If the range becomes empty, t is not there.
+commonMistakes:
+  - 'Using low < high with an inclusive range, which skips the last candidate'
+  - 'Setting high to len(minutes) when the range includes high'
+  - 'Checking every call in a loop'
+followUps:
+  - 'How would you return the index of the first call at minute t?'
+  - 'What changes if the list is sorted in descending order?'

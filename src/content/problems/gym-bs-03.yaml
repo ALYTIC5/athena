@@ -1,0 +1,118 @@
+id: gym-bs-03
+title: 'How many calls fall in a window?'
+pattern: binary-search
+competencies: [int.binary-search]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `minutes` holds the minute of each call in a day, in increasing order (two calls may share a minute). Write `calls_between(minutes, start, end)` that returns how many calls happened from minute `start` to minute `end`, both included. If `start` is after `end`, return `0`.
+examples:
+  - 'calls_between([540, 570, 570, 600, 660], 570, 600) returns 3'
+  - 'calls_between([540, 570], 600, 700) returns 0'
+constraints:
+  - '0 to 200000 calls, sorted ascending'
+  - 'Minutes are whole numbers'
+starter: |
+  def calls_between(minutes, start, end):
+      ...
+visibleTests: |
+  def test_example():
+      assert calls_between([540, 570, 570, 600, 660], 570, 600) == 3
+
+  def test_nothing_in_the_window():
+      assert calls_between([540, 570], 600, 700) == 0
+hiddenTests: |
+  def test_empty_list():
+      assert calls_between([], 0, 100) == 0
+
+  def test_both_ends_are_included():
+      assert calls_between([10, 20, 30], 10, 30) == 3
+
+  def test_window_between_two_calls():
+      assert calls_between([10, 30], 15, 25) == 0
+
+  def test_single_minute_window():
+      assert calls_between([5, 5, 5, 6], 5, 5) == 3
+
+  def test_start_after_end():
+      assert calls_between([5, 6, 7], 7, 5) == 0
+
+  def test_window_before_everything():
+      assert calls_between([50, 60], 1, 10) == 0
+
+  def test_window_after_everything():
+      assert calls_between([50, 60], 70, 80) == 0
+
+  def test_input_unchanged():
+      minutes = [1, 2, 3]
+      calls_between(minutes, 1, 2)
+      assert minutes == [1, 2, 3]
+
+  def test_many_windows_on_a_long_list():
+      minutes = list(range(300000))
+      for a in range(0, 300000, 100):
+          assert calls_between(minutes, a, a + 49) == 50
+referenceSolutions:
+  - code: |
+      def calls_between(minutes, start, end):
+          if start > end:
+              return 0
+
+          def first_at_or_after(t):
+              low, high = 0, len(minutes)
+              while low < high:
+                  mid = (low + high) // 2
+                  if minutes[mid] < t:
+                      low = mid + 1
+                  else:
+                      high = mid
+              return low
+
+          return first_at_or_after(end + 1) - first_at_or_after(start)
+    time: 'O(log n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Counts the calls in a loop, so a long list makes every window slow'
+    code: |
+      def calls_between(minutes, start, end):
+          return sum(1 for minute in minutes if start <= minute <= end)
+  - label: 'Leaves out a call exactly at the end minute'
+    code: |
+      def calls_between(minutes, start, end):
+          if start > end:
+              return 0
+
+          def first_at_or_after(t):
+              low, high = 0, len(minutes)
+              while low < high:
+                  mid = (low + high) // 2
+                  if minutes[mid] < t:
+                      low = mid + 1
+                  else:
+                      high = mid
+              return low
+
+          return first_at_or_after(end) - first_at_or_after(start)
+  - label: 'Returns a negative count when start is after end'
+    code: |
+      def calls_between(minutes, start, end):
+          def first_at_or_after(t):
+              low, high = 0, len(minutes)
+              while low < high:
+                  mid = (low + high) // 2
+                  if minutes[mid] < t:
+                      low = mid + 1
+                  else:
+                      high = mid
+              return low
+
+          return first_at_or_after(end + 1) - first_at_or_after(start)
+patternExplanation: |
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving 200000 items takes about 18 steps. Count the calls with two searches instead of one pass. The index of the first call at start or later is where the window begins, and the index of the first call at end + 1 or later is where it ends, so the difference is the number of calls inside. Searching for end + 1 keeps a call exactly at the end minute inside the window. A window whose start is after its end holds nothing, so return 0 before you subtract.
+commonMistakes:
+  - 'Searching for end instead of end + 1, which drops calls at the end minute'
+  - 'Forgetting that start > end must give 0'
+  - 'Counting the calls one by one'
+followUps:
+  - 'How would you count the calls strictly between start and end?'
+  - 'How would you answer thousands of windows quickly?'

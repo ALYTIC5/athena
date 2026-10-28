@@ -1,0 +1,96 @@
+id: gym-bs-05
+title: 'The largest square room'
+pattern: binary-search
+competencies: [int.binary-search]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A venue wants to lay out its `seats` seats as a square block with `side` rows and `side` seats in each row. Write `largest_square_side(seats)` that returns the largest whole number `side` such that `side * side` is at most `seats`. Do not use `math.sqrt`, `math.isqrt` or `** 0.5`.
+examples:
+  - 'largest_square_side(17) returns 4'
+  - 'largest_square_side(16) returns 4'
+constraints:
+  - '0 <= seats <= 10**18'
+starter: |
+  def largest_square_side(seats):
+      ...
+visibleTests: |
+  def test_example():
+      assert largest_square_side(17) == 4
+
+  def test_perfect_square():
+      assert largest_square_side(16) == 4
+hiddenTests: |
+  def test_zero_seats():
+      assert largest_square_side(0) == 0
+
+  def test_one_seat():
+      assert largest_square_side(1) == 1
+
+  def test_just_below_a_square():
+      assert largest_square_side(15) == 3
+      assert largest_square_side(24) == 4
+
+  def test_two_and_three():
+      assert largest_square_side(2) == 1
+      assert largest_square_side(3) == 1
+
+  def test_eight():
+      assert largest_square_side(8) == 2
+
+  def test_large_perfect_square():
+      assert largest_square_side(10**12) == 10**6
+
+  def test_huge_perfect_square():
+      assert largest_square_side(10**18) == 10**9
+
+  def test_huge_just_below_a_perfect_square():
+      assert largest_square_side(10**18 - 1) == 10**9 - 1
+
+  def test_huge_just_above_a_perfect_square():
+      assert largest_square_side(999999999 ** 2 + 5) == 999999999
+referenceSolutions:
+  - code: |
+      def largest_square_side(seats):
+          low, high = 0, seats
+          while low < high:
+              mid = (low + high + 1) // 2
+              if mid * mid <= seats:
+                  low = mid
+              else:
+                  high = mid - 1
+          return low
+    time: 'O(log n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Adds 1 to the side until the square is too big, so the work grows with the answer'
+    code: |
+      def largest_square_side(seats):
+          side = 0
+          while (side + 1) * (side + 1) <= seats:
+              side += 1
+          return side
+  - label: 'Uses floating-point square root, which loses precision for large numbers'
+    code: |
+      def largest_square_side(seats):
+          return int(seats ** 0.5)
+  - label: 'Rounds the middle down when it moves low, so it never ends once low and high are next to each other'
+    code: |
+      def largest_square_side(seats):
+          low, high = 0, seats
+          while low < high:
+              mid = (low + high) // 2
+              if mid * mid <= seats:
+                  low = mid
+              else:
+                  high = mid - 1
+          return low
+patternExplanation: |
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving a search range of 10**18 takes about 60 steps. You can binary search on an answer, not only on a list. If side works (side * side <= seats), every smaller side works too, so the sides flip from yes to no exactly once. Search for the last yes. When the middle works, keep it and move low to mid. Because that does not move past mid, the middle must round up ((low + high + 1) // 2); rounding down would repeat the same mid forever when low and high are neighbours. Python integers never overflow, so the squares are exact even for 10**18, while a float square root is not.
+commonMistakes:
+  - 'Rounding the middle down when low = mid, which can loop forever'
+  - 'Using a float square root and getting an answer that is off by one for huge numbers'
+  - 'Counting up one side at a time'
+followUps:
+  - 'How would you find the smallest side whose square is at least seats?'
+  - 'How would you do the same for cubes?'

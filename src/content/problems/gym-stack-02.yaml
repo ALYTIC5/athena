@@ -1,0 +1,112 @@
+id: gym-stack-02
+title: 'Do the calls end in the right order?'
+pattern: stack
+competencies: [int.stack]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A call centre logs events as pairs `(kind, call_id)`, where `kind` is `"start"` or `"end"`. Calls are transfers inside other calls, so the log is valid only if every `"end"` closes the call that started most recently and has not ended yet, and no call is left open at the end. Write `properly_nested(events)` that returns `True` for a valid log and `False` otherwise.
+examples:
+  - "properly_nested([('start', 'a'), ('start', 'b'), ('end', 'b'), ('end', 'a')]) returns True"
+  - "properly_nested([('start', 'a'), ('start', 'b'), ('end', 'a'), ('end', 'b')]) returns False"
+constraints:
+  - '0 to 100000 events'
+  - 'Call ids are non-empty strings'
+starter: |
+  def properly_nested(events):
+      ...
+visibleTests: |
+  def test_example():
+      assert properly_nested([("start", "a"), ("start", "b"), ("end", "b"), ("end", "a")]) is True
+
+  def test_crossed_calls():
+      assert properly_nested([("start", "a"), ("start", "b"), ("end", "a"), ("end", "b")]) is False
+hiddenTests: |
+  def test_empty_log():
+      assert properly_nested([]) is True
+
+  def test_one_call():
+      assert properly_nested([("start", "a"), ("end", "a")]) is True
+
+  def test_call_left_open():
+      assert properly_nested([("start", "a")]) is False
+
+  def test_end_without_a_start():
+      assert properly_nested([("end", "a")]) is False
+
+  def test_two_calls_one_after_the_other():
+      assert properly_nested([("start", "a"), ("end", "a"), ("start", "b"), ("end", "b")]) is True
+
+  def test_end_closes_the_wrong_call_but_counts_match():
+      assert properly_nested([("start", "a"), ("start", "b"), ("end", "a"), ("end", "b")]) is False
+
+  def test_inner_call_left_open():
+      assert properly_nested([("start", "a"), ("start", "b"), ("end", "a")]) is False
+
+  def test_large_valid_log():
+      ids = [str(i) for i in range(50000)]
+      events = [("start", i) for i in ids] + [("end", i) for i in reversed(ids)]
+      assert properly_nested(events) is True
+
+  def test_large_log_with_one_crossing():
+      ids = [str(i) for i in range(50000)]
+      closing = list(reversed(ids))
+      closing[0], closing[1] = closing[1], closing[0]
+      events = [("start", i) for i in ids] + [("end", i) for i in closing]
+      assert properly_nested(events) is False
+referenceSolutions:
+  - code: |
+      def properly_nested(events):
+          open_calls = []
+          for kind, call_id in events:
+              if kind == "start":
+                  open_calls.append(call_id)
+              else:
+                  if not open_calls or open_calls.pop() != call_id:
+                      return False
+          return not open_calls
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Only checks that every call that started also ended'
+    code: |
+      def properly_nested(events):
+          started = set()
+          ended = set()
+          for kind, call_id in events:
+              if kind == "start":
+                  started.add(call_id)
+              else:
+                  ended.add(call_id)
+          return started == ended
+  - label: 'Forgets to check for calls that are still open at the end'
+    code: |
+      def properly_nested(events):
+          open_calls = []
+          for kind, call_id in events:
+              if kind == "start":
+                  open_calls.append(call_id)
+              else:
+                  if not open_calls or open_calls.pop() != call_id:
+                      return False
+          return True
+  - label: 'Crashes on an end with nothing open'
+    code: |
+      def properly_nested(events):
+          open_calls = []
+          for kind, call_id in events:
+              if kind == "start":
+                  open_calls.append(call_id)
+              else:
+                  if open_calls.pop() != call_id:
+                      return False
+          return not open_calls
+patternExplanation: |
+  A stack lets you add and remove at one end only, so the item you handle next is always the one added last. A Python list does this with append() and pop(). Here the call that must end next is always the one that started last, so keep the open calls on a stack. A start pushes its id. An end must find that same id on top: pop it and compare. Two things can still be wrong at the end: an end that arrives when nothing is open, and calls that never ended, so return True only if the stack is empty at the end.
+commonMistakes:
+  - 'Comparing counts or sets of ids, which ignores the order'
+  - 'Not checking for an empty stack before popping'
+  - 'Returning True without checking that the stack is empty'
+followUps:
+  - 'How would you return the id of the first call that ends in the wrong place?'
+  - 'How would you allow several call kinds that must also match?'

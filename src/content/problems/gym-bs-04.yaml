@@ -1,0 +1,111 @@
+id: gym-bs-04
+title: 'The latest booking that started by a time'
+pattern: binary-search
+competencies: [int.binary-search]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  The list `starts` holds the start minute of each booking in a day, in increasing order (two bookings may start at the same minute). Write `latest_start_by(starts, t)` that returns the largest start minute that is `t` or earlier, or `None` if every booking starts after `t`.
+examples:
+  - 'latest_start_by([540, 570, 630], 600) returns 570'
+  - 'latest_start_by([540, 570], 500) returns None'
+constraints:
+  - '0 to 200000 bookings, sorted ascending'
+  - 'Minutes are whole numbers'
+starter: |
+  def latest_start_by(starts, t):
+      ...
+visibleTests: |
+  def test_example():
+      assert latest_start_by([540, 570, 630], 600) == 570
+
+  def test_all_later():
+      assert latest_start_by([540, 570], 500) is None
+hiddenTests: |
+  def test_empty_list():
+      assert latest_start_by([], 100) is None
+
+  def test_exact_match():
+      assert latest_start_by([540, 570, 630], 570) == 570
+
+  def test_after_everything():
+      assert latest_start_by([540, 570, 630], 900) == 630
+
+  def test_repeated_minute():
+      assert latest_start_by([5, 7, 7, 7, 9], 8) == 7
+
+  def test_single_booking():
+      assert latest_start_by([5], 5) == 5
+      assert latest_start_by([5], 4) is None
+
+  def test_zero_is_a_real_answer():
+      assert latest_start_by([0, 10], 5) == 0
+
+  def test_input_unchanged():
+      starts = [1, 2, 3]
+      latest_start_by(starts, 2)
+      assert starts == [1, 2, 3]
+
+  def test_many_lookups_on_a_long_list():
+      starts = list(range(0, 400000, 2))
+      for t in range(0, 400000, 40):
+          assert latest_start_by(starts, t) == t - (t % 2)
+referenceSolutions:
+  - code: |
+      def latest_start_by(starts, t):
+          low, high = 0, len(starts)
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] <= t:
+                  low = mid + 1
+              else:
+                  high = mid
+          if low == 0:
+              return None
+          return starts[low - 1]
+    time: 'O(log n)'
+    space: 'O(1)'
+wrongSolutions:
+  - label: 'Scans the list from the start, so a long list makes every lookup slow'
+    code: |
+      def latest_start_by(starts, t):
+          best = None
+          for start in starts:
+              if start <= t:
+                  best = start
+          return best
+  - label: 'Uses < instead of <=, so a booking exactly at t is not found'
+    code: |
+      def latest_start_by(starts, t):
+          low, high = 0, len(starts)
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] < t:
+                  low = mid + 1
+              else:
+                  high = mid
+          if low == 0:
+              return None
+          return starts[low - 1]
+  - label: 'Returns the first booking when every booking is later than t'
+    code: |
+      def latest_start_by(starts, t):
+          if not starts:
+              return None
+          low, high = 0, len(starts)
+          while low < high:
+              mid = (low + high) // 2
+              if starts[mid] <= t:
+                  low = mid + 1
+              else:
+                  high = mid
+          return starts[max(low - 1, 0)]
+patternExplanation: |
+  Binary search works on sorted data (or on an answer that flips from no to yes exactly once). Look at the middle item: it tells you which half cannot contain the answer, so you throw that half away and repeat on the other. Halving 200000 items takes about 18 steps. This is the same halving as finding a position, but you want the last booking that is at most t. Search for the first booking that is later than t (move low past the middle while starts[mid] <= t). The booking just before that position is the answer, and if that position is 0, no booking starts by t, so return None. Keep this case separate: starts[-1] would silently return the last booking.
+commonMistakes:
+  - 'Using < instead of <= so an exact match is missed'
+  - 'Reading starts[low - 1] when low is 0, which wraps around to the last booking'
+  - 'Scanning the whole list for every question'
+followUps:
+  - 'How would you return the earliest booking that starts at t or later?'
+  - 'How would you return both neighbours of t?'

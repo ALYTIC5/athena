@@ -1,0 +1,122 @@
+id: gym-stack-05
+title: 'Undo and redo notes'
+pattern: stack
+competencies: [int.stack]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A notes tool keeps a list of notes. Each command is a string. `"add <text>"` adds the text after `add ` to the end of the list, and it also erases the redo history. `"undo"` removes the last note from the list and remembers it. `"redo"` puts back the note that was undone most recently and not yet redone. Undo with an empty list and redo with nothing to redo do nothing. Write `edit_session(commands)` that returns the final list of notes.
+examples:
+  - "edit_session(['add a', 'add b', 'undo', 'undo', 'redo']) returns ['a']"
+  - "edit_session(['add a', 'undo', 'add b', 'redo']) returns ['b']"
+constraints:
+  - '0 to 100000 commands'
+  - 'The text of a note has at least one character and may contain spaces'
+starter: |
+  def edit_session(commands):
+      ...
+visibleTests: |
+  def test_example():
+      assert edit_session(["add a", "add b", "undo", "undo", "redo"]) == ["a"]
+
+  def test_add_erases_the_redo_history():
+      assert edit_session(["add a", "undo", "add b", "redo"]) == ["b"]
+hiddenTests: |
+  def test_empty():
+      assert edit_session([]) == []
+
+  def test_redo_with_nothing_to_redo():
+      assert edit_session(["add a", "redo"]) == ["a"]
+
+  def test_undo_with_nothing_to_undo():
+      assert edit_session(["undo", "add a"]) == ["a"]
+
+  def test_redo_restores_in_the_reverse_order_of_undo():
+      assert edit_session(["add a", "add b", "add c", "undo", "undo", "redo", "redo"]) == ["a", "b", "c"]
+
+  def test_two_redos_after_one_undo():
+      assert edit_session(["add a", "undo", "redo", "redo"]) == ["a"]
+
+  def test_undo_redo_undo():
+      assert edit_session(["add a", "undo", "redo", "undo"]) == []
+
+  def test_notes_with_spaces():
+      assert edit_session(["add call back", "undo", "redo"]) == ["call back"]
+
+  def test_large_input():
+      commands = ["add x"] * 50000 + ["undo"] * 50000 + ["redo"] * 30000
+      assert edit_session(commands) == ["x"] * 30000
+referenceSolutions:
+  - code: |
+      def edit_session(commands):
+          notes = []
+          undone = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      undone.append(notes.pop())
+              elif command == "redo":
+                  if undone:
+                      notes.append(undone.pop())
+              else:
+                  notes.append(command[4:])
+                  undone.clear()
+          return notes
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'A new note does not erase the redo history'
+    code: |
+      def edit_session(commands):
+          notes = []
+          undone = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      undone.append(notes.pop())
+              elif command == "redo":
+                  if undone:
+                      notes.append(undone.pop())
+              else:
+                  notes.append(command[4:])
+          return notes
+  - label: 'Redo restores the oldest undone note first'
+    code: |
+      def edit_session(commands):
+          notes = []
+          undone = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      undone.append(notes.pop())
+              elif command == "redo":
+                  if undone:
+                      notes.append(undone.pop(0))
+              else:
+                  notes.append(command[4:])
+                  undone.clear()
+          return notes
+  - label: 'Crashes on redo with nothing to redo'
+    code: |
+      def edit_session(commands):
+          notes = []
+          undone = []
+          for command in commands:
+              if command == "undo":
+                  if notes:
+                      undone.append(notes.pop())
+              elif command == "redo":
+                  notes.append(undone.pop())
+              else:
+                  notes.append(command[4:])
+                  undone.clear()
+          return notes
+patternExplanation: |
+  A stack lets you add and remove at one end only, so the item you handle next is always the one added last. A Python list does this with append() and pop(). Undo and redo need two stacks. Undo moves the top note from the notes stack to the undone stack, and redo moves it back, so the note undone last is always redone first. A new note starts a new history, so it clears the undone stack: otherwise redo could bring back a note that no longer fits. Each command moves one item, so the work is linear.
+commonMistakes:
+  - 'Not clearing the redo history after an add'
+  - 'Redoing from the wrong end of the undone list'
+  - 'Not checking for an empty stack before popping'
+followUps:
+  - 'How would you limit the redo history to 10 notes?'
+  - 'How would you add a command that undoes everything?'

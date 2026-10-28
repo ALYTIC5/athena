@@ -1,0 +1,152 @@
+id: gym-drill-codes
+kind: code-reading
+title: 'The booking code that loses letters'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  codes.py: |
+    """Booking codes look like BK-<reference>, for example BK-KB17."""
+
+    PREFIX = "BK-"
+    MIN_REFERENCE_LENGTH = 2
+
+
+    def strip_prefix(code):
+        """Return the reference part of a booking code (the code without its BK- prefix)."""
+        return code.strip().lstrip(PREFIX)
+
+
+    def is_valid(code):
+        """A valid code starts with BK- and has a reference of at least MIN_REFERENCE_LENGTH characters."""
+        code = code.strip()
+        return code.startswith(PREFIX) and len(code) - len(PREFIX) >= MIN_REFERENCE_LENGTH
+
+
+    def to_code(reference):
+        """Build the full booking code from a reference."""
+        return PREFIX + reference.strip().upper()
+  bookings.py: |
+    """Bookings stored by reference."""
+
+    from codes import is_valid, strip_prefix, to_code
+
+
+    def make_index(rows):
+        """Build {reference: customer} from (code, customer) rows, skipping invalid codes."""
+        index = {}
+        for code, customer in rows:
+            if is_valid(code):
+                index[strip_prefix(code)] = customer
+        return index
+
+
+    def find_customer(index, code):
+        """Return the customer for a booking code, or None if the code is not in the index."""
+        if not is_valid(code):
+            return None
+        return index.get(strip_prefix(code))
+
+
+    def codes_for(index):
+        """All booking codes in the index, sorted."""
+        return sorted(to_code(reference) for reference in index)
+  report.py: |
+    """Lines for a printed booking list."""
+
+    from bookings import codes_for
+
+
+    def listing(index):
+        """One line per booking, in code order."""
+        lines = []
+        for code in codes_for(index):
+            lines.append(f"{code:<10} {index[code[3:]]}")
+        return "\n".join(lines)
+failingTest: |
+  from bookings import find_customer, make_index
+  from codes import strip_prefix
+
+
+  def test_strip_prefix_keeps_the_whole_reference():
+      assert strip_prefix("BK-KB17") == "KB17"
+      assert strip_prefix("BK-B2") == "B2"
+
+
+  def test_find_customer_by_full_code():
+      index = make_index([("BK-KB17", "Amara"), ("BK-ZX9", "Bilal")])
+      assert find_customer(index, "BK-KB17") == "Amara"
+      assert find_customer(index, "BK-ZX9") == "Bilal"
+      assert find_customer(index, "BK-KB18") is None
+
+
+  def test_codes_differing_only_in_leading_letters_stay_distinct():
+      index = make_index([("BK-KB17", "Amara"), ("BK-B17", "Bilal")])
+      assert find_customer(index, "BK-KB17") == "Amara"
+      assert find_customer(index, "BK-B17") == "Bilal"
+bugExplanation: |
+  `strip_prefix` calls `lstrip("BK-")`. `lstrip` does not remove a prefix: it removes every leading character that is in
+  the set `{"B", "K", "-"}`, so it also eats the first letters of the reference. `"BK-KB17"` becomes `"17"`, so references
+  are mangled and codes that differ only in leading B or K letters (`BK-KB17` and `BK-B17`) collide on the same key. Remove the prefix explicitly, for example with `startswith` and a slice by
+  `len(PREFIX)`.
+fixedFiles:
+  codes.py: |
+    """Booking codes look like BK-<reference>, for example BK-KB17."""
+
+    PREFIX = "BK-"
+    MIN_REFERENCE_LENGTH = 2
+
+
+    def strip_prefix(code):
+        """Return the reference part of a booking code (the code without its BK- prefix)."""
+        code = code.strip()
+        if code.startswith(PREFIX):
+            return code[len(PREFIX):]
+        return code
+
+
+    def is_valid(code):
+        """A valid code starts with BK- and has a reference of at least MIN_REFERENCE_LENGTH characters."""
+        code = code.strip()
+        return code.startswith(PREFIX) and len(code) - len(PREFIX) >= MIN_REFERENCE_LENGTH
+
+
+    def to_code(reference):
+        """Build the full booking code from a reference."""
+        return PREFIX + reference.strip().upper()
+  bookings.py: |
+    """Bookings stored by reference."""
+
+    from codes import is_valid, strip_prefix, to_code
+
+
+    def make_index(rows):
+        """Build {reference: customer} from (code, customer) rows, skipping invalid codes."""
+        index = {}
+        for code, customer in rows:
+            if is_valid(code):
+                index[strip_prefix(code)] = customer
+        return index
+
+
+    def find_customer(index, code):
+        """Return the customer for a booking code, or None if the code is not in the index."""
+        if not is_valid(code):
+            return None
+        return index.get(strip_prefix(code))
+
+
+    def codes_for(index):
+        """All booking codes in the index, sorted."""
+        return sorted(to_code(reference) for reference in index)
+  report.py: |
+    """Lines for a printed booking list."""
+
+    from bookings import codes_for
+
+
+    def listing(index):
+        """One line per booking, in code order."""
+        lines = []
+        for code in codes_for(index):
+            lines.append(f"{code:<10} {index[code[3:]]}")
+        return "\n".join(lines)

@@ -1,0 +1,117 @@
+id: gym-stack-04
+title: 'Highest price after each step'
+pattern: stack
+competencies: [int.stack]
+difficulty: easy
+timeLimitMin: 20
+statement: |
+  A price tool holds a stack of prices. Each operation is a tuple: `("push", price)` puts a price on top, and `("pop",)` removes the top price (a pop on an empty stack does nothing). Write `highest_after_each(ops)` that returns a list with one value per operation: the highest price in the stack after that operation, or `None` if the stack is empty.
+examples:
+  - "highest_after_each([('push', 3), ('push', 7), ('push', 5), ('pop',), ('pop',)]) returns [3, 7, 7, 7, 3]"
+  - "highest_after_each([('pop',)]) returns [None]"
+constraints:
+  - '0 to 100000 operations'
+  - 'Prices are whole numbers'
+starter: |
+  def highest_after_each(ops):
+      ...
+visibleTests: |
+  def test_example():
+      ops = [("push", 3), ("push", 7), ("push", 5), ("pop",), ("pop",)]
+      assert highest_after_each(ops) == [3, 7, 7, 7, 3]
+
+  def test_pop_on_empty():
+      assert highest_after_each([("pop",)]) == [None]
+hiddenTests: |
+  def test_no_operations():
+      assert highest_after_each([]) == []
+
+  def test_highest_leaves_when_it_is_popped():
+      assert highest_after_each([("push", 9), ("push", 2), ("pop",), ("pop",)]) == [9, 9, 9, None]
+
+  def test_equal_prices():
+      assert highest_after_each([("push", 5), ("push", 5), ("pop",)]) == [5, 5, 5]
+
+  def test_negative_prices():
+      assert highest_after_each([("push", -3), ("push", -8), ("pop",)]) == [-3, -3, -3]
+
+  def test_a_lower_price_pushed_later_does_not_replace_the_highest():
+      assert highest_after_each([("push", 4), ("push", 1)]) == [4, 4]
+
+  def test_push_after_emptying():
+      assert highest_after_each([("push", 6), ("pop",), ("push", 2)]) == [6, None, 2]
+
+  def test_large_input():
+      ops = [("push", i) for i in range(60000)] + [("pop",)] * 60000
+      result = highest_after_each(ops)
+      assert result[59999] == 59999
+      assert result[60000] == 59998
+      assert result[-1] is None
+referenceSolutions:
+  - code: |
+      def highest_after_each(ops):
+          prices = []
+          highest = []
+          result = []
+          for op in ops:
+              if op[0] == "push":
+                  price = op[1]
+                  prices.append(price)
+                  highest.append(price if not highest else max(price, highest[-1]))
+              elif prices:
+                  prices.pop()
+                  highest.pop()
+              result.append(highest[-1] if highest else None)
+          return result
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Keeps one running highest and never lowers it after a pop'
+    code: |
+      def highest_after_each(ops):
+          prices = []
+          best = None
+          result = []
+          for op in ops:
+              if op[0] == "push":
+                  prices.append(op[1])
+                  best = op[1] if best is None else max(best, op[1])
+              elif prices:
+                  prices.pop()
+                  if not prices:
+                      best = None
+              result.append(best)
+          return result
+  - label: 'Takes the maximum of the whole stack after every step, so the work grows with the square of the stack'
+    code: |
+      def highest_after_each(ops):
+          prices = []
+          result = []
+          for op in ops:
+              if op[0] == "push":
+                  prices.append(op[1])
+              elif prices:
+                  prices.pop()
+              result.append(max(prices) if prices else None)
+          return result
+  - label: 'Reports the top of the stack instead of the highest price'
+    code: |
+      def highest_after_each(ops):
+          prices = []
+          result = []
+          for op in ops:
+              if op[0] == "push":
+                  prices.append(op[1])
+              elif prices:
+                  prices.pop()
+              result.append(prices[-1] if prices else None)
+          return result
+patternExplanation: |
+  A stack lets you add and remove at one end only, so the item you handle next is always the one added last. A Python list does this with append() and pop(). Looking up the highest price with max() costs a pass over the stack each time. Instead, keep a second stack that stores, next to each price, the highest price at or below it. A push stores max(price, the previous highest). A pop removes the top of both stacks, so the highest price of what remains is already on top of the second stack. Every step then takes constant time.
+commonMistakes:
+  - 'Keeping a single running maximum that is not restored after a pop'
+  - 'Calling max() on the whole stack at every step'
+  - 'Forgetting the empty stack case'
+followUps:
+  - 'How would you also report the lowest price?'
+  - 'Can you do it with one stack that stores pairs?'
