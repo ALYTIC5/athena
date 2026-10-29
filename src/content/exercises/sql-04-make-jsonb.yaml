@@ -1,0 +1,97 @@
+id: sql-04-make-jsonb
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: Booking calls from the webhook payload
+difficulty: 3
+competencies:
+  - sql.jsonb
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE jobs (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id text NOT NULL UNIQUE,
+    status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'dead')),
+    attempts integer NOT NULL DEFAULT 0,
+    priority integer NOT NULL DEFAULT 0,
+    run_after timestamp NOT NULL,
+    payload jsonb NOT NULL
+  );
+  INSERT INTO jobs (event_id, status, attempts, priority, run_after, payload) VALUES
+    ('evt-1001', 'queued',  0, 0, '2026-11-02 08:00', '{"type": "call.ended", "call": {"id": "c-501", "duration_s": 120, "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]}'),
+    ('evt-1002', 'queued',  0, 5, '2026-11-02 08:30', '{"type": "call.ended", "call": {"id": "c-502", "duration_s": 45, "caller": {"name": "Jonas Weber"}}, "tags": ["billing", "urgent"]}'),
+    ('evt-1003', 'running', 1, 7, '2026-11-02 08:00', '{"type": "call.started", "call": {"id": "c-503", "caller": {"name": "Mei Tanaka"}}, "tags": ["booking"]}'),
+    ('evt-1004', 'queued',  0, 9, '2026-11-02 10:00', '{"type": "call.ended", "call": {"id": "c-504", "duration_s": 300, "caller": {"name": "Sofia Reyes"}}, "tags": ["booking"]}'),
+    ('evt-1005', 'done',    1, 0, '2026-11-02 07:30', '{"type": "call.ended", "call": {"id": "c-505", "duration_s": 200, "caller": {"name": "Tomas Novak"}}, "tags": ["cancel"]}'),
+    ('evt-1006', 'queued',  2, 5, '2026-11-02 08:45', '{"type": "call.ended", "call": {"id": "c-506", "duration_s": 90, "caller": {"name": "Ngozi Eze"}}, "tags": ["booking", "urgent"]}'),
+    ('evt-1007', 'dead',    3, 0, '2026-11-02 07:00', '{"type": "call.ended", "call": {"id": "c-507", "caller": {"name": "Lars Holm"}}, "tags": ["booking"]}'),
+    ('evt-1008', 'queued',  0, 0, '2026-11-02 08:15', '{"type": "call.ended", "call": {"id": "c-508", "duration_s": 30, "caller": {"name": "Priya Nair"}}, "tags": ["info"]}');
+prompt: |
+  The `jobs` table is a queue of webhook events. `status` is `queued`, `running`, `done` or `dead`; `attempts` counts tries; `priority` is higher for more urgent jobs; `run_after` is the earliest time a job may start; `payload` is the raw webhook body as `jsonb`. In this exercise the time now is `2026-11-02 09:00`.
+
+  Each `payload` looks like `{"type": "call.ended", "call": {"id": "c-501", "duration_s": 120, "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]}`. Some payloads have no `duration_s`.
+
+  Return `event_id`, `caller` (the caller's name as plain text) and `duration_s` (as an integer, NULL when the payload has none) for every job whose payload `type` is `call.ended` and whose `tags` array contains `"booking"`. Order by `event_id`.
+starter: |
+  SELECT event_id, ... AS caller, ... AS duration_s
+  FROM jobs
+  WHERE ...
+  ORDER BY event_id;
+hints:
+  - Which operator returns text, and which returns jsonb? You need text for the name and a number for the duration.
+  - Walk down with -> and finish with ->> to get text. Cast the duration with ::integer (wrap the whole expression in brackets). Test the tag with the containment operator @> and a JSON array.
+  - 'payload->''call''->''caller''->>____ AS caller, (payload->''call''->>''duration_s'')::____ AS duration_s ... payload @> ''{"tags": [____]}'''
+referenceSolution: |
+  SELECT event_id,
+         payload->'call'->'caller'->>'name' AS caller,
+         (payload->'call'->>'duration_s')::integer AS duration_s
+  FROM jobs
+  WHERE payload->>'type' = 'call.ended'
+    AND payload @> '{"tags": ["booking"]}'
+  ORDER BY event_id;
+compare:
+  orderMatters: true
+  numericTolerance: 0.001
+checks: []
+wrongSolutions:
+  - label: Looks for the name at the top level of the payload, so it is NULL
+    code: |
+      SELECT event_id,
+             payload->>'caller' AS caller,
+             (payload->'call'->>'duration_s')::integer AS duration_s
+      FROM jobs
+      WHERE payload->>'type' = 'call.ended'
+        AND payload @> '{"tags": ["booking"]}'
+      ORDER BY event_id;
+  - label: Leaves the duration as text, not an integer
+    code: |
+      SELECT event_id,
+             payload->'call'->'caller'->>'name' AS caller,
+             payload->'call'->>'duration_s' AS duration_s
+      FROM jobs
+      WHERE payload->>'type' = 'call.ended'
+        AND payload @> '{"tags": ["booking"]}'
+      ORDER BY event_id;
+  - label: Tests containment with a string instead of an array, so nothing matches
+    code: |
+      SELECT event_id,
+             payload->'call'->'caller'->>'name' AS caller,
+             (payload->'call'->>'duration_s')::integer AS duration_s
+      FROM jobs
+      WHERE payload->>'type' = 'call.ended'
+        AND payload @> '{"tags": "booking"}'
+      ORDER BY event_id;
+  - label: Mixes up the conditions with OR, so a call.started event is included
+    code: |
+      SELECT event_id,
+             payload->'call'->'caller'->>'name' AS caller,
+             (payload->'call'->>'duration_s')::integer AS duration_s
+      FROM jobs
+      WHERE payload @> '{"tags": ["booking"]}' OR payload->>'type' = 'call.started'
+      ORDER BY event_id;
+explanation: |
+  `->` steps into a JSON object and returns `jsonb`; `->>` returns the final value as text, so the name has no quote marks. A key that is missing gives NULL, which is why the dead job with no `duration_s` shows NULL and the cast does not fail. The cast needs brackets, `(payload->'call'->>'duration_s')::integer`, because `::` binds tighter than `->>`. `@>` asks whether the left value contains the right one, and an array contains an element only when you write the element inside an array. Alternative: `payload->'tags' ? 'booking'` tests the same thing with the key-exists operator. For large tables, a GIN index on `payload` speeds up `@>`.

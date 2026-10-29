@@ -1,0 +1,15 @@
+id: sql-04-checklist-local-postgres
+lesson: sql-04
+kind: checklist
+competencies: [sql.parameters, sql.transactions]
+title: Run PostgreSQL on your computer and query it from Python
+estMin: 8
+steps:
+  - do: 'Install PostgreSQL from the installer at postgresql.org/download for your system (accept the defaults and note the password you set for the postgres user). If you already use Docker, `docker run --name athena-pg -e POSTGRES_PASSWORD=ATHENA_FAKE_local -p 5432:5432 -d postgres:17` also works, but Docker is not taught until ops-01, so the installer is the simpler start.'
+    expect: '`psql -U postgres -c "SELECT version();"` (psql is the command-line client; -c runs one statement) prints one row that starts with PostgreSQL.'
+  - do: 'Create a virtual environment and install the driver: `python -m venv .venv`, activate it, then `pip install "psycopg[binary]"`.'
+    expect: 'pip reports that psycopg and psycopg-binary were installed.'
+  - do: 'Save a script that connects, creates a table notes (id serial primary key, body text) and inserts a row inside a `with psycopg.connect(dsn) as conn:` block, passing the text as a %s parameter. Then open a second connection in a second `with` block and run `SELECT count(*) FROM notes WHERE body = %s` with the same text. The dsn is `postgresql://postgres:YOUR_PASSWORD@localhost:5432/postgres`.'
+    expect: 'The script prints (1,). The first block committed when it ended, so the second connection can see the row.'
+  - do: "Change the script so that the first block raises an exception (`raise RuntimeError('stop')`) right after the INSERT of a new text value, and catch it outside the block. Then count that new text."
+    expect: 'The count is (0,). Leaving the block with an exception rolled the INSERT back.'

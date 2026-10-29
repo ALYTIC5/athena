@@ -1,0 +1,424 @@
+---
+title: Indexes, transactions and PostgreSQL from Python
+description: Reading query plans and adding indexes, grouping changes in transactions, claiming queue jobs safely with SKIP LOCKED, window functions and CTEs, JSONB payloads, migrations, and querying PostgreSQL from Python with parameters.
+sidebar:
+  order: 90
+lessonId: sql-04
+week: 9
+track: sql
+durationMin: 120
+anatomy: full
+competencies:
+  [
+    sql.indexes,
+    sql.transactions,
+    sql.locking-queues,
+    sql.window,
+    sql.subqueries-ctes,
+    sql.migrations,
+    sql.jsonb,
+    sql.parameters,
+  ]
+prerequisites: [sql-03, py-06]
+whyItMatters: >
+  SQL appears in 37% of the postings you are targeting, and a backend that handles phone calls and webhooks is mostly
+  a database with a few programs around it. Indexes keep queries fast as tables grow, transactions keep a failed
+  request from leaving half-finished data, and one statement with SKIP LOCKED lets several workers share a job queue,
+  which is the heart of your Lab A service. Interviewers ask about all of these, and about how Python talks to the
+  database safely.
+objectives:
+  - Read an EXPLAIN plan and add an index that changes it
+  - Explain atomicity and READ COMMITTED, and write a job-claim statement with FOR UPDATE SKIP LOCKED
+  - Write a CTE, a ROW_NUMBER() query and a running total
+  - Query a JSONB webhook payload, and write a migration as up and down SQL
+  - Query PostgreSQL from Python with psycopg and parameters, and explain why
+sources:
+  - title: "PostgreSQL documentation: indexes"
+    url: https://www.postgresql.org/docs/current/indexes.html
+  - title: "PostgreSQL documentation: using EXPLAIN"
+    url: https://www.postgresql.org/docs/current/using-explain.html
+  - title: "PostgreSQL documentation: transactions"
+    url: https://www.postgresql.org/docs/current/tutorial-transactions.html
+  - title: "PostgreSQL documentation: transaction isolation"
+    url: https://www.postgresql.org/docs/current/transaction-iso.html
+  - title: "PostgreSQL documentation: the locking clause of SELECT"
+    url: https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE
+  - title: "PostgreSQL documentation: window functions"
+    url: https://www.postgresql.org/docs/current/tutorial-window.html
+  - title: "PostgreSQL documentation: WITH queries"
+    url: https://www.postgresql.org/docs/current/queries-with.html
+  - title: "PostgreSQL documentation: JSON functions and operators"
+    url: https://www.postgresql.org/docs/current/functions-json.html
+  - title: "psycopg 3 documentation: passing parameters to SQL queries"
+    url: https://www.psycopg.org/psycopg3/docs/basic/params.html
+  - title: "psycopg 3 documentation: transactions management"
+    url: https://www.psycopg.org/psycopg3/docs/basic/transactions.html
+  - title: "Alembic tutorial"
+    url: https://alembic.sqlalchemy.org/en/latest/tutorial.html
+---
+
+<WarmUp lesson="sql-04" count={5} />
+
+## Why this matters
+
+SQL appears in 37% of the postings you are targeting, and a backend that handles phone calls and webhooks is mostly a database with a few programs around it. Indexes keep queries fast as tables grow, transactions keep a failed request from leaving half-finished data, and one statement with `SKIP LOCKED` lets several workers share a job queue, which is the heart of your Lab A service. Interviewers ask about all of these, and about how Python talks to the database safely.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Read an `EXPLAIN` plan and add an index that changes it.
+2. Explain atomicity and `READ COMMITTED`, and write a job-claim statement with `FOR UPDATE SKIP LOCKED`.
+3. Write a CTE, a `ROW_NUMBER()` query and a running total.
+4. Query a JSONB webhook payload, and write a migration as up and down SQL.
+5. Query PostgreSQL from Python with psycopg and parameters, and explain why.
+
+<Callout type="note" title="What runs where in this lesson">
+
+The SQL exercises and the SQL blocks run in a PostgreSQL database in your browser, with invented data. That database has one connection, so it cannot show two workers at once. For the job queue, the page checks your result and the shape of your statement, and you prove the real thing with two workers in Lab A. The Python library psycopg and the Alembic migration tool need a real PostgreSQL server, so their code blocks are marked `nocheck` and are not run on this page. The psycopg exercises use a stand-in connection that records what you send, and the Python predict cells use the `sqlite3` module that comes with Python, which understands the same transaction and window syntax. A checklist at the end helps you run PostgreSQL on your own computer.
+
+</Callout>
+
+<Chunk n={1} title="Indexes and reading EXPLAIN">
+
+Without an index, PostgreSQL answers `WHERE account_ref = 'ACC-0042'` by reading every row of the 20,000-row `calls` table. This is a **sequential scan**. An **index** is a separate sorted structure (a B-tree by default) that lets the database jump to the matching rows, like the index of a book. It helps `=`, `<`, `>`, `BETWEEN` and `ORDER BY`.
+
+An index takes space and slows every insert, update and delete, so index only the columns that queries filter or sort on. Primary key and `UNIQUE` create one for you, but a foreign key column does not get one. A function on the column, such as `lower(x)`, stops a plain index from being used. With several columns the order matters: the index is sorted by its first (leading) column, so it helps queries that test that column.
+
+`EXPLAIN` shows the plan without running the query. `EXPLAIN ANALYZE` runs it too, with real counts and times, so an `UPDATE` really happens. The planner chooses from statistics (refreshed by `ANALYZE`) and picks a sequential scan when a query needs most of the table.
+
+**Worked example.** The same table before and after an index on `started_at`. `ANALYZE calls` re-measures the table so the planner's statistics are fresh.
+
+```sql schema="sql-04-faded-index"
+EXPLAIN SELECT id FROM calls WHERE started_at >= '2026-11-10';
+-- Seq Scan on calls ... Filter: (started_at >= ...): every row is read and tested
+```
+
+```sql schema="sql-04-faded-index"
+CREATE INDEX calls_started_at_idx ON calls (started_at);        -- a sorted copy of the column
+ANALYZE calls;                                                  -- refresh the statistics
+EXPLAIN SELECT id FROM calls WHERE started_at >= '2026-11-10';  -- now: Index Scan using calls_started_at_idx
+```
+
+The second plan looks like this on PostgreSQL 18 (the numbers can differ a little from run to run):
+
+```text
+Index Scan using calls_started_at_idx on calls  (cost=0.29..36.30 rows=801 width=4)
+  Index Cond: (started_at >= '2026-11-10 00:00:00'::timestamp without time zone)
+```
+
+<Callout type="note" title="Reading a plan">
+
+- `cost=0.29..36.30` is the planner's estimate of the work, in arbitrary units: first the cost to start, then the total. Compare costs between plans; they are not seconds.
+- `rows=801` is the estimated number of rows that come out of this step. `EXPLAIN ANALYZE` adds the real number.
+- `Seq Scan` reads the whole table, and a `Filter` line is the test applied to each row.
+- `Index Scan` walks the index and fetches each matching row. `Bitmap Index Scan` collects all the matches in the index first and then fetches them together, which suits queries that match a medium number of rows. Both are good news for a selective query.
+
+</Callout>
+
+An index on several columns is sorted by the first one, then the second. The next one serves `WHERE reason = 'booking' AND started_at >= '2026-11-10'` and `WHERE reason = 'booking'`, but gives little help to a query that tests `started_at` alone.
+
+```sql schema="sql-04-faded-index"
+CREATE INDEX calls_reason_started_idx ON calls (reason, started_at);   -- leading column: reason
+```
+
+<Predict lesson="sql-04" item="sql-04-q-predict-scan" />
+
+Now do it yourself. The slow query filters on `account_ref`, and one word is missing.
+
+<Exercise id="sql-04-faded-index" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "More indexes always make a database faster." They make some reads faster and every write slower, and they use disk space.
+- "If the plan says Seq Scan, something is broken." On a small table, or when most rows match, reading everything is the cheapest plan. A range that matches 90% of the rows gets a Seq Scan even with an index.
+- "`EXPLAIN ANALYZE` only looks." It runs the statement. For an `UPDATE` or `DELETE`, put it between `BEGIN` and `ROLLBACK`.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Transactions, row locks and the job claim">
+
+<Callout type="note" title="Primer: UPDATE and RETURNING">
+
+`UPDATE table SET column = value WHERE condition` changes the rows that match, and without `WHERE` it changes every row. On the right of `SET` you can use the old value, as in `attempts = attempts + 1`. `RETURNING` sends the changed rows back, like a `SELECT`. A subquery in brackets that returns one value (a **scalar subquery**) can stand where a value is expected, as in `WHERE id = (SELECT ...)`.
+
+```sql schema="sql-04-faded-claim"
+UPDATE jobs                                                    -- change rows of the jobs table
+SET status = 'done', attempts = attempts + 1                   -- the new values; attempts uses its old value
+WHERE id = (SELECT id FROM jobs WHERE event_id = 'evt-1005')   -- the brackets return one id: 5
+RETURNING id, status, attempts;                                -- send the changed row back: 5, done, 2
+```
+
+</Callout>
+
+A **transaction** groups statements so that all take effect or none do (**atomicity**). `BEGIN` starts one, `COMMIT` makes its changes permanent, `ROLLBACK` discards them, and a lone statement is its own transaction. ACID adds consistent, isolated and durable.
+
+At the default level, `READ COMMITTED`, each statement sees only data committed before it started, never another transaction's unfinished changes. That does not stop two workers reading the same `queued` job and both claiming it.
+
+A **row lock** fixes that: `SELECT ... FOR UPDATE` locks the rows it returns until the transaction ends, and others wanting them wait. Add `SKIP LOCKED` and they skip those rows instead, so each worker gets a different job. The whole claim fits in one `UPDATE ... RETURNING`.
+
+**Worked example.** A rollback, then a claim. This is the statement your Lab A worker will use.
+
+```sql schema="sql-04-faded-claim"
+BEGIN;
+UPDATE jobs SET status = 'dead' WHERE status = 'queued';    -- five rows change, inside the transaction
+ROLLBACK;                                                   -- undo everything since BEGIN
+SELECT status, count(*) FROM jobs GROUP BY status ORDER BY status;   -- dead 1, done 1, queued 5, running 1
+```
+
+```sql schema="sql-04-faded-claim"
+UPDATE jobs
+SET status = 'running', attempts = attempts + 1           -- mark the job as taken
+WHERE id = (
+  SELECT id FROM jobs
+  WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'   -- only due jobs
+  ORDER BY id
+  LIMIT 1                                                 -- one job for this worker
+  FOR UPDATE SKIP LOCKED                                  -- lock it; pass over rows others hold
+)
+RETURNING id, event_id, attempts;                         -- hand the job back: evt-1001
+```
+
+With two real connections the locks look like this. The block is not run, because the browser database has one connection.
+
+```sql nocheck="needs two database connections at once"
+-- Session A:  BEGIN;
+-- Session A:  SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 1 FOR UPDATE;
+--             returns 1, and row 1 stays locked until A commits
+-- Session B:  BEGIN;
+-- Session B:  SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;
+--             returns 2 at once. Without SKIP LOCKED, B would wait for A.
+```
+
+<Predict lesson="sql-04" item="sql-04-q-predict-rollback" />
+
+The faded version takes the oldest due job by time, and the locking words are blank.
+
+<Exercise id="sql-04-faded-claim" />
+
+Put the claim in order.
+
+<Parsons lesson="sql-04" item="sql-04-q-parsons-claim" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "Each worker's SELECT then UPDATE is safe because each is a transaction." Both SELECTs can run before either UPDATE. Claim in one statement, with a row lock.
+- "`FOR UPDATE` alone is enough." The second worker waits, and after the first commits its row no longer matches `queued`, so it may get nothing although other jobs wait.
+- "ROLLBACK can undo a transaction that has committed." After `COMMIT` the changes are permanent. A later change needs a new statement.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="Subqueries, CTEs and window functions">
+
+A **subquery** is a query inside another query. A **CTE** (common table expression) gives one a name with `WITH name AS (...)`, so a long query reads as steps from top to bottom, and you can use one result twice. A **window function** calculates over a set of related rows without collapsing them. `GROUP BY` returns one row per group, but a window function keeps every row and adds a column.
+
+The shape is `func() OVER (PARTITION BY a ORDER BY b)`. `PARTITION BY` splits the rows into groups (leave it out for one group), and `ORDER BY` orders the rows inside each group. `row_number()` numbers them 1, 2, 3, and with tied values it picks one arbitrarily, so add a tie-breaker such as the `id`. `sum(x) OVER (ORDER BY day)` is a running total.
+
+Window functions are calculated after `WHERE`, so you cannot filter on them directly. Put the query in a subquery or CTE and filter outside. This is how you take 'the first call for each reason': number the calls, then keep number 1.
+
+**Worked examples.** A CTE, then `row_number()`, then a running total.
+
+```sql schema="sql-04-faded-latest-call"
+WITH answered AS (                                  -- step 1: only calls that were answered
+  SELECT customer_id, duration_s FROM calls WHERE duration_s IS NOT NULL
+)
+SELECT customer_id, count(*) AS answered_calls, round(avg(duration_s)) AS avg_s
+FROM answered                                       -- step 2: use the step like a table
+GROUP BY customer_id ORDER BY customer_id;
+```
+
+```sql schema="sql-04-faded-latest-call"
+SELECT reason, id
+FROM (
+  SELECT reason, id,
+         row_number() OVER (PARTITION BY reason ORDER BY started_at) AS rn   -- 1 = earliest call
+  FROM calls
+) AS numbered
+WHERE rn = 1                                        -- the filter lives one level up
+ORDER BY reason;                                    -- billing 6, booking 1, cancel 3, info 8
+```
+
+```sql schema="sql-04-faded-latest-call"
+SELECT id, customer_id, duration_s,
+       sum(duration_s) OVER (PARTITION BY customer_id ORDER BY started_at) AS running_s   -- adds up as it goes
+FROM calls
+WHERE duration_s IS NOT NULL
+ORDER BY customer_id, started_at;
+```
+
+A subquery can also look at the row of the outer query. This **correlated subquery** finds calls longer than their own customer's average. `NOT EXISTS (SELECT 1 FROM ... WHERE ... = outer.column)` keeps the rows for which the subquery finds nothing, such as customers with no calls. Prefer it to `NOT IN (subquery)`: if the subquery returns even one NULL, `NOT IN` matches nothing at all, because comparing with NULL is never true.
+
+```sql schema="sql-04-faded-latest-call"
+SELECT id, customer_id, duration_s
+FROM calls k
+WHERE duration_s > (SELECT avg(duration_s) FROM calls WHERE customer_id = k.customer_id)   -- k.customer_id: the outer row
+ORDER BY id;                                                                               -- calls 1, 6 and 8
+```
+
+```sql schema="sql-04-faded-latest-call"
+SELECT c AS customer_id                                              -- ids 1 to 5 stand in for a customers table
+FROM generate_series(1, 5) AS c
+WHERE NOT EXISTS (SELECT 1 FROM calls k WHERE k.customer_id = c);    -- customer 5 has no calls
+-- Writing  c NOT IN (SELECT duration_s FROM calls)  returns no rows, because duration_s contains a NULL
+```
+
+<Predict lesson="sql-04" item="sql-04-q-predict-window" />
+
+The faded version asks for each customer's latest call, which means numbering from newest to oldest.
+
+<Exercise id="sql-04-faded-latest-call" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "A window function reduces the rows like `GROUP BY`." It keeps every row.
+- "`WHERE rn = 1` works in the query that computes `rn`." It does not, because `WHERE` runs first. Filter in the outer query.
+- "`row_number()` is stable when values tie." The order of tied rows is not guaranteed. Add a second `ORDER BY` column.
+
+</Callout>
+
+</Chunk>
+
+<SessionBreak />
+
+## Debug a claim
+
+This claim has the locking right, but workers keep running jobs that are already finished. Find the missing condition.
+
+<Exercise id="sql-04-debug-claim" />
+
+<Chunk n={4} title="JSONB payloads and migrations">
+
+A **migration** is a numbered file of schema changes. It has an **up** part that applies the change and a **down** part that undoes it. A tool such as Alembic (the usual one for Python) records which migrations have run, so every environment can reach the same schema. It uses `upgrade()` and `downgrade()` functions.
+
+Webhook providers send JSON. A `jsonb` column stores it in a form PostgreSQL can search and index, so keep the raw payload and copy the fields you filter on often into real columns. `->` steps into an object by key or an array by position and returns `jsonb`, and `->>` returns text. A missing key gives NULL, not an error.
+
+`@>` tests whether the left value contains the right one, so `payload @> '{"tags": ["urgent"]}'` finds payloads whose `tags` array includes `"urgent"`. To compare numbers, cast the text, `(payload->'call'->>'duration_s')::integer`, with brackets because `::` binds tighter than `->>`. A GIN index speeds up `@>`.
+
+**Worked example.** Reading a payload.
+
+```sql schema="sql-04-make-jsonb"
+SELECT event_id,
+       payload->>'type' AS type,                     -- ->> gives text, without quote marks
+       payload->'call'->>'id' AS call_id,            -- step down with ->, finish with ->>
+       payload->'call'->'caller'->>'name' AS caller
+FROM jobs
+WHERE payload @> '{"tags": ["urgent"]}'              -- contains: the tags array includes "urgent"
+ORDER BY event_id;                                   -- evt-1002 (Jonas Weber) and evt-1006 (Ngozi Eze)
+```
+
+```sql schema="sql-04-make-jsonb"
+SELECT event_id, (payload->'call'->>'duration_s')::integer AS duration_s   -- cast to compare as a number
+FROM jobs
+ORDER BY event_id;                                   -- evt-1003 and evt-1007 have no duration_s: NULL
+```
+
+Three rules keep migrations safe. Never edit a migration that has run elsewhere; add a new one. Think about the rows that already exist: a `NOT NULL` column needs a default or a fill-in step, or it fails on a table that has data. Write the down part in the reverse order of the up part, so that something that depends on another thing is removed first. PostgreSQL can roll back most schema changes in a transaction, but not `CREATE INDEX CONCURRENTLY`.
+
+`ALTER TABLE` changes the structure of a table that already exists, here by adding or dropping a column.
+
+```sql schema="sql-04-make-migration"
+-- up: add a column
+ALTER TABLE bookings ADD COLUMN notes text;
+-- down: undo it
+ALTER TABLE bookings DROP COLUMN notes;
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'bookings' ORDER BY ordinal_position;   -- id, customer_name, starts_at: back to the start
+```
+
+The same change as an Alembic migration file. It is not run here, because it needs Alembic and a database.
+
+```python nocheck="needs Alembic and a database"
+import sqlalchemy as sa
+from alembic import op
+
+revision = "a1b2c3d4e5f6"        # this migration's id, made by `alembic revision`
+down_revision = "9f8e7d6c5b4a"   # the migration it follows
+
+
+def upgrade() -> None:
+    op.add_column("bookings", sa.Column("notes", sa.Text(), nullable=True))
+
+
+def downgrade() -> None:
+    op.drop_column("bookings", "notes")
+```
+
+<Predict lesson="sql-04" item="sql-04-q-predict-json" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 4">
+
+- "`->>` and `->` are the same." One returns text and the other returns `jsonb`, and only text can be cast to a number or compared with a string.
+- "A missing JSON key is an error." It gives NULL, so check for NULL before you trust a value.
+- "I can fix a typo in a migration that has run." Others have run the old version. Add a new migration.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={5} title="PostgreSQL from Python with psycopg">
+
+**psycopg 3** is the usual PostgreSQL driver for Python (`pip install "psycopg[binary]"`). You connect with a connection string, run SQL with `conn.execute(query, params)`, and read rows with `fetchone()` or `fetchall()`. Its placeholder is `%s` for every type of value (sqlite3, in sql-03, used `?`). The values go in a tuple as the second argument, and psycopg sends them to the server separately, so they can only be data. As in sql-03, a placeholder stands for a value, never for a table or column name.
+
+A `with psycopg.connect(...) as conn:` block commits when it ends normally, rolls back if an exception leaves it, and closes the connection. `with conn.transaction():` does the same for one group of statements on a connection that stays open. If a transaction is already open on that connection, `conn.transaction()` becomes a savepoint inside it, and nothing is committed until the outer transaction ends.
+
+```python nocheck="needs psycopg and a running PostgreSQL server"
+import psycopg
+
+reason = "x' OR '1'='1"                                        # hostile input
+unsafe = f"SELECT id FROM calls WHERE reason = '{reason}'"     # the text became part of the SQL
+with psycopg.connect("postgresql://app@localhost/athena") as conn:
+    conn.execute(unsafe)                                       # runs the attacker's condition: every row
+    rows = conn.execute(
+        "SELECT id FROM calls WHERE reason = %s", (reason,)    # %s: the value travels separately
+    ).fetchall()                                               # []: it was only data
+```
+
+<Predict lesson="sql-04" item="sql-04-q-predict-params" />
+
+To try the real library, run PostgreSQL on your own computer and connect from a script. Check how a `with` block commits and rolls back.
+
+<Checklist id="sql-04-checklist-local-postgres" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 5">
+
+- "An f-string is fine when the value comes from my own code." Values travel: today's constant is tomorrow's user input. Use `%s` every time.
+- "psycopg commits after every `execute`." By default it opens a transaction and commits when the `with` block ends normally.
+- "A `%s` placeholder can hold a table name." It holds values only. Choose names from a fixed list in your code.
+
+</Callout>
+
+</Chunk>
+
+## Write it yourself
+
+Now the main exercise of this lesson, the queue claim, which you write from a blank page.
+
+<Callout type="note" title="Write this yourself">
+
+Write the next exercise yourself. Claude can be your tutor (use the "I'm stuck" button) but not your author.
+
+</Callout>
+
+<Exercise id="sql-04-make-claim-job" />
+
+<ExplainBack lesson="sql-04" exercise="sql-04-make-claim-job" />
+
+## Mastery check
+
+<MasteryCheck lesson="sql-04" count={5} />
+
+<InterviewCorner lesson="sql-04" />
+
+This week's milestone, wa-m1, is the design note and repository skeleton. Plan your `jobs` table in it: a status, an attempt count, a `run_after` time and a JSONB payload. The claim statement from this lesson is what milestone wa-m3 will need later.
+
+<LabStep milestone="wa-m1" />
+
+## Further reading
+
+- [PostgreSQL documentation: using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html)
+- [PostgreSQL documentation: the locking clause of SELECT](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
+- [psycopg 3 documentation: passing parameters to SQL queries](https://www.psycopg.org/psycopg3/docs/basic/params.html)

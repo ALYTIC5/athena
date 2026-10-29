@@ -1,0 +1,109 @@
+id: sql-04-debug-claim
+lesson: sql-04
+runtime: sql
+kind: debug
+pools:
+  - lesson
+title: Fix a claim that picks up finished jobs
+difficulty: 3
+competencies:
+  - sql.locking-queues
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE jobs (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id text NOT NULL UNIQUE,
+    status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'dead')),
+    attempts integer NOT NULL DEFAULT 0,
+    priority integer NOT NULL DEFAULT 0,
+    run_after timestamp NOT NULL,
+    payload jsonb NOT NULL
+  );
+  INSERT INTO jobs (event_id, status, attempts, priority, run_after, payload) VALUES
+    ('evt-1001', 'queued',  0, 0, '2026-11-02 08:00', '{"type": "call.ended", "call": {"id": "c-501", "duration_s": 120, "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]}'),
+    ('evt-1002', 'queued',  0, 5, '2026-11-02 08:30', '{"type": "call.ended", "call": {"id": "c-502", "duration_s": 45, "caller": {"name": "Jonas Weber"}}, "tags": ["billing", "urgent"]}'),
+    ('evt-1003', 'running', 1, 7, '2026-11-02 08:00', '{"type": "call.started", "call": {"id": "c-503", "caller": {"name": "Mei Tanaka"}}, "tags": ["booking"]}'),
+    ('evt-1004', 'queued',  0, 9, '2026-11-02 10:00', '{"type": "call.ended", "call": {"id": "c-504", "duration_s": 300, "caller": {"name": "Sofia Reyes"}}, "tags": ["booking"]}'),
+    ('evt-1005', 'done',    1, 0, '2026-11-02 07:30', '{"type": "call.ended", "call": {"id": "c-505", "duration_s": 200, "caller": {"name": "Tomas Novak"}}, "tags": ["cancel"]}'),
+    ('evt-1006', 'queued',  2, 5, '2026-11-02 08:45', '{"type": "call.ended", "call": {"id": "c-506", "duration_s": 90, "caller": {"name": "Ngozi Eze"}}, "tags": ["booking", "urgent"]}'),
+    ('evt-1007', 'dead',    3, 0, '2026-11-02 07:00', '{"type": "call.ended", "call": {"id": "c-507", "caller": {"name": "Lars Holm"}}, "tags": ["booking"]}'),
+    ('evt-1008', 'queued',  0, 0, '2026-11-02 08:15', '{"type": "call.ended", "call": {"id": "c-508", "duration_s": 30, "caller": {"name": "Priya Nair"}}, "tags": ["info"]}');
+prompt: |
+  The `jobs` table is a queue of webhook events. `status` is `queued`, `running`, `done` or `dead`; `attempts` counts tries; `priority` is higher for more urgent jobs; `run_after` is the earliest time a job may start; `payload` is the raw webhook body as `jsonb`. In this exercise the time now is `2026-11-02 09:00`.
+
+  This claim statement should take the oldest due `queued` job. The locking is right, but workers keep picking up jobs that are already `done` or `dead`, and the statement returns a job that was finished long ago. Find the missing condition and fix it. Keep `FOR UPDATE SKIP LOCKED`, and keep it as one statement.
+starter: |
+  UPDATE jobs
+  SET status = 'running', attempts = attempts + 1
+  WHERE id = (
+    SELECT id FROM jobs
+    WHERE run_after <= '2026-11-02 09:00'
+    ORDER BY run_after, id
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED
+  )
+  RETURNING id, event_id, attempts;
+hints:
+  - Look at the job that comes back. What is its status, and which condition should have excluded it?
+  - The subquery only filters on time. Add a test on the status column so that only waiting jobs are candidates.
+  - WHERE ____ = 'queued' AND run_after <= '2026-11-02 09:00'
+referenceSolution: |
+  UPDATE jobs
+  SET status = 'running', attempts = attempts + 1
+  WHERE id = (
+    SELECT id FROM jobs
+    WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+    ORDER BY run_after, id
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED
+  )
+  RETURNING id, event_id, attempts;
+compare:
+  orderMatters: false
+  numericTolerance: 0.001
+checks:
+  - SELECT status = 'dead' AND attempts = 3 FROM jobs WHERE id = 7
+  - SELECT status = 'done' AND attempts = 1 FROM jobs WHERE id = 5
+  - SELECT count(*) = 2 FROM jobs WHERE status = 'running'
+queueClaim: true
+wrongSolutions:
+  - label: Excludes only done jobs, so a dead job is still claimed
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE status <> 'done' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, event_id, attempts;
+  - label: Moves the status test outside the subquery, so the subquery still picks a dead job and nothing is updated
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE status = 'queued' AND id = (
+        SELECT id FROM jobs
+        WHERE run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, event_id, attempts;
+  - label: Fixes the filter but drops SKIP LOCKED
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 1
+        FOR UPDATE
+      )
+      RETURNING id, event_id, attempts;
+explanation: |
+  Without `status = 'queued'` the subquery chooses by time alone, so the oldest row of any status wins; here that is the dead job `evt-1007`, which gets run again. The filter must be inside the subquery: if it is only on the outer `UPDATE`, the subquery still returns the dead job, the outer `status = 'queued'` rejects it, and the statement updates nothing while good jobs wait. Alternative: add a partial index `ON jobs (run_after) WHERE status = 'queued'` so the claim stays fast when most of the table is finished jobs.

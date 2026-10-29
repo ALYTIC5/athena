@@ -1,0 +1,67 @@
+id: sql-04-faded-index
+lesson: sql-04
+runtime: sql
+kind: faded
+pools:
+  - lesson
+title: Index the column a query filters on
+difficulty: 1
+competencies:
+  - sql.indexes
+timeoutMs: 5000
+estMin: 2
+extensions: []
+schema: |
+  CREATE TABLE calls (
+    id integer PRIMARY KEY,
+    account_ref text NOT NULL,
+    reason text NOT NULL,
+    duration_s integer NOT NULL,
+    started_at timestamp NOT NULL
+  );
+  INSERT INTO calls
+  SELECT g,
+         'ACC-' || lpad((g % 4000)::text, 4, '0'),
+         (ARRAY['booking', 'billing', 'cancel', 'info'])[1 + g % 4],
+         30 + (g * 37) % 600,
+         timestamp '2026-10-01 00:00' + g * interval '3 minutes'
+  FROM generate_series(1, 20000) AS g;
+  ANALYZE calls;
+prompt: |
+  The `calls` table holds 20,000 calls, each with an `account_ref` such as `ACC-0042`. This query is slow, and `EXPLAIN` shows a `Seq Scan`:
+
+  ```sql
+  SELECT * FROM calls WHERE account_ref = 'ACC-0042';
+  ```
+
+  Create an index named `calls_account_ref_idx` so that PostgreSQL can find those rows without reading the whole table. Fill in the blank. The checks run `ANALYZE` and then look at the plan.
+starter: |
+  CREATE INDEX calls_account_ref_idx ON calls (____);
+hints:
+  - Which column appears in the WHERE clause of the slow query?
+  - An index is created on the column the query compares with `=`. Name that column inside the brackets.
+  - CREATE INDEX calls_account_ref_idx ON calls (____);   -- the column after WHERE in the query
+referenceSolution: |
+  CREATE INDEX calls_account_ref_idx ON calls (account_ref);
+compare: none
+checks:
+  - SELECT count(*) = 1 FROM pg_indexes WHERE tablename = 'calls' AND indexname = 'calls_account_ref_idx' AND indexdef LIKE '%(account_ref)%'
+  - SELECT count(*) = 20000 FROM calls
+planCheck:
+  query: SELECT * FROM calls WHERE account_ref = 'ACC-0042'
+  accept:
+    - Index Scan
+    - Index Only Scan
+    - Bitmap Index Scan
+wrongSolutions:
+  - label: Indexes the reason column, which the query does not filter on
+    code: |
+      CREATE INDEX calls_account_ref_idx ON calls (reason);
+  - label: Indexes id, which the primary key already indexes
+    code: |
+      CREATE INDEX calls_account_ref_idx ON calls (id);
+  - label: Indexes lower(account_ref), an expression the query does not use
+    code: |
+      CREATE INDEX calls_account_ref_idx ON calls (lower(account_ref));
+explanation: |
+  A B-tree index on `account_ref` keeps those values sorted, so PostgreSQL can jump to `ACC-0042` instead of reading all 20,000 rows. The plan changes from `Seq Scan` to a `Bitmap Index Scan` (or an `Index Scan`). An index on another column cannot help this query, an index on `id` repeats what the primary key already gives, and an index on `lower(account_ref)` is only used by queries that also write `lower(account_ref)`. Alternative: `CREATE INDEX CONCURRENTLY` builds the index without blocking writes on a busy production table, but it cannot run inside a transaction block and it is slower.

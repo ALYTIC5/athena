@@ -1,0 +1,100 @@
+id: sql-04-make-migration
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - mastery
+title: Write the up migration for cancellations
+difficulty: 3
+competencies:
+  - sql.migrations
+  - sql.schema
+timeoutMs: 5000
+estMin: 3
+extensions: []
+schema: |
+  CREATE TABLE bookings (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    customer_name text NOT NULL,
+    starts_at timestamp NOT NULL
+  );
+  INSERT INTO bookings (customer_name, starts_at) VALUES
+    ('Amara Okafor', '2026-11-02 09:00'),
+    ('Jonas Weber',  '2026-11-03 14:00'),
+    ('Mei Tanaka',   '2026-11-04 11:30');
+prompt: |
+  The `bookings` table (`id`, `customer_name`, `starts_at`) already holds three rows. Write the **up** migration that makes cancellations possible, as a script of statements:
+
+  1. Add `status`, text, required, default `'confirmed'`, allowing only `'confirmed'` or `'cancelled'`. The existing rows must become `confirmed`.
+  2. Add `cancelled_at`, a timestamp that may be NULL.
+  3. Create `booking_notes`: `id` (generated identity primary key), `booking_id` (integer, required, must refer to a booking) and `note` (text, required).
+  4. Create an index named `bookings_status_starts_idx` on `bookings (status, starts_at)`.
+starter: |
+  -- up migration
+  ALTER TABLE bookings ...;
+hints:
+  - Which statements change an existing table, and which create something new? Do the changes to bookings first, because the new table refers to it.
+  - ADD COLUMN with NOT NULL needs a DEFAULT when the table already has rows. A CHECK (status IN (...)) limits the values, and REFERENCES bookings(id) makes the foreign key.
+  - ALTER TABLE bookings ADD COLUMN status text NOT NULL ____ 'confirmed' CHECK (status IN ('confirmed', 'cancelled'));
+referenceSolution: |
+  ALTER TABLE bookings ADD COLUMN status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled'));
+  ALTER TABLE bookings ADD COLUMN cancelled_at timestamp;
+  CREATE TABLE booking_notes (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    booking_id integer NOT NULL REFERENCES bookings(id),
+    note text NOT NULL
+  );
+  CREATE INDEX bookings_status_starts_idx ON bookings (status, starts_at);
+compare: none
+checks:
+  - SELECT count(*) = 3 FROM bookings WHERE status = 'confirmed' AND cancelled_at IS NULL
+  - sql: INSERT INTO bookings (customer_name, starts_at, status) VALUES ('Dara Obi', '2026-11-05 10:00', 'pending')
+    expectError: '23514'
+  - SELECT count(*) = 1 FROM information_schema.columns WHERE table_name = 'bookings' AND column_name = 'cancelled_at' AND is_nullable = 'YES'
+  - SELECT count(*) = 1 FROM information_schema.columns WHERE table_name = 'bookings' AND column_name = 'status' AND is_nullable = 'NO'
+  - sql: INSERT INTO booking_notes (booking_id, note) VALUES (999, 'No such booking')
+    expectError: '23503'
+  - SELECT count(*) = 1 FROM pg_indexes WHERE indexname = 'bookings_status_starts_idx' AND indexdef LIKE '%(status, starts_at)%'
+wrongSolutions:
+  - label: Adds a required column with no default, which fails because the table already has rows
+    code: |
+      ALTER TABLE bookings ADD COLUMN status text NOT NULL CHECK (status IN ('confirmed', 'cancelled'));
+      ALTER TABLE bookings ADD COLUMN cancelled_at timestamp;
+      CREATE TABLE booking_notes (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        booking_id integer NOT NULL REFERENCES bookings(id),
+        note text NOT NULL
+      );
+      CREATE INDEX bookings_status_starts_idx ON bookings (status, starts_at);
+  - label: Forgets the CHECK, so any status text is accepted
+    code: |
+      ALTER TABLE bookings ADD COLUMN status text NOT NULL DEFAULT 'confirmed';
+      ALTER TABLE bookings ADD COLUMN cancelled_at timestamp;
+      CREATE TABLE booking_notes (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        booking_id integer NOT NULL REFERENCES bookings(id),
+        note text NOT NULL
+      );
+      CREATE INDEX bookings_status_starts_idx ON bookings (status, starts_at);
+  - label: Forgets the foreign key on booking_id, so a note can point at a missing booking
+    code: |
+      ALTER TABLE bookings ADD COLUMN status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled'));
+      ALTER TABLE bookings ADD COLUMN cancelled_at timestamp;
+      CREATE TABLE booking_notes (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        booking_id integer NOT NULL,
+        note text NOT NULL
+      );
+      CREATE INDEX bookings_status_starts_idx ON bookings (status, starts_at);
+  - label: Puts the index columns in the wrong order
+    code: |
+      ALTER TABLE bookings ADD COLUMN status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled'));
+      ALTER TABLE bookings ADD COLUMN cancelled_at timestamp;
+      CREATE TABLE booking_notes (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        booking_id integer NOT NULL REFERENCES bookings(id),
+        note text NOT NULL
+      );
+      CREATE INDEX bookings_status_starts_idx ON bookings (starts_at, status);
+explanation: |
+  A migration is a list of statements applied in order. Existing rows matter: a `NOT NULL` column without a default cannot be added to a table that has rows, but with `DEFAULT 'confirmed'` PostgreSQL fills it in for every row (for a constant default this is quick, since PostgreSQL 11). The `CHECK` and the foreign key move the rules into the database, as in sql-03. The index lists `status` first because queries will test it with `=`, then `starts_at` for ranges and ordering. PostgreSQL can roll back DDL, so a migration that fails halfway inside a transaction leaves nothing behind. Alternative: add the column as nullable, fill it in batches, then set `NOT NULL`; this is safer for very large tables.

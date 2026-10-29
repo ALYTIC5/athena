@@ -1,0 +1,116 @@
+id: sql-04-make-claim-job
+lesson: sql-04
+runtime: sql
+kind: make
+pools:
+  - lesson
+title: Claim a batch of the most urgent jobs
+difficulty: 3
+competencies:
+  - sql.locking-queues
+  - sql.transactions
+timeoutMs: 5000
+estMin: 6
+extensions: []
+schema: |
+  CREATE TABLE jobs (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id text NOT NULL UNIQUE,
+    status text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'dead')),
+    attempts integer NOT NULL DEFAULT 0,
+    priority integer NOT NULL DEFAULT 0,
+    run_after timestamp NOT NULL,
+    payload jsonb NOT NULL
+  );
+  INSERT INTO jobs (event_id, status, attempts, priority, run_after, payload) VALUES
+    ('evt-1001', 'queued',  0, 0, '2026-11-02 08:00', '{"type": "call.ended", "call": {"id": "c-501", "duration_s": 120, "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]}'),
+    ('evt-1002', 'queued',  0, 5, '2026-11-02 08:30', '{"type": "call.ended", "call": {"id": "c-502", "duration_s": 45, "caller": {"name": "Jonas Weber"}}, "tags": ["billing", "urgent"]}'),
+    ('evt-1003', 'running', 1, 7, '2026-11-02 08:00', '{"type": "call.started", "call": {"id": "c-503", "caller": {"name": "Mei Tanaka"}}, "tags": ["booking"]}'),
+    ('evt-1004', 'queued',  0, 9, '2026-11-02 10:00', '{"type": "call.ended", "call": {"id": "c-504", "duration_s": 300, "caller": {"name": "Sofia Reyes"}}, "tags": ["booking"]}'),
+    ('evt-1005', 'done',    1, 0, '2026-11-02 07:30', '{"type": "call.ended", "call": {"id": "c-505", "duration_s": 200, "caller": {"name": "Tomas Novak"}}, "tags": ["cancel"]}'),
+    ('evt-1006', 'queued',  2, 5, '2026-11-02 08:45', '{"type": "call.ended", "call": {"id": "c-506", "duration_s": 90, "caller": {"name": "Ngozi Eze"}}, "tags": ["booking", "urgent"]}'),
+    ('evt-1007', 'dead',    3, 0, '2026-11-02 07:00', '{"type": "call.ended", "call": {"id": "c-507", "caller": {"name": "Lars Holm"}}, "tags": ["booking"]}'),
+    ('evt-1008', 'queued',  0, 0, '2026-11-02 08:15', '{"type": "call.ended", "call": {"id": "c-508", "duration_s": 30, "caller": {"name": "Priya Nair"}}, "tags": ["info"]}');
+prompt: |
+  The `jobs` table is a queue of webhook events. `status` is `queued`, `running`, `done` or `dead`; `attempts` counts tries; `priority` is higher for more urgent jobs; `run_after` is the earliest time a job may start; `payload` is the raw webhook body as `jsonb`. In this exercise the time now is `2026-11-02 09:00`.
+
+  A worker takes jobs two at a time. Write one statement that claims up to 2 jobs that are `queued` and due. Take the highest `priority` first, then the oldest `run_after`, then the lowest `id`. Set their status to `running`, add 1 to `attempts`, and return `id` and `attempts` of the claimed jobs.
+
+  Two workers will run this at the same moment, so they must never claim the same job and never wait for each other.
+starter: |
+  UPDATE jobs
+  SET ...
+hints:
+  - Which part of the statement chooses the jobs, and which part changes them? Write the choosing part first.
+  - 'Put the choosing query in a subquery: filter on status and due time, order by priority (highest first), then run_after, then id, take 2 rows, and lock them while skipping rows others hold. The UPDATE then matches ids in that list.'
+  - UPDATE jobs SET ... WHERE id IN (SELECT id FROM jobs WHERE ... ORDER BY priority ____, run_after, id LIMIT ____ FOR UPDATE ____ ____) RETURNING id, attempts;
+referenceSolution: |
+  UPDATE jobs
+  SET status = 'running', attempts = attempts + 1
+  WHERE id IN (
+    SELECT id FROM jobs
+    WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+    ORDER BY priority DESC, run_after, id
+    LIMIT 2
+    FOR UPDATE SKIP LOCKED
+  )
+  RETURNING id, attempts;
+compare:
+  orderMatters: false
+  numericTolerance: 0.001
+checks:
+  - SELECT count(*) = 3 FROM jobs WHERE status = 'running'
+  - SELECT status = 'running' AND attempts = 3 FROM jobs WHERE id = 6
+  - SELECT status = 'queued' AND attempts = 0 FROM jobs WHERE id = 4
+queueClaim: true
+wrongSolutions:
+  - label: Ignores the priority and takes the two oldest jobs
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY run_after, id
+        LIMIT 2
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, attempts;
+  - label: Forgets that a job must be due, so a job scheduled for later is claimed early
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM jobs
+        WHERE status = 'queued'
+        ORDER BY priority DESC, run_after, id
+        LIMIT 2
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, attempts;
+  - label: Uses FOR UPDATE without SKIP LOCKED
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY priority DESC, run_after, id
+        LIMIT 2
+        FOR UPDATE
+      )
+      RETURNING id, attempts;
+  - label: Claims only one job
+    code: |
+      UPDATE jobs
+      SET status = 'running', attempts = attempts + 1
+      WHERE id IN (
+        SELECT id FROM jobs
+        WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'
+        ORDER BY priority DESC, run_after, id
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id, attempts;
+explanation: |
+  The subquery decides which jobs to take and locks them: `ORDER BY priority DESC, run_after, id` ranks them, `LIMIT 2` keeps two, and `FOR UPDATE SKIP LOCKED` makes a second worker pass over the rows the first one holds. The outer `UPDATE ... WHERE id IN (...)` marks them, and `RETURNING` hands them back, so the claim is one atomic statement. The job `evt-1004` has the highest priority but is not due yet, which is why the due test matters. `RETURNING` does not promise an order. Alternative: claim one job per statement in a loop, which is simpler to reason about but costs one round trip per job.

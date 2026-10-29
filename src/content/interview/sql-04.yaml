@@ -1,0 +1,22 @@
+lesson: sql-04
+questions:
+  - id: sql-04-iq-job-queue
+    competencies: [sql.locking-queues, sql.transactions]
+    question: How would you build a job queue in PostgreSQL so that several workers never process the same job?
+    modelAnswer: I would keep the jobs in a table with a status, an attempt count and a run_after time. Each worker claims a job with one UPDATE whose subquery picks the next due queued job with ORDER BY, LIMIT 1 and FOR UPDATE SKIP LOCKED, and returns the row. The row lock stops a second worker taking the same job, and SKIP LOCKED means it takes the next one instead of waiting. Reading and claiming happen in one statement, so there is no gap. I would also handle workers that crash, for example with a timeout that puts old running jobs back in the queue, retry with a delay by moving run_after forward, and mark a job dead after a maximum number of attempts. I would index the columns the claim filters on, and test it with two real workers, because it cannot be shown with one connection.
+    listenFor:
+      - one statement that reads and claims
+      - FOR UPDATE SKIP LOCKED and why plain FOR UPDATE makes workers wait
+      - status, attempts and run_after for retries
+      - what happens when a worker crashes
+      - testing with real concurrency
+  - id: sql-04-iq-slow-query
+    competencies: [sql.indexes]
+    question: A query on a large table has become slow in production. How do you investigate and fix it?
+    modelAnswer: I run EXPLAIN ANALYZE on the query, ideally against a copy of the data, and read the plan. I look for a sequential scan on a big table where the query picks out few rows, for a large gap between estimated and actual rows, and for expensive sorts. If a column used in WHERE, JOIN or ORDER BY has no index, I add one, thinking about column order for a composite index, and I check the plan again to see that it is used. I remember that an index slows writes and takes space, that a function on the column stops a plain index from being used, and that stale statistics need ANALYZE. On a busy table I would build the index with CREATE INDEX CONCURRENTLY, and I would measure before and after.
+    listenFor:
+      - reads the plan with EXPLAIN ANALYZE rather than guessing
+      - spots a sequential scan or a bad row estimate
+      - adds an index and checks that the plan changed
+      - knows the cost of an index and why it may not be used
+      - cares about locking on a live table

@@ -112,7 +112,7 @@
     - id: sql-04
       title: 'Indexes, transactions and PostgreSQL from Python'
       durationMin: 120
-      status: planned
+      status: published
   lab:
     - milestone: wa-m1
       minutes: 45

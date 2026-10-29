@@ -1,0 +1,725 @@
+lesson: sql-04
+items:
+  # ---- Chunk 1: indexes and EXPLAIN (objective 1) ----
+  - id: sql-04-q-seq-vs-index
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: "A table of 20,000 calls has no index on account_ref. How does PostgreSQL answer WHERE account_ref = 'ACC-0042'?"
+    options:
+      - text: It reads every row and keeps the ones that match (a sequential scan)
+        correct: true
+        why: Without an index on that column there is no shortcut, so the database checks each row. EXPLAIN shows this as Seq Scan.
+      - text: It jumps straight to the rows using the primary key
+        correct: false
+        why: The primary key index is sorted by id, not by account_ref, so it cannot find an account reference.
+      - text: It creates an index for the query, then uses it
+        correct: false
+        why: PostgreSQL does not build an index to answer a query. You create one with CREATE INDEX.
+      - text: It guesses from statistics and returns an estimate
+        correct: false
+        why: Statistics help the planner choose a plan, but the rows returned are always exact.
+  - id: sql-04-q-predict-scan
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [sql.indexes]
+    code: |
+      refs = sorted(f"ACC-{n:04d}" for n in range(1000))   # 1,000 sorted values, like an index
+      target = "ACC-0742"
+
+      rows_read = 0
+      for ref in refs:                 # no index: look at every row
+          rows_read += 1
+
+      steps = 0
+      low, high = 0, len(refs)
+      while low < high:                # sorted values: halve the range each time
+          steps += 1
+          middle = (low + high) // 2
+          if refs[middle] < target:
+              low = middle + 1
+          else:
+              high = middle
+
+      print(rows_read, steps, refs[low] == target)
+    investigate:
+      - Why does the second loop need so few steps, and what would happen to it if refs were not sorted?
+      - How many steps would you expect for 1,000,000 sorted values?
+  - id: sql-04-q-index-lower
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: 'There is an ordinary index on customers(email). Which query cannot use it for the lookup?'
+    options:
+      - text: "WHERE lower(email) = 'amara@example.com'"
+        correct: true
+        why: The index holds email as stored. A function on the column changes the value being compared, so the index cannot be searched. An index on lower(email) would work.
+      - text: "WHERE email = 'amara@example.com'"
+        correct: false
+        why: This compares the stored value directly, which is exactly what the index is sorted by.
+      - text: "WHERE email > 'm'"
+        correct: false
+        why: A B-tree is sorted, so it also helps range comparisons such as greater than.
+      - text: 'ORDER BY email LIMIT 5'
+        correct: false
+        why: A sorted index can hand back the first five rows in order without sorting the table.
+  - id: sql-04-q-index-cost
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: What is the main cost of adding another index to a table?
+    options:
+      - text: Inserts, updates and deletes get slower, and the index takes disk space
+        correct: true
+        why: Every change to the table must also change each index on it. That is why you index the columns that queries need, not all of them.
+      - text: Reads of other columns get slower
+        correct: false
+        why: Reads are not slowed by an index on another column. The cost falls on writes.
+      - text: The table can no longer have a primary key
+        correct: false
+        why: Tables can have any number of indexes in addition to the primary key.
+      - text: The database must be restarted
+        correct: false
+        why: CREATE INDEX works while the database is running.
+  - id: sql-04-q-explain-analyze
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: "You run EXPLAIN ANALYZE UPDATE jobs SET status = 'done' WHERE id = 1. What happens?"
+    options:
+      - text: The update really happens, and the plan shows real timings
+        correct: true
+        why: EXPLAIN ANALYZE runs the statement. To look at a write safely, put it in BEGIN and finish with ROLLBACK.
+      - text: Nothing is changed, because EXPLAIN only describes the plan
+        correct: false
+        why: That is plain EXPLAIN. Adding ANALYZE makes it execute the statement.
+      - text: The index statistics are refreshed, but the row is not changed
+        correct: false
+        why: Refreshing statistics is the separate ANALYZE command.
+      - text: PostgreSQL refuses, because EXPLAIN works only on SELECT
+        correct: false
+        why: EXPLAIN accepts INSERT, UPDATE, DELETE and more.
+  - id: sql-04-q-composite-order
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: 'There is an index on jobs (status, run_after). Which query is the best match for it?'
+    options:
+      - text: "WHERE status = 'queued' AND run_after <= '2026-11-02 09:00'"
+        correct: true
+        why: It tests the leading column with equality and then a range on the second column, which is the order the index is sorted in.
+      - text: "WHERE run_after <= '2026-11-02 09:00' (no test on status)"
+        correct: false
+        why: The index is sorted by status first. Without a test on the leading column it is usually of little use (PostgreSQL 18 can sometimes skip a leading column that has few distinct values, but do not rely on that).
+      - text: 'WHERE attempts > 2'
+        correct: false
+        why: attempts is not in the index, so the index cannot help.
+      - text: "WHERE payload->>'type' = 'call.ended'"
+        correct: false
+        why: This tests a value inside the payload column, which the index does not cover.
+  - id: sql-04-q-read-plan
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: What does this plan tell you?
+    code: |
+      Seq Scan on calls  (cost=0.00..408.00 rows=5 width=32)
+        Filter: (account_ref = 'ACC-0042'::text)
+    options:
+      - text: PostgreSQL reads the whole table and filters each row, so an index on account_ref would probably help
+        correct: true
+        why: Seq Scan with a Filter line means every row is read and tested. The rows=5 figure is the estimated number of matching rows.
+      - text: PostgreSQL used an index on account_ref
+        correct: false
+        why: An index shows up as Index Scan, Index Only Scan or Bitmap Index Scan.
+      - text: The query returned 408 rows
+        correct: false
+        why: 408.00 is a cost estimate in arbitrary units, not a row count.
+      - text: The query took 5 milliseconds
+        correct: false
+        why: Plain EXPLAIN does not run the query, so it has no timings. EXPLAIN ANALYZE does.
+  - id: sql-04-q-fk-index
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [sql.indexes, sql.schema]
+    stem: 'bookings.customer_id is declared REFERENCES customers(id). Does PostgreSQL create an index on bookings.customer_id?'
+    options:
+      - text: No. The referenced column customers.id has an index through its primary key, but you add your own index on bookings.customer_id
+        correct: true
+        why: PostgreSQL does not index the referencing column. Without one, joins on it and deletes of a customer must scan the bookings table.
+      - text: Yes, every foreign key column is indexed automatically
+        correct: false
+        why: That is true in some other databases, not in PostgreSQL.
+      - text: Yes, but only if the table has more than 1,000 rows
+        correct: false
+        why: There is no such rule. Indexes are created only when you ask for them or for a primary key or UNIQUE constraint.
+      - text: No, and an index on a foreign key column is not allowed
+        correct: false
+        why: Indexing a foreign key column is allowed and usually a good idea.
+  - id: sql-04-q-small-table
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [sql.indexes]
+    stem: There is an index on started_at, yet EXPLAIN shows a Seq Scan for WHERE started_at >= '2026-10-05'. About 90% of the rows match. Why?
+    options:
+      - text: When a query returns a large share of the table, reading it all in order is cheaper than jumping around with an index, so the planner chooses the scan
+        correct: true
+        why: The planner compares estimated costs. An index pays off when it picks out a small share of the rows.
+      - text: The index is broken and must be rebuilt
+        correct: false
+        why: A Seq Scan is not a sign of a broken index. It is often the cheapest plan when most rows match.
+      - text: Indexes cannot be used for range comparisons
+        correct: false
+        why: A B-tree index is sorted, so it does help ranges that pick out a small share of the rows.
+      - text: PostgreSQL ignores indexes on columns that are not unique
+        correct: false
+        why: Non-unique indexes are used normally.
+
+  # ---- Chunk 2: transactions, locks and the job-queue claim (objective 2) ----
+  - id: sql-04-q-atomic
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [sql.transactions]
+    stem: Inside one transaction you take 150 from one account and add 150 to another. The second UPDATE fails and you ROLLBACK. What state are the accounts in?
+    options:
+      - text: Both are exactly as before, because a transaction takes effect completely or not at all
+        correct: true
+        why: This is atomicity. ROLLBACK discards every change made since BEGIN, including the first UPDATE.
+      - text: The first account is reduced and the second is unchanged
+        correct: false
+        why: That would be a half-finished transfer, which is exactly what a transaction prevents.
+      - text: Both are changed, and the failure is only logged
+        correct: false
+        why: A failed transaction that is rolled back leaves no changes behind.
+      - text: The state is undefined until the database restarts
+        correct: false
+        why: Rollback is immediate and reliable. No restart is needed.
+  - id: sql-04-q-predict-rollback
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [sql.transactions]
+    code: |
+      import sqlite3
+
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE accounts (name TEXT PRIMARY KEY, balance INTEGER NOT NULL CHECK (balance >= 0))")
+      db.executemany("INSERT INTO accounts VALUES (?, ?)", [("till", 100), ("safe", 0)])
+      db.commit()
+
+      try:
+          with db:                                 # one transaction: commit at the end, rollback on error
+              db.execute("UPDATE accounts SET balance = balance + 150 WHERE name = 'safe'")
+              db.execute("UPDATE accounts SET balance = balance - 150 WHERE name = 'till'")   # breaks the CHECK
+      except sqlite3.IntegrityError:
+          print("failed")
+      print(db.execute("SELECT name, balance FROM accounts ORDER BY name").fetchall())
+    investigate:
+      - Why is the safe balance still 0 although its UPDATE ran first and succeeded?
+      - What would the table show if the two UPDATE statements were not in one transaction?
+  - id: sql-04-q-parsons-claim
+    pools: [check]
+    chunk: 2
+    type: parsons
+    competencies: [sql.locking-queues]
+    lines:
+      - 'UPDATE jobs'
+      - "SET status = 'running', attempts = attempts + 1"
+      - 'WHERE id = ('
+      - '  SELECT id FROM jobs'
+      - "  WHERE status = 'queued'"
+      - '  ORDER BY run_after, id'
+      - '  LIMIT 1'
+      - '  FOR UPDATE SKIP LOCKED'
+      - ')'
+      - 'RETURNING id;'
+    distractors:
+      - '  FOR UPDATE'
+      - '  GROUP BY status'
+  - id: sql-04-q-read-committed
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sql.transactions]
+    stem: Session A has updated a row but has not committed. Session B, at PostgreSQL's default isolation level, selects that row. What does B see?
+    options:
+      - text: The old value, because B sees only data committed before its statement began
+        correct: true
+        why: READ COMMITTED never shows another transaction's unfinished changes (no dirty reads). B sees the new value only after A commits.
+      - text: The new value, because the update has already run
+        correct: false
+        why: That would be a dirty read, which PostgreSQL does not allow at any isolation level.
+      - text: An error, because the row is locked
+        correct: false
+        why: Plain reads are not blocked by writers in PostgreSQL. They see the last committed version.
+      - text: Nothing, B waits until A finishes
+        correct: false
+        why: B waits only if it also tries to change that row, or locks it with FOR UPDATE. A plain SELECT does not wait.
+  - id: sql-04-q-race
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sql.transactions, sql.locking-queues]
+    stem: "Two workers each run SELECT id FROM jobs WHERE status = 'queued' LIMIT 1, and then UPDATE that id to 'running'. Why can both end up with the same job?"
+    options:
+      - text: Both SELECTs can run before either UPDATE, so both see the job as queued
+        correct: true
+        why: Reading and claiming are two separate steps, and nothing stops another worker from reading in between. The claim must be one statement with a row lock.
+      - text: PostgreSQL does not allow two connections to update the same table
+        correct: false
+        why: Many connections can update the same table. Only the same row is serialised.
+      - text: READ COMMITTED lets a transaction read uncommitted rows
+        correct: false
+        why: It does not. The problem is the gap between the read and the update.
+      - text: The LIMIT 1 is ignored when two workers run
+        correct: false
+        why: LIMIT 1 works in each query. Each worker gets one row, but it can be the same row.
+  - id: sql-04-q-skip-locked
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [sql.locking-queues]
+    stem: What does SKIP LOCKED do in SELECT ... FOR UPDATE SKIP LOCKED?
+    options:
+      - text: It leaves out rows that another transaction has locked, instead of waiting for them
+        correct: true
+        why: Each worker therefore gets a different unlocked job and none of them waits.
+      - text: It unlocks rows that another transaction has locked
+        correct: false
+        why: A lock held by another transaction cannot be taken away. It can only be skipped or waited for.
+      - text: It skips the rows that match the WHERE clause
+        correct: false
+        why: SKIP LOCKED only concerns locks. The WHERE clause still decides which rows qualify.
+      - text: It makes the query read-only, so no locks are taken
+        correct: false
+        why: FOR UPDATE takes row locks on the rows it returns. SKIP LOCKED changes what happens with rows that are already locked.
+  - id: sql-04-q-for-update-only
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [sql.locking-queues, sql.transactions]
+    stem: Worker A has locked the best job with FOR UPDATE and is still in its transaction. Worker B runs the same query with FOR UPDATE but without SKIP LOCKED. What happens to B?
+    options:
+      - text: B waits until A's transaction ends
+        correct: true
+        why: Without SKIP LOCKED, a transaction that wants a locked row waits for the lock. After A commits, the row no longer matches status = 'queued', so B may end up with nothing even though other jobs are waiting.
+      - text: B takes the next job at once
+        correct: false
+        why: That is what SKIP LOCKED does. Plain FOR UPDATE waits instead.
+      - text: B takes the same job, and both run it
+        correct: false
+        why: The lock exists to prevent exactly this. B cannot take a locked row.
+      - text: B gets an error and must retry
+        correct: false
+        why: B simply waits, unless you add NOWAIT, which does raise an error.
+  - id: sql-04-q-order-claim
+    pools: [mastery]
+    objective: 2
+    type: order
+    competencies: [sql.locking-queues]
+    stem: Put the parts of a single-statement job claim in the order the database carries them out.
+    steps:
+      - The subquery finds the best due job with status queued (ORDER BY and LIMIT 1)
+      - FOR UPDATE SKIP LOCKED locks that row, and passes over rows locked by others
+      - The UPDATE sets status to running and adds 1 to attempts
+      - RETURNING hands the claimed row back to the worker
+  - id: sql-04-q-claim-bug
+    pools: [mastery]
+    objective: 2
+    type: bug
+    competencies: [sql.locking-queues]
+    code: |
+      UPDATE jobs SET status = 'running'
+      WHERE id = (
+        SELECT id FROM jobs
+        WHERE status = 'queued'
+        ORDER BY id
+        LIMIT 1
+      )
+      RETURNING id;
+    buggyLine: 6
+    explanation: The subquery ends without a lock clause, so two workers can pick the same row at the same moment. Add FOR UPDATE SKIP LOCKED after LIMIT 1, so a worker locks its job and others pass over it.
+
+  # ---- Chunk 3: subqueries, CTEs and window functions (objective 3) ----
+  - id: sql-04-q-window-vs-group
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [sql.window]
+    stem: What is the difference between sum(x) OVER (PARTITION BY customer_id) and SELECT customer_id, sum(x) ... GROUP BY customer_id?
+    options:
+      - text: The window version keeps every row and adds the total as a column, while GROUP BY returns one row per customer
+        correct: true
+        why: A window function calculates over a set of rows without collapsing them, so each call keeps its own row next to the customer's total.
+      - text: The window version returns one row per customer
+        correct: false
+        why: That describes GROUP BY. A window function never reduces the number of rows.
+      - text: The window version ignores NULLs, and GROUP BY does not
+        correct: false
+        why: Both use the same sum, which skips NULLs.
+      - text: They are the same, and only the spelling differs
+        correct: false
+        why: They give different shapes of result, and the window version can show detail rows next to the total.
+  - id: sql-04-q-predict-window
+    pools: [check, mastery]
+    chunk: 3
+    objective: 3
+    type: predict
+    competencies: [sql.window]
+    code: |
+      import sqlite3
+
+      db = sqlite3.connect(":memory:")
+      db.execute("CREATE TABLE calls (id INTEGER, customer INTEGER, seconds INTEGER)")
+      db.executemany(
+          "INSERT INTO calls VALUES (?, ?, ?)",
+          [(1, 7, 60), (2, 7, 30), (3, 8, 90), (4, 7, 10)],
+      )
+      rows = db.execute(
+          """
+          SELECT id, customer, seconds,
+                 SUM(seconds) OVER (PARTITION BY customer ORDER BY id) AS running
+          FROM calls
+          ORDER BY id
+          """
+      ).fetchall()
+      for row in rows:
+          print(row)
+    investigate:
+      - Why does call 4 show 100 and not 190?
+      - What would the running column show if the OVER clause had no PARTITION BY?
+  - id: sql-04-q-where-window
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sql.window, sql.subqueries-ctes]
+    stem: 'SELECT * FROM calls WHERE row_number() OVER (PARTITION BY customer_id ORDER BY started_at DESC) = 1 is an error. What is the fix?'
+    options:
+      - text: Compute row_number() in a subquery or CTE, then filter on that column in the outer query
+        correct: true
+        why: Window functions are calculated after WHERE, so the filter can only see them one level up.
+      - text: Replace WHERE with HAVING
+        correct: false
+        why: HAVING filters groups after GROUP BY. There is no grouping here, and window functions are not allowed there either.
+      - text: Add LIMIT 1
+        correct: false
+        why: LIMIT 1 would return a single row for the whole table, not one row per customer.
+      - text: Use rank() instead of row_number()
+        correct: false
+        why: rank() is also a window function, so it has the same restriction.
+  - id: sql-04-q-cte
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sql.subqueries-ctes]
+    stem: What does WITH answered AS (SELECT * FROM calls WHERE duration_s IS NOT NULL) give you?
+    options:
+      - text: A named step that the rest of the query can use like a table, so a long query reads from top to bottom
+        correct: true
+        why: A CTE (common table expression) is a named subquery that exists for that one statement.
+      - text: A new table stored in the database
+        correct: false
+        why: A CTE lasts only for the one statement. CREATE TABLE makes a stored table.
+      - text: A faster plan, always
+        correct: false
+        why: A CTE is mainly for readability. PostgreSQL treats a simple one much like a subquery, so do not expect speed from it.
+      - text: A view that other sessions can query
+        correct: false
+        why: A view is created with CREATE VIEW. A CTE is visible only inside its own statement.
+  - id: sql-04-q-running-total
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sql.window]
+    stem: Which expression gives each day's calls plus all the calls on the days before it?
+    options:
+      - text: sum(calls) OVER (ORDER BY day)
+        correct: true
+        why: With an ORDER BY in the window, the sum covers the rows from the first one up to the current one.
+      - text: sum(calls) OVER ()
+        correct: false
+        why: With no ORDER BY the window is the whole table, so every row shows the grand total.
+      - text: sum(calls) OVER (PARTITION BY day)
+        correct: false
+        why: Each day is its own partition, so the sum is just that day's calls.
+      - text: sum(calls) OVER (ORDER BY day DESC)
+        correct: false
+        why: This adds up from the last day backwards, which is a running total in reverse.
+  - id: sql-04-q-row-number-tie
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [sql.window]
+    stem: Two calls of one customer have the same started_at. You number them with row_number() OVER (PARTITION BY customer_id ORDER BY started_at DESC). What do you get?
+    options:
+      - text: One of them gets 1 and the other 2, but which is not guaranteed, so add a tie-breaker such as id
+        correct: true
+        why: row_number() never repeats a number, so the tie is broken arbitrarily. A second ORDER BY column makes the result the same every time.
+      - text: Both get 1
+        correct: false
+        why: That is what rank() does with ties. row_number() always gives different numbers.
+      - text: PostgreSQL raises an error about the tie
+        correct: false
+        why: Ties are allowed. They only make the result unpredictable.
+      - text: Both get NULL
+        correct: false
+        why: Window ranking functions always return numbers.
+  - id: sql-04-q-not-exists
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [sql.subqueries-ctes]
+    stem: Which query lists the customers who have no calls?
+    options:
+      - text: SELECT name FROM customers cu WHERE NOT EXISTS (SELECT 1 FROM calls k WHERE k.customer_id = cu.id)
+        correct: true
+        why: The subquery refers to the outer row (cu.id), so it is checked for each customer. NOT EXISTS keeps the customers for whom it finds nothing.
+      - text: SELECT name FROM customers WHERE id NOT IN (SELECT customer_id FROM calls)
+        correct: false
+        why: This looks right, but calls.customer_id can be NULL for unknown callers, and NOT IN against a list containing NULL never matches, so you get no rows. NOT EXISTS is safe.
+      - text: SELECT name FROM customers WHERE EXISTS (SELECT 1 FROM calls)
+        correct: false
+        why: The subquery is not tied to the customer, so it is true for every customer as soon as any call exists.
+      - text: SELECT name FROM customers JOIN calls ON calls.customer_id = customers.id
+        correct: false
+        why: An inner join keeps only the customers that do have calls.
+
+  # ---- JSONB and migrations (objective 4) ----
+  - id: sql-04-q-jsonb-ops
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [sql.jsonb]
+    stem: 'payload is {"call": {"id": "c-501"}}. Which expression returns the plain text c-501, without quote marks?'
+    options:
+      - text: "payload->'call'->>'id'"
+        correct: true
+        why: -> steps into the object and returns jsonb, and the final ->> returns the value as text.
+      - text: "payload->'call'->'id'"
+        correct: false
+        why: This returns jsonb, which is written with the quote marks, "c-501".
+      - text: "payload->>'call'->>'id'"
+        correct: false
+        why: ->> already returns text, and text has no -> operator, so this is an error.
+      - text: 'payload.call.id'
+        correct: false
+        why: Dot notation selects a column of a table, not a field inside JSON.
+  - id: sql-04-q-jsonb-missing
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sql.jsonb]
+    stem: "A payload has no duration_s key. What does payload->'call'->>'duration_s' return?"
+    options:
+      - text: 'NULL'
+        correct: true
+        why: A missing key gives NULL, not an error. That is also why a cast of the result gives NULL for those rows.
+      - text: An error, because the key does not exist
+        correct: false
+        why: JSON operators are forgiving. A missing key yields NULL.
+      - text: An empty string
+        correct: false
+        why: An empty string would be a real value. A missing key gives NULL.
+      - text: '0'
+        correct: false
+        why: PostgreSQL does not invent a default value for a missing key.
+  - id: sql-04-q-jsonb-contains
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sql.jsonb]
+    stem: 'Which payload satisfies payload @> ''{"tags": ["urgent"]}''?'
+    options:
+      - text: '{"type": "call.ended", "tags": ["billing", "urgent"]}'
+        correct: true
+        why: 'The right-hand value is contained in the payload: tags is an array that includes "urgent", and other elements do no harm.'
+      - text: '{"type": "call.ended", "tags": "urgent"}'
+        correct: false
+        why: Here tags is a string, not an array that holds the string, so the structures do not match.
+      - text: '{"type": "call.ended", "labels": ["urgent"]}'
+        correct: false
+        why: The key is labels, not tags.
+      - text: '{"type": "call.ended", "tags": []}'
+        correct: false
+        why: An empty array does not contain "urgent".
+  - id: sql-04-q-migration-edit
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [sql.migrations]
+    stem: A migration has already run in production, and you notice a typo in its index name. What do you do?
+    options:
+      - text: Leave it and write a new migration that renames the index
+        correct: true
+        why: Applied migrations are history. Other databases (and your teammates' copies) have already run the old version, so a change goes in a new migration.
+      - text: Edit the old migration file and run it again
+        correct: false
+        why: The tool records that the old one ran and will skip it, so the databases would disagree about what the schema is.
+      - text: Delete the old migration file
+        correct: false
+        why: The history would then no longer match the databases that have applied it.
+      - text: Fix the index by hand in production only
+        correct: false
+        why: A change made outside the migrations means new environments, built from the migrations, differ from production.
+  - id: sql-04-q-migration-order
+    pools: [mastery]
+    objective: 4
+    type: order
+    competencies: [sql.migrations]
+    stem: The up migration (1) adds a column, (2) creates a table that refers to the old table, (3) creates an index. Put the steps of the down migration in order.
+    steps:
+      - Drop the index
+      - Drop the table that refers to the old table
+      - Drop the column
+  - id: sql-04-q-migration-notnull
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [sql.migrations, sql.schema]
+    stem: 'ALTER TABLE bookings ADD COLUMN status text NOT NULL fails on a table that already has rows. What is the usual fix?'
+    options:
+      - text: Add a DEFAULT, or add the column as nullable, fill it in, and then set NOT NULL
+        correct: true
+        why: The existing rows need a value for the new column. A default supplies one, and a constant default is quick to add in PostgreSQL 11 and later.
+      - text: Delete all the rows first
+        correct: false
+        why: This destroys data to avoid a design step. The rows need a value, not removal.
+      - text: Add a CHECK constraint on the column
+        correct: false
+        why: A CHECK limits values but does not give the existing rows one.
+      - text: Use UNIQUE instead of NOT NULL
+        correct: false
+        why: UNIQUE is a different rule, and the existing rows would still have no value.
+
+  # ---- PostgreSQL from Python (objective 5) ----
+  - id: sql-04-q-psycopg-placeholder
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [sql.parameters]
+    stem: Which psycopg 3 call is safe when reason comes from a user?
+    options:
+      - text: conn.execute("SELECT id FROM calls WHERE reason = %s", (reason,))
+        correct: true
+        why: The SQL and the value travel separately, so the value is only ever data. The values go in a tuple, even when there is just one.
+      - text: conn.execute(f"SELECT id FROM calls WHERE reason = '{reason}'")
+        correct: false
+        why: The text becomes part of the SQL, so quote marks in reason can change the command.
+      - text: conn.execute("SELECT id FROM calls WHERE reason = '%s'" % reason)
+        correct: false
+        why: The % operator fills in the text in Python before psycopg sees it, which is the same as pasting.
+      - text: conn.execute("SELECT id FROM calls WHERE reason = '" + reason + "'")
+        correct: false
+        why: Joining strings pastes the value into the SQL in the same way.
+  - id: sql-04-q-psycopg-bug
+    pools: [mastery]
+    objective: 5
+    type: bug
+    competencies: [sql.parameters]
+    code: |
+      def find_job(conn, event_id):
+          query = f"SELECT id FROM jobs WHERE event_id = '{event_id}'"
+          return conn.execute(query).fetchone()
+    buggyLine: 2
+    explanation: The event id is pasted into the SQL text with an f-string, so a value such as x' OR '1'='1 changes the query. Write conn.execute("SELECT id FROM jobs WHERE event_id = %s", (event_id,)).fetchone().
+  - id: sql-04-q-psycopg-with
+    pools: [mastery]
+    objective: 5
+    type: single
+    competencies: [sql.parameters, sql.transactions]
+    stem: 'with psycopg.connect(dsn) as conn: conn.execute(insert_statement). There is no explicit commit. What happens when the block ends without an error?'
+    options:
+      - text: The transaction is committed, and the connection is closed
+        correct: true
+        why: In psycopg 3 leaving the with block normally commits and closes the connection. If an exception leaves the block, it rolls back instead.
+      - text: The insert is lost, because psycopg never commits for you
+        correct: false
+        why: psycopg does not commit after each statement, but the with block commits for you when it ends normally.
+      - text: The insert is committed, but the connection stays open
+        correct: false
+        why: For a connection, the with block also closes it at the end.
+      - text: The insert is committed immediately after the execute call
+        correct: false
+        why: By default psycopg starts a transaction and keeps it open until commit or the end of the block (unless you set autocommit).
+  - id: sql-04-q-placeholder-identifier
+    pools: [mastery, warmup]
+    objective: 5
+    type: single
+    competencies: [sql.parameters]
+    stem: A report endpoint receives a table name from the user. Can you pass it as a %s parameter?
+    options:
+      - text: No. A placeholder stands for a value only. Choose the table from a fixed list in your code
+        correct: true
+        why: Names are part of the command's structure. Checking the name against a list you wrote (or building it with psycopg's sql.Identifier) is the safe way.
+      - text: Yes, placeholders work for table names too
+        correct: false
+        why: A table name sent as a value would be treated as a string, and the statement would fail.
+      - text: Yes, as long as you add quote marks around the %s
+        correct: false
+        why: Quote marks turn it into a string literal, not a table name, and they invite injection.
+      - text: No, user input may never be used in a query at all
+        correct: false
+        why: Values are fine as parameters. Only names must come from your code.
+
+  # ---- Predict items for chunks 4 and 5 ----
+  - id: sql-04-q-predict-json
+    pools: [check, mastery]
+    chunk: 4
+    objective: 4
+    type: predict
+    competencies: [sql.jsonb]
+    code: |
+      import json
+      import sqlite3
+
+      db = sqlite3.connect(":memory:")
+      payload = json.dumps({"call": {"id": "c-501", "caller": {"name": "Amara Okafor"}}, "tags": ["booking"]})
+      row = db.execute(
+          "SELECT ? ->> '$.call.id', ? -> '$.tags', ? ->> '$.call.duration_s'",
+          (payload, payload, payload),
+      ).fetchone()
+      print(row)
+    investigate:
+      - Why is the third value None, and what would PostgreSQL return for a missing key?
+      - What is the difference between the first two values?
+  - id: sql-04-q-predict-params
+    pools: [check, mastery]
+    chunk: 5
+    objective: 5
+    type: predict
+    competencies: [sql.parameters]
+    code: |
+      class FakeConn:
+          """Records what would be sent to the database."""
+
+          def __init__(self):
+              self.sent = []
+
+          def execute(self, query, params=None):
+              self.sent.append((query, params))
+
+
+      conn = FakeConn()
+      reason = "x' OR '1'='1"
+      conn.execute(f"SELECT id FROM calls WHERE reason = '{reason}'")
+      conn.execute("SELECT id FROM calls WHERE reason = %s", (reason,))
+      for query, params in conn.sent:
+          print(query.count("'"), params)
+    investigate:
+      - In which call did the hostile text become part of the SQL, and how can you tell from the output?
+      - Why can the database not mistake the text in the second call for a command?
