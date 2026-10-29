@@ -1,0 +1,31 @@
+lesson: oss-01
+questions:
+  - id: oss-01-iq-first-contribution
+    competencies: [git.pull-requests, com.clarifying]
+    question: Walk me through how you would make your first contribution to an open-source project you have never used.
+    modelAnswer: I would pick a project that looks alive, with recent commits, maintainers who reply to issues and outside pull requests that get merged. Then I would find a small issue, usually labelled good first issue, that has no assignee and no open pull request and that I can describe in my own words. I read CONTRIBUTING and the code of conduct, and I post a short comment that says what I understand, what I plan to change, how I will check it and one specific question. After a go-ahead I fork, add the original as upstream, branch from its newest code and make one small change with a test, using the project's commit style and a sign-off if required. I open a pull request that links the issue and says how I tested it, answer review on the same branch, and if nobody replies after about two weeks I send one polite reminder and then move on.
+    listenFor:
+      - checks project health before choosing, not only the label
+      - small scope and a clear definition of done
+      - reads the contribution rules and asks before building
+      - fork, upstream, branch, small pull request linked to the issue
+      - responds to review and handles silence without pestering
+  - id: oss-01-iq-review-feedback
+    competencies: [git.pull-requests, com.clarifying]
+    question: A maintainer asks for changes you think are unnecessary. How do you handle it?
+    modelAnswer: First I make sure I understand the request, and I ask a short question if it is unclear. If I still disagree, I explain my reason once, calmly, with evidence such as a test or a link, and I say that I am happy to follow their decision. It is their project and they will maintain the code, so if they still prefer their approach I make the change. I keep the tone about the code and not the person, I reply to every comment so they can see what changed, and I push the follow-up to the same branch. If the request would break something, I show that with a failing test instead of arguing.
+    listenFor:
+      - seeks to understand before replying
+      - one clear explanation, based on facts
+      - accepts that the maintainer decides
+      - comments on the code, not the person
+      - pushes to the same branch and replies to each point
+  - id: oss-01-iq-why-ask-first
+    competencies: [com.clarifying]
+    question: Why would you comment on an issue before you write any code, and what would you put in the comment?
+    modelAnswer: Commenting first checks that the work is wanted, that nobody else is on it and that I have understood the problem, at a cost of a few minutes. Many projects ask for it in their contribution guide. I would restate the problem in my own words, say which file or area I plan to change and how I will test it, and ask one specific question, with the answer I will assume unless they say otherwise. That way a maintainer can correct me in one line, and I avoid spending a day on a pull request that is declined.
+    listenFor:
+      - avoids wasted work and duplicate effort
+      - restates the problem so misunderstanding shows early
+      - one specific question with a stated assumption
+      - follows the project's own guidance

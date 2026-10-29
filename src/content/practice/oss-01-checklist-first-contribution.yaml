@@ -1,0 +1,29 @@
+id: oss-01-checklist-first-contribution
+lesson: oss-01
+kind: checklist
+competencies:
+  - git.pull-requests
+  - com.clarifying
+title: Find an issue, ask before you build, and open one small pull request from a fork (work for the coming days; use Git Bash, or a macOS or Linux terminal)
+estMin: 3
+steps:
+  - do: 'In your browser, search GitHub for issues with: is:issue is:open label:"good first issue" no:assignee language:python (change the language to one you know). Open three candidates.'
+    expect: 'A list of open issues. For each candidate you can say what is wrong now, what "done" looks like, and that it has no assignee and no linked pull request.'
+  - do: "For each candidate's repository, check its health: the date of the last commit, whether a maintainer replied to the last few issues and how fast, whether an outside pull request was merged in the last three months, and whether LICENSE and CONTRIBUTING files exist."
+    expect: 'Cross out every repository that fails. You keep at most one issue. If none is left, search again.'
+  - do: 'Read CONTRIBUTING.md and the code of conduct from start to end. Write four notes: the command that runs the tests, the commit and branch style, whether you must comment before starting, and whether a DCO sign-off, a CLA or an AI-tools rule applies.'
+    expect: 'Four short notes in your own words. Anything unclear becomes the one question in your first comment, instead of a guess.'
+  - do: 'Write your first comment in a text editor from the template in the lesson, rate it with the rubric, then post it on the issue yourself. Post only if you mean to do the work. Wait for a maintainer to answer before you start anything large.'
+    expect: 'The comment is posted from your own account. If a maintainer says go ahead, continue. If they say someone else is working on it, thank them and go back to step 1.'
+  - do: 'Click Fork on the repository page. Then run: git clone https://github.com/<you>/<repo>.git && cd <repo> && git remote add upstream https://github.com/<owner>/<repo>.git && git remote -v'
+    expect: 'Four lines. Two for origin (fetch and push) point at your fork, and two for upstream point at the original project.'
+  - do: 'Find the default branch name in the branch menu on the repository page, then run: git fetch upstream && git switch -c issue-<number>-<short-name> upstream/<default-branch>'
+    expect: 'Git says "Switched to a new branch" and that the branch is set up to track upstream/<default-branch>. Your work starts from the newest code of the original project.'
+  - do: 'Make the smallest change that fixes the issue. Run the test command from CONTRIBUTING.md, then run: git diff --stat'
+    expect: 'The tests pass, and the summary lists only the files you planned (one to three). If it lists more, split the work and ask the maintainer how.'
+  - do: 'git add <the files you changed> && git commit -s -m "<type>: <short summary>" && git log -1 (leave out -s if the project does not use a DCO). Your commit email is public in the history, so GitHub''s no-reply address in Settings, Emails, is a safe choice.'
+    expect: 'The last commit shows your message and, with -s, a line "Signed-off-by: Your Name <your email>". If you forgot it, run: git commit --amend -s --no-edit'
+  - do: 'git push -u origin issue-<number>-<short-name>, then click Compare and pull request on GitHub. Check that the base repository is the original project. Fill in the template with Why, What changed and Testing, add Closes #<number>, and consider opening it as a draft.'
+    expect: "The pull request page shows your fork's branch going into the original project, your description and the issue link. Automated checks start running; read the log of any that fail."
+  - do: 'When review comes, answer each comment, push follow-up commits to the same branch and request review again. If nobody replies for about two weeks, post one short polite comment. Then, if there is still no answer, move on to another issue.'
+    expect: 'The pull request updates with each push and every reviewer comment has your reply. You never post the same nudge twice, and you never tag people who are not part of the review.'

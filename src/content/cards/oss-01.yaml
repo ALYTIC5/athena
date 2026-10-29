@@ -1,0 +1,70 @@
+lesson: oss-01
+cards:
+  - id: oss-01-c-good-issue
+    type: explain
+    competencies: [git.pull-requests]
+    front: What makes an issue a good first choice, and why is the good first issue label not enough?
+    back: It is small and clear, with a problem you can reproduce, a visible "done" and a fix in about one to three files. It has no assignee and no linked pull request, and its discussion is settled. The label is chosen by maintainers, so it is only a hint. It may be old, or the issue may already be claimed.
+  - id: oss-01-c-project-health
+    type: explain
+    competencies: [git.pull-requests]
+    front: How do you judge whether a project is healthy enough to contribute to?
+    back: Look for a commit in the last six months, maintainer replies to recent issues within about two weeks, an outside pull request merged in the last three months, and a LICENSE file. These are rules of thumb. Stars show popularity, not whether anyone will review your work.
+  - id: oss-01-c-search
+    type: cloze
+    competencies: [git.pull-requests]
+    front: 'In GitHub search, `is:issue is:open label:"____" ____:assignee` finds open issues for newcomers that nobody has claimed.'
+    back: good first issue, no
+  - id: oss-01-c-contributing
+    type: basic
+    competencies: [git.pull-requests]
+    front: What do you look for in CONTRIBUTING.md before you comment on an issue?
+    back: How to run the tests, the commit and branch style, whether you must comment before starting, whether a DCO sign-off or a CLA is required, and any rule about AI tools. Read the code of conduct too.
+  - id: oss-01-c-first-comment
+    type: explain
+    competencies: [com.clarifying, git.pull-requests]
+    front: What goes into a good first comment on an issue, and why restate the problem?
+    back: A greeting, what you understand the problem to be, what you plan to change, how you will check it, and one specific question with the answer you will assume. Restating lets the maintainer correct a misunderstanding in one line, before you spend hours. Post it yourself and wait for a go-ahead before starting large work.
+  - id: oss-01-c-good-question
+    type: explain
+    competencies: [com.clarifying]
+    front: What makes a clarifying question on an issue a good one?
+    back: It is specific, you could not answer it by reading the docs or the code, and it comes with the assumption you will make if nobody answers. For example, "Should an empty value raise an error? I will assume it does unless you say otherwise." It asks one thing at a time.
+  - id: oss-01-c-fork
+    type: explain
+    competencies: [git.pull-requests]
+    front: Why do you fork a project and add an upstream remote?
+    back: You usually cannot push to the original repository. A fork is your own copy, where you push your branch, and the pull request carries the change across. The upstream remote is the original project, so git fetch upstream brings in its newest commits and keeps your branches current. A fork does not update by itself.
+  - id: oss-01-c-remote-commands
+    type: cloze
+    competencies: [git.pull-requests]
+    front: 'After cloning your fork: `git remote add ____ <original-url>`, then `git ____ upstream`, then `git switch -c issue-9-fix upstream/main` to start from the newest code.'
+    back: upstream, fetch
+  - id: oss-01-c-dco-cla
+    type: explain
+    competencies: [git.pull-requests]
+    front: What are a DCO sign-off and a CLA, and how do they differ?
+    back: A DCO sign-off is a Signed-off-by line, added by git commit -s, with which you state in each commit that you wrote the change or may submit it under the project's licence. A CLA is a legal agreement, usually signed once through a link a bot posts on your pull request. Read what you agree to, and ask first if an employer has rights to your work. The sign-off does not prove your identity.
+  - id: oss-01-c-forgot-signoff
+    type: basic
+    competencies: [git.pull-requests]
+    front: You forgot the sign-off on your latest commit, on your own pull request branch. How do you fix it?
+    back: git commit --amend -s --no-edit adds the sign-off to that commit, and git push --force-with-lease publishes the rewritten commit to your own branch. Force-pushing is acceptable here because only you use the branch (git-01).
+  - id: oss-01-c-small-pr
+    type: explain
+    competencies: [git.pull-requests]
+    front: Why should a first pull request be small, with one purpose?
+    back: Reviewers are volunteers with little time, so a small change with a clear description gets reviewed and a large mixed one waits or is refused. Keep unrelated tidying on its own branch, link the issue, say how you tested, and use a draft pull request if you want early feedback.
+  - id: oss-01-c-review
+    type: explain
+    competencies: [git.pull-requests, com.clarifying]
+    front: How do you respond to review feedback and to silence on your pull request?
+    back: Answer each comment, push follow-up commits to the same branch, and request review again. If you disagree, explain your reason once and accept the maintainer's decision. If nobody replies for about two weeks, post one polite comment, then move on to another issue instead of pinging people repeatedly.
+  - id: oss-01-c-predict-labels
+    type: predict
+    competencies: [git.pull-requests]
+    front: |
+      labels = ["Good First Issue", "bug"]
+      friendly = {"good first issue", "help wanted"}
+      print({label.lower() for label in labels} & friendly)
+    back: The set comprehension lower-cases each label, and the & keeps only the names that are also in friendly. Only "good first issue" matches, so the printed set holds that one name. Lower-casing first is what makes the comparison ignore case.

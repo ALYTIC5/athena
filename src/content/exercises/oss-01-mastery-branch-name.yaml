@@ -1,0 +1,138 @@
+id: oss-01-mastery-branch-name
+lesson: oss-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Name a branch after an issue
+difficulty: 2
+competencies:
+  - git.pull-requests
+timeoutMs: 5000
+packages: []
+prompt: |
+  Many projects like a branch name that says which issue it is for. Write `branch_name(issue_number, title)` using these rules. In Python, `ch.isalnum()` is true for a letter or a digit.
+
+  1. Make the title lower case. Keep every character for which `isalnum()` is true, and replace every run of one or more other characters with a single `-`.
+  2. Remove any `-` from the start and end of that text (the slug).
+  3. Keep at most the first 40 characters of the slug, then remove any `-` left at the end.
+  4. Return `issue-<number>-<slug>`. If the slug is empty, return `issue-<number>`.
+
+  Example: `branch_name(123, "Crash on empty phone number!")` returns `issue-123-crash-on-empty-phone-number`.
+starter: |
+  def branch_name(issue_number: int, title: str) -> str:
+      ...
+visibleTests: |
+  def test_simple_title():
+      assert branch_name(123, "Crash on empty phone number!") == "issue-123-crash-on-empty-phone-number"
+
+  def test_empty_title():
+      assert branch_name(7, "") == "issue-7"
+hiddenTests: |
+  def test_runs_of_symbols_become_one_hyphen():
+      assert branch_name(5, "Fix:  the   --- bug (again)") == "issue-5-fix-the-bug-again"
+
+  def test_symbols_at_the_ends_are_removed():
+      assert branch_name(5, "  !!Hello world!!  ") == "issue-5-hello-world"
+
+  def test_digits_are_kept():
+      assert branch_name(9, "Support Python 3.14") == "issue-9-support-python-3-14"
+
+  def test_underscores_are_not_kept():
+      assert branch_name(2, "snake_case_name") == "issue-2-snake-case-name"
+
+  def test_slug_is_cut_at_40_characters():
+      slug = branch_name(1, "a" * 60).removeprefix("issue-1-")
+      assert slug == "a" * 40
+
+  def test_no_hyphen_is_left_after_cutting():
+      title = "a" * 39 + " bbb"
+      assert branch_name(1, title) == "issue-1-" + "a" * 39
+
+  def test_title_with_no_letters_or_digits():
+      assert branch_name(44, "!!! ???") == "issue-44"
+feedback:
+  - test: test_runs_of_symbols_become_one_hyphen
+    message: A whole run of symbols and spaces becomes one hyphen. Replacing each character on its own gives double hyphens.
+  - test: test_symbols_at_the_ends_are_removed
+    message: Remove hyphens from both ends of the slug before you use it.
+  - test: test_digits_are_kept
+    message: Digits are kept, because "3".isalnum() is true. Only the dot between 3 and 14 becomes a hyphen.
+  - test: test_underscores_are_not_kept
+    message: An underscore is not a letter or a digit, so "_".isalnum() is false and it becomes a hyphen.
+  - test: test_slug_is_cut_at_40_characters
+    message: Cut the slug to 40 characters.
+  - test: test_no_hyphen_is_left_after_cutting
+    message: After cutting, the slug can end with a hyphen. Remove it.
+  - test: test_title_with_no_letters_or_digits
+    message: When the slug is empty, leave off the trailing hyphen and return just issue-<number>.
+referenceSolution: |
+  def branch_name(issue_number: int, title: str) -> str:
+      words = []
+      word = ""
+      for ch in title.lower():
+          if ch.isalnum():
+              word += ch
+          elif word:
+              words.append(word)
+              word = ""
+      if word:
+          words.append(word)
+      slug = "-".join(words)[:40].rstrip("-")
+      if not slug:
+          return f"issue-{issue_number}"
+      return f"issue-{issue_number}-{slug}"
+wrongSolutions:
+  - label: Replaces each symbol on its own, so runs become several hyphens
+    code: |
+      def branch_name(issue_number: int, title: str) -> str:
+          slug = "".join(ch if ch.isalnum() else "-" for ch in title.lower()).strip("-")
+          slug = slug[:40].rstrip("-")
+          if not slug:
+              return f"issue-{issue_number}"
+          return f"issue-{issue_number}-{slug}"
+  - label: Never cuts the slug to 40 characters
+    code: |
+      def branch_name(issue_number: int, title: str) -> str:
+          slug = "-".join("".join(c if c.isalnum() else " " for c in title.lower()).split())
+          if not slug:
+              return f"issue-{issue_number}"
+          return f"issue-{issue_number}-{slug}"
+  - label: Leaves a hyphen at the end after cutting
+    code: |
+      def branch_name(issue_number: int, title: str) -> str:
+          slug = "-".join("".join(c if c.isalnum() else " " for c in title.lower()).split())[:40]
+          if not slug:
+              return f"issue-{issue_number}"
+          return f"issue-{issue_number}-{slug}"
+  - label: Returns a trailing hyphen when the slug is empty
+    code: |
+      def branch_name(issue_number: int, title: str) -> str:
+          slug = "-".join("".join(c if c.isalnum() else " " for c in title.lower()).split())
+          slug = slug[:40].rstrip("-")
+          return f"issue-{issue_number}-{slug}"
+  - label: Keeps underscores as part of a word
+    code: |
+      def branch_name(issue_number: int, title: str) -> str:
+          kept = "".join(c if (c.isalnum() or c == "_") else " " for c in title.lower())
+          slug = "-".join(kept.split())[:40].rstrip("-")
+          if not slug:
+              return f"issue-{issue_number}"
+          return f"issue-{issue_number}-{slug}"
+explanation: |
+  The loop builds words from runs of letters and digits. A symbol ends the current word, and further symbols in a row end nothing more, so runs collapse and no hyphen appears at the ends. Joining the words with hyphens gives the slug. The cut comes last, because a cut can land just after a separator, and the empty check keeps the name from ending in a hyphen. Alternative: replace every other character with a space, call `split()` and join with hyphens. That is shorter and does the same, but the explicit loop shows each step. A branch name is only a label, and the project's CONTRIBUTING file may ask for a different style.
+hints:
+  - What can the last character of the slug be after you cut it at 40 characters, and what would that do to the branch name?
+  - 'Lower-case the title and walk through its characters. Collect letters and digits into a word, and when another character comes, finish the word. Join the words with hyphens, cut to 40, strip hyphens from the right end, then build the name. Handle the empty slug separately.'
+  - |
+    words = []
+    word = ""
+    for ch in title.lower():
+        if ch.____():
+            word += ch
+        elif word:
+            words.append(word)
+            word = ""
+    if word:
+        words.append(word)
+    slug = "-".join(words)[:____].rstrip("-")
