@@ -1,0 +1,108 @@
+id: gym-graph-04
+title: 'Can the training plan be finished?'
+pattern: graphs
+competencies: [int.graphs]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A training plan has `n` courses numbered 0 to n-1. `needs` is a list of pairs `(course, first)` meaning you must finish `first` before you can start `course`. Write `can_finish_all(n, needs)` that returns `True` if there is an order that lets you finish every course, and `False` if the requirements contain a cycle that makes it impossible.
+examples:
+  - 'can_finish_all(3, [(1, 0), (2, 1)]) returns True'
+  - 'can_finish_all(2, [(0, 1), (1, 0)]) returns False'
+constraints:
+  - '0 <= n <= 100000'
+  - '0 to 200000 pairs'
+  - 'Pairs may repeat'
+starter: |
+  def can_finish_all(n, needs):
+      ...
+visibleTests: |
+  def test_example():
+      assert can_finish_all(3, [(1, 0), (2, 1)]) is True
+
+  def test_two_courses_need_each_other():
+      assert can_finish_all(2, [(0, 1), (1, 0)]) is False
+hiddenTests: |
+  def test_no_courses():
+      assert can_finish_all(0, []) is True
+
+  def test_no_requirements():
+      assert can_finish_all(4, []) is True
+
+  def test_course_needs_itself():
+      assert can_finish_all(2, [(1, 1)]) is False
+
+  def test_three_course_cycle():
+      assert can_finish_all(3, [(0, 1), (1, 2), (2, 0)]) is False
+
+  def test_cycle_next_to_a_free_course():
+      assert can_finish_all(4, [(1, 2), (2, 3), (3, 1)]) is False
+
+  def test_diamond_is_fine():
+      assert can_finish_all(4, [(1, 0), (2, 0), (3, 1), (3, 2)]) is True
+
+  def test_repeated_requirement():
+      assert can_finish_all(2, [(1, 0), (1, 0)]) is True
+
+  def test_long_chain():
+      needs = [(i + 1, i) for i in range(99999)]
+      assert can_finish_all(100000, needs) is True
+
+  def test_long_chain_closed_into_a_loop():
+      needs = [(i + 1, i) for i in range(99999)] + [(0, 99999)]
+      assert can_finish_all(100000, needs) is False
+referenceSolutions:
+  - code: |
+      from collections import deque
+
+      def can_finish_all(n, needs):
+          after = [[] for _ in range(n)]
+          waiting = [0] * n
+          for course, first in needs:
+              after[first].append(course)
+              waiting[course] += 1
+          ready = deque(c for c in range(n) if waiting[c] == 0)
+          done = 0
+          while ready:
+              course = ready.popleft()
+              done += 1
+              for nxt in after[course]:
+                  waiting[nxt] -= 1
+                  if waiting[nxt] == 0:
+                      ready.append(nxt)
+          return done == n
+    time: 'O(n + m)'
+    space: 'O(n + m)'
+wrongSolutions:
+  - label: 'Only spots two courses that need each other'
+    code: |
+      def can_finish_all(n, needs):
+          pairs = set(needs)
+          for course, first in pairs:
+              if (first, course) in pairs:
+                  return False
+          return True
+  - label: 'Says yes as soon as any course has no requirements'
+    code: |
+      def can_finish_all(n, needs):
+          needing = {course for course, first in needs}
+          return any(c not in needing for c in range(n)) or n == 0
+  - label: 'Treats a requirement as a two-way link'
+    code: |
+      def can_finish_all(n, needs):
+          seen = set()
+          for course, first in needs:
+              key = frozenset((course, first))
+              if key in seen:
+                  return False
+              seen.add(key)
+          return True
+patternExplanation: |
+  A graph is a set of nodes joined by edges. Here a graph is a dict that maps each node to the list of nodes it points to. Graphs can contain cycles, so any walk through one must remember which nodes it has already visited, or it can loop forever. A requirement is a directed edge from the prerequisite to the course. The plan can be finished exactly when the graph has no cycle. A reliable way to check is topological sorting (Kahn's method): count how many unfinished requirements each course is still waiting on. Courses waiting on none are ready. Finish a ready course, which lowers the count of every course that needed it, and any course that reaches zero becomes ready. If you can finish all n courses this way, there is no cycle. If the ready queue empties first, the courses left are stuck in a cycle. Repeated pairs are harmless because the count goes up and down by the same amount. A loop with a queue avoids the recursion limit.
+commonMistakes:
+  - 'Only looking for two courses that need each other, which misses longer cycles'
+  - 'Declaring success because one course has no requirements'
+  - 'Forgetting that a course can need itself'
+followUps:
+  - 'How would you return a valid order for the courses?'
+  - 'How would you report one cycle when the plan is impossible?'

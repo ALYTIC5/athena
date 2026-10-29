@@ -1,0 +1,113 @@
+id: gym-int-04
+title: 'Free slots in the day'
+pattern: intervals
+competencies: [int.intervals]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  A day runs from minute `day_start` to minute `day_end`. `busy` is a list of `(start, end)` pairs for busy periods, in any order. Busy periods can overlap or touch, and they all lie inside the day. Write `free_slots(busy, day_start, day_end)` that returns the free periods as a list of `(start, end)` tuples, sorted by start. A free period has a length of at least 1 minute. Return an empty list if the whole day is busy.
+examples:
+  - 'free_slots([(60, 120), (90, 150)], 0, 240) returns [(0, 60), (150, 240)]'
+  - 'free_slots([], 0, 100) returns [(0, 100)]'
+constraints:
+  - '0 to 100000 busy periods'
+  - 'day_start < day_end'
+  - 'day_start <= start < end <= day_end for every busy period'
+starter: |
+  def free_slots(busy, day_start, day_end):
+      ...
+visibleTests: |
+  def test_example():
+      assert free_slots([(60, 120), (90, 150)], 0, 240) == [(0, 60), (150, 240)]
+
+  def test_nothing_busy():
+      assert free_slots([], 0, 100) == [(0, 100)]
+hiddenTests: |
+  def test_all_day_busy():
+      assert free_slots([(0, 100)], 0, 100) == []
+
+  def test_busy_at_the_start():
+      assert free_slots([(0, 30)], 0, 100) == [(30, 100)]
+
+  def test_busy_at_the_end():
+      assert free_slots([(70, 100)], 0, 100) == [(0, 70)]
+
+  def test_unsorted_busy_periods():
+      assert free_slots([(50, 60), (10, 20)], 0, 100) == [(0, 10), (20, 50), (60, 100)]
+
+  def test_touching_busy_periods_leave_no_gap():
+      assert free_slots([(10, 20), (20, 30)], 0, 40) == [(0, 10), (30, 40)]
+
+  def test_one_busy_period_covers_another():
+      assert free_slots([(10, 90), (20, 30)], 0, 100) == [(0, 10), (90, 100)]
+
+  def test_overlap_then_later_period():
+      assert free_slots([(10, 30), (20, 40), (60, 70)], 0, 100) == [(0, 10), (40, 60), (70, 100)]
+
+  def test_day_that_does_not_start_at_zero():
+      assert free_slots([(540, 600)], 480, 720) == [(480, 540), (600, 720)]
+
+  def test_large_input():
+      busy = [(i * 2, i * 2 + 1) for i in range(100000)]
+      result = free_slots(busy, 0, 200000)
+      assert len(result) == 100000
+      assert result[0] == (1, 2)
+      assert result[-1] == (199999, 200000)
+referenceSolutions:
+  - code: |
+      def free_slots(busy, day_start, day_end):
+          free = []
+          cursor = day_start
+          for start, end in sorted(busy):
+              if start > cursor:
+                  free.append((cursor, start))
+              cursor = max(cursor, end)
+          if cursor < day_end:
+              free.append((cursor, day_end))
+          return free
+    time: 'O(n log n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Does not combine overlapping busy periods'
+    code: |
+      def free_slots(busy, day_start, day_end):
+          free = []
+          cursor = day_start
+          for start, end in sorted(busy):
+              if start > cursor:
+                  free.append((cursor, start))
+              cursor = end
+          if cursor < day_end:
+              free.append((cursor, day_end))
+          return free
+  - label: 'Forgets the free time after the last busy period'
+    code: |
+      def free_slots(busy, day_start, day_end):
+          free = []
+          cursor = day_start
+          for start, end in sorted(busy):
+              if start > cursor:
+                  free.append((cursor, start))
+              cursor = max(cursor, end)
+          return free
+  - label: 'Reports empty gaps between periods that touch'
+    code: |
+      def free_slots(busy, day_start, day_end):
+          free = []
+          cursor = day_start
+          for start, end in sorted(busy):
+              if start >= cursor:
+                  free.append((cursor, start))
+              cursor = max(cursor, end)
+          if cursor < day_end:
+              free.append((cursor, day_end))
+          return free
+patternExplanation: |
+  An interval is a pair (start, end). Interval problems almost always become simple after you sort the intervals by start time, because then every overlap is with the interval just before it. Sorting costs O(n log n), and the pass after it is linear. Sweep through the busy periods in order while keeping a cursor: the point up to which the day is already accounted for. It starts at the beginning of the day. If the next busy period starts after the cursor, the stretch between them is free, so record it. Then move the cursor to the larger of its current value and the busy period's end: max is needed because a period can sit entirely inside an earlier, longer one. After the last period, anything between the cursor and the end of the day is also free. Requiring start > cursor, not >=, avoids reporting empty slots when periods touch. No merging step is needed, because the cursor does that work.
+commonMistakes:
+  - "Moving the cursor to the busy period's end even when an earlier period ended later"
+  - 'Forgetting the free time after the last busy period'
+  - 'Using >= and returning zero-length slots'
+followUps:
+  - 'How would you find the first slot that is at least 45 minutes long?'
+  - 'How would you find the time when two people are both free?'

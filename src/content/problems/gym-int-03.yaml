@@ -1,0 +1,128 @@
+id: gym-int-03
+title: 'Add one booking to a sorted list'
+pattern: intervals
+competencies: [int.intervals]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  `bookings` is a list of `[start, end]` pairs that are sorted by start and do not overlap or touch each other. Write `add_booking(bookings, new)` that adds the booking `new` and returns the new list. If `new` overlaps or touches existing bookings, they all merge with it into one booking. The result must stay sorted and must have no overlapping or touching bookings. The input list must not be changed.
+examples:
+  - 'add_booking([[1, 3], [6, 9]], [2, 5]) returns [[1, 5], [6, 9]]'
+  - 'add_booking([[1, 2], [5, 6]], [3, 4]) returns [[1, 2], [3, 4], [5, 6]]'
+constraints:
+  - '0 to 100000 existing bookings'
+  - '0 <= start <= end <= 1000000'
+starter: |
+  def add_booking(bookings, new):
+      ...
+visibleTests: |
+  def test_example():
+      assert add_booking([[1, 3], [6, 9]], [2, 5]) == [[1, 5], [6, 9]]
+
+  def test_fits_in_a_gap():
+      assert add_booking([[1, 2], [5, 6]], [3, 4]) == [[1, 2], [3, 4], [5, 6]]
+hiddenTests: |
+  def test_empty_list():
+      assert add_booking([], [4, 8]) == [[4, 8]]
+
+  def test_goes_first():
+      assert add_booking([[5, 6]], [1, 2]) == [[1, 2], [5, 6]]
+
+  def test_goes_last():
+      assert add_booking([[1, 2]], [5, 6]) == [[1, 2], [5, 6]]
+
+  def test_touching_booking_merges():
+      assert add_booking([[1, 3], [6, 9]], [3, 6]) == [[1, 9]]
+
+  def test_swallows_several_bookings():
+      assert add_booking([[1, 2], [3, 4], [5, 6], [8, 9]], [2, 7]) == [[1, 7], [8, 9]]
+
+  def test_inside_an_existing_booking():
+      assert add_booking([[1, 10]], [3, 4]) == [[1, 10]]
+
+  def test_new_booking_is_larger_than_all():
+      assert add_booking([[3, 4], [6, 7]], [0, 100]) == [[0, 100]]
+
+  def test_tail_is_kept():
+      assert add_booking([[1, 2], [10, 11], [20, 21]], [5, 6]) == [[1, 2], [5, 6], [10, 11], [20, 21]]
+
+  def test_input_is_not_changed():
+      bookings = [[1, 3], [6, 9]]
+      add_booking(bookings, [2, 5])
+      assert bookings == [[1, 3], [6, 9]]
+
+  def test_large_input():
+      bookings = [[i * 4, i * 4 + 2] for i in range(100000)]
+      result = add_booking(bookings, [1, 3])
+      assert result[0] == [0, 3]
+      assert len(result) == 100000
+      assert result[-1] == [399996, 399998]
+referenceSolutions:
+  - code: |
+      def add_booking(bookings, new):
+          start, end = new
+          result = []
+          i = 0
+          while i < len(bookings) and bookings[i][1] < start:
+              result.append(list(bookings[i]))
+              i += 1
+          while i < len(bookings) and bookings[i][0] <= end:
+              start = min(start, bookings[i][0])
+              end = max(end, bookings[i][1])
+              i += 1
+          result.append([start, end])
+          while i < len(bookings):
+              result.append(list(bookings[i]))
+              i += 1
+          return result
+    time: 'O(n)'
+    space: 'O(n)'
+wrongSolutions:
+  - label: 'Appends the booking and does not merge'
+    code: |
+      def add_booking(bookings, new):
+          result = [list(b) for b in bookings] + [list(new)]
+          result.sort()
+          return result
+  - label: 'Uses the end of the last booking it meets, not the larger end'
+    code: |
+      def add_booking(bookings, new):
+          start, end = new
+          result = []
+          i = 0
+          while i < len(bookings) and bookings[i][1] < start:
+              result.append(list(bookings[i]))
+              i += 1
+          while i < len(bookings) and bookings[i][0] <= end:
+              start = min(start, bookings[i][0])
+              end = bookings[i][1]
+              i += 1
+          result.append([start, end])
+          while i < len(bookings):
+              result.append(list(bookings[i]))
+              i += 1
+          return result
+  - label: 'Loses the bookings after the new one'
+    code: |
+      def add_booking(bookings, new):
+          start, end = new
+          result = []
+          i = 0
+          while i < len(bookings) and bookings[i][1] < start:
+              result.append(list(bookings[i]))
+              i += 1
+          while i < len(bookings) and bookings[i][0] <= end:
+              start = min(start, bookings[i][0])
+              end = max(end, bookings[i][1])
+              i += 1
+          result.append([start, end])
+          return result
+patternExplanation: |
+  An interval is a pair (start, end). Interval problems almost always become simple after you sort the intervals by start time, because then every overlap is with the interval just before it. Sorting costs O(n log n), and the pass after it is linear. Because the list is already sorted and has no overlaps, you do not need to sort again. Split the work into three parts in one pass. First, copy every booking that ends before the new one starts. Second, merge every booking that starts at or before the new one's end: widen the new booking to the smallest start and the largest end among them. Third, add the widened booking and then copy everything that remains. Using max for the end matters when an existing booking is longer than the new one. The pass is O(n) with no sorting.
+commonMistakes:
+  - 'Appending and sorting without merging'
+  - "Setting the end to the last overlapping booking's end instead of the larger end"
+  - 'Forgetting to copy the bookings after the merged one'
+followUps:
+  - 'How would you find the position with binary search, and why does the whole function stay O(n)?'
+  - 'How would you remove a booking range instead of adding one?'

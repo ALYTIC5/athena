@@ -1,0 +1,108 @@
+id: gym-heap-02
+title: 'The k-th best score so far'
+pattern: heaps
+competencies: [int.heaps]
+difficulty: medium
+timeLimitMin: 40
+statement: |
+  Scores arrive one at a time. Write `kth_best_so_far(scores, k)` that returns a list with one entry per score: after each score arrives, the `k`-th largest score seen so far, or `None` if fewer than `k` scores have arrived. Equal scores count separately.
+examples:
+  - 'kth_best_so_far([5, 1, 9, 3, 7], 2) returns [None, 1, 5, 5, 7]'
+  - 'kth_best_so_far([4, 4], 1) returns [4, 4]'
+constraints:
+  - '0 to 100000 scores'
+  - '1 <= k <= 100000'
+  - 'Scores are ints'
+starter: |
+  def kth_best_so_far(scores, k):
+      ...
+visibleTests: |
+  def test_example():
+      assert kth_best_so_far([5, 1, 9, 3, 7], 2) == [None, 1, 5, 5, 7]
+
+  def test_k_is_one():
+      assert kth_best_so_far([4, 4], 1) == [4, 4]
+hiddenTests: |
+  def test_no_scores():
+      assert kth_best_so_far([], 2) == []
+
+  def test_never_reaches_k():
+      assert kth_best_so_far([3, 8], 5) == [None, None]
+
+  def test_equal_scores_count_separately():
+      assert kth_best_so_far([6, 6, 6], 2) == [None, 6, 6]
+
+  def test_falling_scores():
+      assert kth_best_so_far([9, 8, 7, 6], 3) == [None, None, 7, 7]
+
+  def test_rising_scores():
+      assert kth_best_so_far([1, 2, 3, 4], 3) == [None, None, 1, 2]
+
+  def test_negative_scores():
+      assert kth_best_so_far([-1, -5, -3], 2) == [None, -5, -3]
+
+  def test_large_input():
+      scores = [(i * 7919) % 10007 for i in range(50000)]
+      result = kth_best_so_far(scores, 3)
+      assert result[:2] == [None, None]
+      assert len(result) == 50000
+      assert result[-1] == sorted(scores)[-3]
+referenceSolutions:
+  - code: |
+      import heapq
+
+      def kth_best_so_far(scores, k):
+          heap = []
+          result = []
+          for score in scores:
+              heapq.heappush(heap, score)
+              if len(heap) > k:
+                  heapq.heappop(heap)
+              result.append(heap[0] if len(heap) == k else None)
+          return result
+    time: 'O(n log k)'
+    space: 'O(k)'
+wrongSolutions:
+  - label: 'Sorts everything again after every score, far too slow'
+    code: |
+      def kth_best_so_far(scores, k):
+          result = []
+          for i in range(len(scores)):
+              seen = sorted(scores[: i + 1], reverse=True)
+              result.append(seen[k - 1] if len(seen) >= k else None)
+          return result
+  - label: 'Keeps one score too many, so it reports the (k+1)-th best'
+    code: |
+      import heapq
+
+      def kth_best_so_far(scores, k):
+          heap = []
+          result = []
+          for score in scores:
+              heapq.heappush(heap, score)
+              if len(heap) > k + 1:
+                  heapq.heappop(heap)
+              result.append(heap[0] if len(heap) > k else None)
+          return result
+  - label: 'Answers early with the smallest score so far'
+    code: |
+      import heapq
+
+      def kth_best_so_far(scores, k):
+          heap = []
+          result = []
+          for score in scores:
+              heapq.heappush(heap, score)
+              if len(heap) > k:
+                  heapq.heappop(heap)
+              result.append(heap[0])
+          return result
+patternExplanation: |
+  A heap is a structure that always gives you the smallest item fast. Python's heapq module keeps a plain list as a min-heap: heappush adds an item and heappop removes the smallest, each in O(log n). To get the largest items, keep a heap of the items you want and push the weakest one out. The k-th largest is the smallest of the k largest, so keep a min-heap of exactly the k largest scores. The root of the heap, heap[0], is the k-th largest. When a new score arrives, push it, and if the heap now holds more than k scores, pop the smallest. Until k scores have arrived, there is no k-th largest yet, so answer None. Each score costs O(log k), so the whole run is O(n log k). Sorting the prefix after every score costs O(n) each time or worse and times out on 50000 scores.
+commonMistakes:
+  - 'Re-sorting all scores after every arrival'
+  - 'Answering before k scores have arrived instead of None'
+  - 'Keeping a heap of size k - 1 or k + 1, which returns the wrong rank'
+followUps:
+  - 'How would you also support removing a score?'
+  - 'What changes if you need the median instead of the k-th largest?'
