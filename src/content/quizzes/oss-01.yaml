@@ -1,0 +1,427 @@
+lesson: oss-01
+items:
+  # ---- Chunk 1: choose an issue, read the rules, ask before you build (objectives 1 and 2) ----
+  - id: oss-01-q-pick-issue
+    pools: [check, mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [git.pull-requests]
+    stem: Which issue is the best choice for your first contribution?
+    options:
+      - text: Open, no assignee, no linked pull request, labelled good first issue, with a clear bug in one function and a described fix
+        correct: true
+        why: It is small and clear, nobody has claimed it, and you can tell what done looks like. That is the combination the lesson asks for.
+      - text: Labelled help wanted, but assigned to someone who commented six weeks ago and has no linked pull request
+        correct: false
+        why: Somebody has claimed it. Even if they are slow, you would be building something that may collide with their work, so ask first or pick another.
+      - text: Labelled good first issue, but the comments are a long argument about which design to use
+        correct: false
+        why: The approach is not settled, so your work might be rejected whatever its quality. Choose an issue where the maintainers already agree what to do.
+      - text: Labelled enhancement, asking for a new module that touches a dozen files
+        correct: false
+        why: This is far larger than the one to three files the lesson suggests for a first change, and it carries no sign that newcomers are welcome.
+  - id: oss-01-q-label-meaning
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [git.pull-requests]
+    stem: What does the label good first issue tell you?
+    options:
+      - text: That a maintainer thought it suited newcomers, which you still have to check against the assignee, linked pull requests and recent comments
+        correct: true
+        why: Labels are chosen by maintainers, so they are a hint and not a promise. The label may be old, or the issue may already be claimed.
+      - text: That the fix is guaranteed to take under an hour
+        correct: false
+        why: Nothing guarantees the size. Judge it yourself by how many files it touches and how clear the problem is.
+      - text: That GitHub has checked the issue and nobody else may work on it
+        correct: false
+        why: GitHub does not check anything. Labels are set by people, and several contributors can pick the same issue.
+      - text: That you do not need to read the contribution rules for it
+        correct: false
+        why: The rules apply to every contribution. Read CONTRIBUTING before you start, whatever the label says.
+  - id: oss-01-q-health-signs
+    pools: [mastery]
+    objective: 1
+    type: multiple
+    competencies: [git.pull-requests]
+    stem: Which of these are signs that a project is healthy enough to contribute to? Choose all that apply.
+    options:
+      - text: A commit within the last few months
+        correct: true
+        why: Recent commits show that someone is working on the project and can review your change.
+      - text: Maintainers replied to recent issues within about two weeks
+        correct: true
+        why: Replies show that someone will look at your comment and your pull request.
+      - text: An outside contributor's pull request was merged in the last three months
+        correct: true
+        why: It shows that the maintainers accept work from people they do not already know.
+      - text: A large number of stars
+        correct: false
+        why: Stars show popularity. A popular project can still have no one reviewing pull requests.
+      - text: A LICENSE file
+        correct: true
+        why: Without a licence the code is not open source in the sense that lets you reuse or change it, so you should not contribute to it as if it were.
+  - id: oss-01-q-claimed-by-pr
+    pools: [mastery, warmup]
+    objective: 1
+    type: single
+    competencies: [git.pull-requests, com.clarifying]
+    stem: An issue has no assignee, but a linked open pull request from another contributor. What do you do?
+    options:
+      - text: Choose another issue, or ask politely in a comment whether that pull request is still active before you do anything
+        correct: true
+        why: Someone has already done the work, and a second pull request for the same issue wastes your time and the reviewers'. A short question costs little.
+      - text: Open your own pull request anyway; the better one will win
+        correct: false
+        why: Competing pull requests are unfriendly and often closed. Maintainers prefer that you coordinate.
+      - text: Copy their branch and submit it as yours
+        correct: false
+        why: That is someone else's work, and you could not truthfully make the sign-off or agreement that many projects ask for.
+      - text: Wait silently until their pull request is closed
+        correct: false
+        why: You may wait for months. Pick another issue now, and come back if the pull request is closed.
+  - id: oss-01-q-right-size
+    pools: [mastery]
+    objective: 1
+    type: single
+    competencies: [git.pull-requests]
+    stem: Which change is the right size for a first pull request?
+    options:
+      - text: Fix a bug in one function and add one test for it
+        correct: true
+        why: It touches one to three files, has one purpose, and is quick for a volunteer to review.
+      - text: Rename the main module and update every import in the project
+        correct: false
+        why: It touches many files for one reason, and it conflicts with everyone else's work. Maintainers are slow to accept it from a stranger.
+      - text: Fix a bug, reformat three other files and update two dependencies
+        correct: false
+        why: Mixed purposes make review slow. Send each purpose as its own branch and pull request.
+      - text: Add a feature that nobody has asked for yet
+        correct: false
+        why: Without an agreed issue you do not know whether the maintainers want it. Ask in an issue first.
+  - id: oss-01-q-contributing-file
+    pools: [mastery, warmup]
+    objective: 2
+    type: short
+    competencies: [git.pull-requests]
+    stem: Which file in a repository usually tells contributors how to set up the project, run the tests and submit changes? Give the file name.
+    accepted:
+      - CONTRIBUTING.md
+      - CONTRIBUTING
+      - contributing.md
+    patterns:
+      - ^contributing(\.md)?$
+    explanation: CONTRIBUTING.md holds the project's rules for contributors, and GitHub links to it when you open an issue or a pull request. Read it, together with the code of conduct, before you comment.
+  - id: oss-01-q-comment-first
+    pools: [mastery, warmup]
+    objective: 2
+    type: single
+    competencies: [com.clarifying, git.pull-requests]
+    stem: CONTRIBUTING says "Please comment on an issue and wait for a go-ahead before sending a pull request." You have found a matching issue and already know the fix. What do you do?
+    options:
+      - text: Post your first comment, wait for the go-ahead, and then send the pull request
+        correct: true
+        why: Following the stated rule is part of the contribution. The wait is short compared with the risk of a rejected pull request.
+      - text: Send the pull request now, because working code speaks for itself
+        correct: false
+        why: The project asked you to wait. Ignoring that shows you did not read the rules, and the work may be declined.
+      - text: Comment and start straight away on a huge rewrite while you wait
+        correct: false
+        why: The point of waiting is to find out whether your approach is wanted before you spend a lot of time.
+      - text: Ask the maintainer by private message instead
+        correct: false
+        why: Questions about an issue belong on the issue, where everyone can see them. Use private contact only if the project asks you to.
+  - id: oss-01-q-good-first-comment
+    pools: [mastery]
+    objective: 2
+    type: single
+    competencies: [com.clarifying]
+    stem: Which is the best first comment on an issue?
+    options:
+      - text: '"I''d like to work on this. As I understand it, saving a phone number with spaces fails, and it should save without them. I plan to trim spaces in normalise_phone and add a test. Should empty strings raise an error? I''ll assume yes unless you say otherwise."'
+        correct: true
+        why: It restates the problem, names the change and the check, and asks one specific question with a stated assumption.
+      - text: '"Can I work on this? Please assign it to me."'
+        correct: false
+        why: It shows no understanding of the problem and demands an assignment. The maintainer cannot tell whether you read the issue.
+      - text: '"I will fix this now. Do not let anyone else take it."'
+        correct: false
+        why: You cannot claim an issue by telling others what to do, and the tone is demanding.
+      - text: '"Hello! I''m new to programming and open source. How do I fix this? Also, how do I use Git? Also, which issue should I take next?"'
+        correct: false
+        why: It asks several broad questions at once, and the answers are in the documentation. Ask one specific question you could not answer by reading.
+  - id: oss-01-q-comment-order
+    pools: [mastery]
+    objective: 2
+    type: order
+    competencies: [com.clarifying]
+    stem: Put the parts of a first comment in the order the template uses.
+    steps:
+      - A greeting that says you would like to work on the issue
+      - What you understand the problem to be
+      - What you plan to change
+      - How you will check it
+      - One specific question, with your assumption
+  - id: oss-01-q-clarifying-questions
+    pools: [mastery, warmup]
+    objective: 2
+    type: multiple
+    competencies: [com.clarifying]
+    stem: Which of these are good clarifying questions for an issue comment? Choose all that apply.
+    options:
+      - text: '"Should an empty phone number raise an error or return None? I''ll assume it raises an error unless you prefer otherwise."'
+        correct: true
+        why: It is specific, it shows you read the code, and it offers an assumption so the maintainer only has to say yes or correct you.
+      - text: '"The issue says the fix is in the importer, but I also see the same check in the API handler. Should both change?"'
+        correct: true
+        why: It points at something you found and asks a precise question that changes the size of your work.
+      - text: '"Can you tell me how to fix this?"'
+        correct: false
+        why: It hands the whole task to the maintainer. Do the reading first and ask only about what you could not work out.
+      - text: '"Is this a good project?"'
+        correct: false
+        why: The question has no connection to the issue, and you can judge the health of the project yourself from its history.
+  # ---- Chunk 2: fork, branch, open a small pull request, answer review (objectives 3 and 4) ----
+  - id: oss-01-q-why-fork
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: Why do you fork a project before you contribute?
+    options:
+      - text: You usually cannot push to the original repository, so you push your branch to your own copy and ask for it to be merged
+        correct: true
+        why: A fork is a copy of the repository under your account. You have full rights to it, and a pull request carries the change across.
+      - text: A fork automatically keeps itself in step with the original
+        correct: false
+        why: A fork does not update on its own. You fetch from upstream or use GitHub's Sync fork button.
+      - text: Forking tells the maintainers that your work is approved
+        correct: false
+        why: Forking is private housekeeping. Approval comes only when a maintainer merges your pull request.
+      - text: Only forks can have branches
+        correct: false
+        why: Every repository can have branches. The fork is about where you have permission to push.
+  - id: oss-01-q-upstream
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: 'You cloned your fork. What does `git remote add upstream https://github.com/owner/repo.git` do?'
+    options:
+      - text: It gives the original project a name in your clone, so that `git fetch upstream` can download its newest commits
+        correct: true
+        why: A remote is a named address of another copy. Your fork is already named origin, and this adds the original project as a second one.
+      - text: It pushes your branch to the original project
+        correct: false
+        why: Adding a remote only stores an address. Nothing is sent, and you would probably not be allowed to push there anyway.
+      - text: It replaces origin, so later pushes go to the original project
+        correct: false
+        why: It adds a second remote and leaves origin pointing at your fork, which is where you push.
+      - text: It creates a fork on GitHub
+        correct: false
+        why: You create a fork on GitHub with the Fork button. This command only edits the settings of your local clone.
+  - id: oss-01-q-fork-order
+    pools: [mastery]
+    objective: 3
+    type: order
+    competencies: [git.pull-requests]
+    stem: Put the steps from fork to pull request in order.
+    steps:
+      - Fork the repository on GitHub
+      - Clone your fork and add the original as upstream
+      - Fetch upstream and create a branch for the issue
+      - Make the change, run the tests and commit
+      - Push the branch to your fork
+      - Open a pull request from your branch to the original repository
+  - id: oss-01-q-dco
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: 'A project requires a DCO sign-off. What does `git commit -s` do?'
+    options:
+      - text: It adds a Signed-off-by line with your Git name and email, which records that you certify you may submit the change under the project's licence
+        correct: true
+        why: The sign-off is a statement you make about the commit, following the Developer Certificate of Origin. Git builds the line from your settings.
+      - text: It cryptographically signs the commit so GitHub can verify who you are
+        correct: false
+        why: That is commit signing with a key, a separate feature. The sign-off line is plain text and proves nothing about identity.
+      - text: It signs you up for the project's mailing list
+        correct: false
+        why: It only changes the commit message.
+      - text: It skips the project's automated checks
+        correct: false
+        why: It has no effect on checks. A project that requires the DCO normally checks for the line.
+  - id: oss-01-q-dco-cla
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: What is the main difference between a DCO and a CLA?
+    options:
+      - text: A DCO is a statement you make in each commit through its sign-off line, and a CLA is a legal agreement, usually signed once through a link on your pull request
+        correct: true
+        why: Both are ways for a project to be sure it may use your contribution. The mechanism and the legal weight differ, so read what the project asks you to agree to.
+      - text: A DCO is for companies and a CLA is for individuals
+        correct: false
+        why: Neither depends on who you are. Projects choose one, both or neither for their own reasons.
+      - text: A CLA is a kind of licence file inside the repository
+        correct: false
+        why: The licence is a separate file. A CLA is an agreement between you and the project's owner about your contributions.
+      - text: There is no difference; both are just a Git setting
+        correct: false
+        why: A sign-off is a Git feature, but a CLA is a legal agreement, so you may need to check with your employer before you accept it.
+  - id: oss-01-q-forgot-signoff
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: You pushed a branch for your pull request and then noticed that your latest commit has no sign-off, which the project requires. The branch is only yours. What is the clean fix?
+    options:
+      - text: Run git commit --amend -s --no-edit, then git push --force-with-lease to your branch
+        correct: true
+        why: The amend rewrites your own latest commit with the sign-off added. The push replaces it on a branch that only you use, and --force-with-lease refuses if the remote moved unexpectedly.
+      - text: Run git revert on the commit and push
+        correct: false
+        why: A revert adds another commit that undoes the first. It does not add a sign-off to the original commit.
+      - text: Delete your fork and start again
+        correct: false
+        why: This throws away the pull request and its review. An amend on your own branch is enough.
+      - text: Leave it; maintainers will add it for you
+        correct: false
+        why: The sign-off is your statement, so nobody else can make it for you. The project's check will keep failing.
+  - id: oss-01-q-pr-base
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: When you open the pull request from your fork, which repository should be the base?
+    options:
+      - text: The original project's repository, with your fork's branch as the source
+        correct: true
+        why: You are asking the original project to take your change, so the base is its repository and its default branch, and the changes come from your branch.
+      - text: Your own fork, because that is where the branch is
+        correct: false
+        why: That would only propose merging into your own copy, and the maintainers would never see it.
+      - text: Any repository, GitHub will redirect it
+        correct: false
+        why: GitHub sends the pull request to whichever base you choose. Check it before you click.
+      - text: The upstream remote name, which you type in the title
+        correct: false
+        why: The title is a summary of the change. The base is chosen with GitHub's repository and branch menus.
+  - id: oss-01-q-draft
+    pools: [mastery]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: What does opening a draft pull request tell the maintainers?
+    options:
+      - text: That the work is still in progress, so you are not yet asking for a full review
+        correct: true
+        why: A draft is for early feedback or for work you are still finishing. You mark it ready for review when it is complete.
+      - text: That the pull request is private and nobody else can see it
+        correct: false
+        why: A draft in a public repository can be seen by everyone. It only signals the stage of the work.
+      - text: That the pull request will be merged automatically when the checks pass
+        correct: false
+        why: A draft cannot be merged until it is marked ready for review.
+      - text: That you agree to every change a reviewer suggests
+        correct: false
+        why: A draft says nothing about agreement. You still decide how to answer each comment.
+  - id: oss-01-q-split-pr
+    pools: [mastery, warmup]
+    objective: 3
+    type: single
+    competencies: [git.pull-requests]
+    stem: While fixing the issue you also tidied the formatting of three unrelated files. The diff now touches 14 files. What should you do?
+    options:
+      - text: Move the unrelated tidying to its own branch, and send only the fix as this pull request
+        correct: true
+        why: One purpose per pull request makes review quick. Mixed changes are reviewed badly and can be refused as a whole.
+      - text: Send it all, and explain in the description that it is a big improvement
+        correct: false
+        why: A longer description does not make a large mixed diff easier to review.
+      - text: Squash everything into one commit so the diff looks smaller
+        correct: false
+        why: Squashing changes the history, not the size of the diff. Reviewers still read every changed line.
+      - text: Wait to see whether the maintainers complain
+        correct: false
+        why: Reviewers are volunteers and a large mixed pull request may wait for weeks. Fix it before you ask for review.
+  - id: oss-01-q-review-change
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.pull-requests]
+    stem: A reviewer asks you to add a test for an empty input. How do you respond?
+    options:
+      - text: Add the test, push a new commit to the same branch, reply to the comment to say what you did, and request review again
+        correct: true
+        why: The pull request updates itself with every push to its branch. A short reply tells the reviewer where to look.
+      - text: Open a new pull request with the test in it
+        correct: false
+        why: A second pull request splits the review. Push to the branch you already have.
+      - text: Reply "done" but change nothing, since the code already works
+        correct: false
+        why: The reviewer asked for the test. If you disagree, say why politely instead of pretending.
+      - text: Delete the comment so nobody sees it
+        correct: false
+        why: You cannot and should not hide review comments. Answer each one.
+  - id: oss-01-q-disagree
+    pools: [mastery]
+    objective: 4
+    type: single
+    competencies: [git.pull-requests, com.clarifying]
+    stem: A maintainer asks for a different approach, and you think yours is better. What is the right response?
+    options:
+      - text: Explain your reason once, calmly and with facts, then follow the maintainer's decision if they still prefer theirs
+        correct: true
+        why: It is their project and they will maintain the code afterwards. One clear explanation respects both of you, and the decision is theirs to make.
+      - text: Repeat your argument until they agree
+        correct: false
+        why: Pressure wears out reviewers and damages your reputation.
+      - text: Ignore the comment and wait for a different reviewer
+        correct: false
+        why: Silence reads as disrespect and stalls the pull request.
+      - text: Close the pull request and leave an angry comment
+        correct: false
+        why: The code of conduct applies to you too, and an angry comment is read by everyone who looks at your profile.
+  - id: oss-01-q-silent
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.pull-requests, com.clarifying]
+    stem: You opened a pull request two weeks ago and nobody has replied. What do you do?
+    options:
+      - text: Post one short, polite comment asking whether anything more is needed, and if there is still no answer after a further wait, move on to another issue
+        correct: true
+        why: Maintainers are often busy volunteers, so a single reminder is fine. Your time is better spent elsewhere if nothing happens.
+      - text: Comment every day until someone answers
+        correct: false
+        why: Repeated pings are noise and annoy the people you want help from.
+      - text: Tag every maintainer by name in new comments
+        correct: false
+        why: Tagging people who are not part of the review sends them notifications they did not ask for. Only do it if the project's guide says to.
+      - text: Close the pull request and open it again to get attention
+        correct: false
+        why: This hides the history and counts as a spam bump. Wait, send one reminder, then decide whether to move on.
+  - id: oss-01-q-ci-fails
+    pools: [mastery, warmup]
+    objective: 4
+    type: single
+    competencies: [git.pull-requests]
+    stem: After you open the pull request, one automated check turns red. What do you do first?
+    options:
+      - text: Open the check's log, find the cause, fix it on your branch and push again
+        correct: true
+        why: The log says what failed, such as a test or a style rule. A fix pushed to the branch re-runs the checks.
+      - text: Ask a maintainer to ignore it
+        correct: false
+        why: Fix what you can before you ask anyone. If the failure looks unrelated to your change, say so with evidence from the log.
+      - text: Close the pull request, since red checks cannot be fixed
+        correct: false
+        why: Most failures are fixable, and a fix is quick once you read the log.
+      - text: Delete the failing test
+        correct: false
+        why: Removing a test hides the problem and reviewers will notice. Fix the code or the test for a real reason.

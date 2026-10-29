@@ -1,0 +1,219 @@
+---
+title: Your first open-source contribution
+description: Choosing an issue and a healthy project, reading CONTRIBUTING, asking before you build, opening a small pull request from a fork, and handling review and silence.
+sidebar:
+  order: 110
+lessonId: oss-01
+week: 10
+track: oss
+durationMin: 60
+anatomy: short
+competencies: [git.pull-requests, com.clarifying]
+prerequisites: [git-01, wri-01]
+whyItMatters: >
+  Git appears in 24% of the postings you are targeting, English communication in 59% and client-facing work in 26%.
+  A pull request to a public project is proof of all three: you read someone else's rules, asked a clear question, made a
+  small change and answered a reviewer. Interviewers can open it and read it, whether or not it is merged.
+objectives:
+  - Find a suitable issue, and judge its size and the health of the project
+  - Read a project's CONTRIBUTING file and write a first comment that restates the issue and asks one clear question
+  - Fork, branch and open a small pull request that follows the project's rules, including a sign-off
+  - Respond to review calmly, and decide what to do when a maintainer is silent
+sources:
+  - title: "GitHub Docs: finding ways to contribute to open source on GitHub"
+    url: https://docs.github.com/en/get-started/exploring-projects-on-github/finding-ways-to-contribute-to-open-source-on-github
+  - title: "GitHub Docs: contributing to a project"
+    url: https://docs.github.com/en/get-started/quickstart/contributing-to-projects
+  - title: "GitHub Docs: about forks"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks
+  - title: "GitHub Docs: configuring a remote repository for a fork"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/configuring-a-remote-repository-for-a-fork
+  - title: "GitHub Docs: syncing a fork"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork
+  - title: "GitHub Docs: setting guidelines for repository contributors"
+    url: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors
+  - title: "GitHub Docs: creating a pull request from a fork"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork
+  - title: "GitHub Docs: changing the stage of a pull request (draft)"
+    url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request
+  - title: "GitHub Docs: searching issues and pull requests"
+    url: https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests
+  - title: "git commit: the --signoff option"
+    url: https://git-scm.com/docs/git-commit
+  - title: "Developer Certificate of Origin 1.1"
+    url: https://developercertificate.org/
+  - title: "Open Source Guides: how to contribute"
+    url: https://opensource.guide/how-to-contribute/
+---
+
+## Why this matters
+
+Git appears in 24% of the postings you are targeting, English communication in 59% and client-facing work in 26%. A pull request to a public project is proof of all three: you read someone else's rules, asked a clear question, made a small change and answered a reviewer. Interviewers can open it and read it, whether or not it is merged. The plan for the course is to find an issue this week and to open one pull request by week 14; a merged one is a bonus, not a requirement.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Find a suitable issue, and judge its size and the health of the project.
+2. Read a project's CONTRIBUTING file and write a first comment that restates the issue and asks one clear question.
+3. Fork, branch and open a small pull request that follows the project's rules, including a sign-off.
+4. Respond to review calmly, and decide what to do when a maintainer is silent.
+
+<Callout type="note" title="What this lesson assumes">
+
+You know branches, commits, pull requests and `Closes #42` from git-01, and the Why, What changed and Testing description from wri-01. Git and GitHub cannot run in this page, so the real steps are a checklist that you do on your own over the next days. Athena never posts, forks or opens anything for you, and you contact a project only by hand, from your own account. All project names, people and addresses here are invented, and the example emails end in example.com.
+
+</Callout>
+
+<Chunk n={1} title="Choose an issue, read the rules, ask before you build">
+
+**Open source** means a project publishes its code under a licence that lets others use and change it. Its **maintainers** are the people who run it. Bugs and requests are tracked as **issues**, and many projects label easier ones `good first issue` or `help wanted`. Maintainers choose labels, so a label is a hint, not a promise.
+
+A good first issue is small and clear. You can reproduce the problem, you know what "done" looks like, and the fix touches one area. As a rule of thumb, aim for one to three files. Nobody is assigned, no open pull request is linked, and the discussion is settled.
+
+Check the project's health too. Rules of thumb: a commit in the last six months, maintainers replying to recent issues within about two weeks, an outside pull request merged in the last three months, and a `LICENSE` file. If it fails, pick another project.
+
+Read `CONTRIBUTING.md` (GitHub links it when you open an issue or pull request) and the code of conduct. Note how to run the tests, the commit style, whether to comment before starting, and any rule about AI tools. Then post a short first comment: what you understand, what you plan to change, how you will check it, and one question. Restating the problem lets a maintainer correct you in one line, before you spend hours.
+
+**Worked example.** Search GitHub for issues with this query (change the language to one you know):
+
+```text
+is:issue is:open label:"good first issue" no:assignee language:python
+```
+
+Then check each candidate in code. Predict the printed list first, then compare it with the comment on the last line.
+
+```python
+def is_free(issue: dict) -> bool:
+    """True when nobody else has claimed the issue."""
+    return (
+        issue["state"] == "open"
+        and not issue["assignees"]          # an empty list means nobody is assigned
+        and issue["linked_open_prs"] == 0   # no pull request is open for it yet
+    )
+
+
+issues = [
+    {"state": "open", "assignees": [], "linked_open_prs": 0},
+    {"state": "open", "assignees": ["jin-park"], "linked_open_prs": 0},
+    {"state": "open", "assignees": [], "linked_open_prs": 1},
+]
+print([is_free(i) for i in issues])   # [True, False, False]
+```
+
+Only the first issue is free. The second has an assignee, and the third already has a pull request. Skipping them saves you from building something that will not be accepted.
+
+<Quiz lesson="oss-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "A `good first issue` label means it is easy and free to take." The label may be old, the issue may be claimed, or the fix may be harder than it looks. Check the assignee, the linked pull requests and the latest comments.
+- "More stars mean a healthier project." Stars show popularity. Recent commits and maintainer replies show whether anyone will review your work.
+- "I should just send the pull request, since commenting is slow." Some projects want a comment or a go-ahead first. The CONTRIBUTING file says which.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Fork, branch, open a small pull request, answer review">
+
+You usually cannot push to someone else's repository. A **fork** is your own copy of it on GitHub. You **clone** your fork (download it to your computer), and Git calls its address `origin`. Add the original as a second **remote** (a named address of another copy) called `upstream`, so you can fetch its newest commits.
+
+Make a new branch for the issue from the up-to-date default branch (often `main`, but check). Keep the change small, with one purpose: unrelated tidying goes on its own branch. Run the tests and follow the commit style.
+
+Some projects ask for a **DCO** sign-off. You state that you wrote the change or may submit it under the project's licence, and `git commit -s` adds a `Signed-off-by: Name <email>` line from your Git settings. It records your statement and does not prove who you are. Forgot it on your latest commit? Run `git commit --amend -s --no-edit`, then `git push --force-with-lease` to your own branch (git-01). A **CLA** (Contributor License Agreement) is a legal agreement, usually signed once through a link a bot posts on your pull request. If an employer has rights to your work, ask before you agree.
+
+Push the branch to your fork, then open a pull request from it to the original repository. Use the project's template, link the issue, and describe how you tested. A **draft** pull request says that work is still in progress. After that:
+
+- If an automated check (CI) fails, read its log and fix the cause.
+- Reply to each review comment, push more commits to the same branch (the pull request updates itself), and request review again.
+- If you disagree, say why once and accept the answer.
+- If a maintainer is silent, wait about two weeks, post one polite comment, then move on.
+
+**Worked example.** The commands for issue 123, as a chain from fork to pull request (the placeholders in angle brackets are yours to fill in).
+
+```bash
+git clone https://github.com/<you>/<repo>.git                    # your fork; Git names it origin
+cd <repo>
+git remote add upstream https://github.com/<owner>/<repo>.git    # the original project
+git fetch upstream                                               # download its newest commits
+git switch -c issue-123-trim-phone upstream/main                 # new branch from its default branch
+# edit the code, add a test, run the project's test command
+git add src/phone.py tests/test_phone.py
+git commit -s -m "fix: trim spaces from phone numbers"           # -s adds the Signed-off-by line
+git push -u origin issue-123-trim-phone                          # publish the branch to your fork
+```
+
+Open the pull request from the page GitHub shows after the push. Check that the base is the original repository.
+
+```text
+Title: fix: trim spaces from phone numbers before saving
+
+## Why
+Numbers pasted from a spreadsheet contain spaces and are rejected. Closes #123.
+
+## What changed
+`normalise_phone` now removes spaces first. Two new tests cover numbers with spaces.
+
+## Testing
+Ran `pytest tests/test_phone.py`: 14 passed. Not checked: numbers with dashes.
+```
+
+<Quiz lesson="oss-01" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "A fork follows the original on its own." It is a copy. Run `git fetch upstream` and rebase or merge, or use GitHub's Sync fork button, to catch up.
+- "A big pull request shows how much I can do." Reviewers are volunteers. A small, clear change gets reviewed, and a large mixed one waits.
+- "Silence means no." Maintainers are often busy volunteers. One polite follow-up is fine, repeated pings are not.
+
+</Callout>
+
+</Chunk>
+
+## Triage an issue in code
+
+Write the check you just did by hand as a function. It lists every reason to skip an issue, so you can see why a candidate fails.
+
+<Callout type="note" title="Write this yourself">
+
+Write the next exercise yourself. Claude can be your tutor (use the "I'm stuck" button) but not your author.
+
+</Callout>
+
+<Exercise id="oss-01-make-skip-reasons" />
+
+Now the explain-back. The box fills with your saved code. Replace it with a short plain-text summary of the real issue you plan to choose: its title and link, what is wrong, what you would change, how you would test it, how big you think it is and why you picked it over the others. Use only public information. If you have not chosen yet, keep your code and explain it. Claude will interview you; it will not write the contribution for you.
+
+<ExplainBack lesson="oss-01" exercise="oss-01-make-skip-reasons" />
+
+## Practise on your own
+
+This is the real work of the lesson. It happens over the coming days, not in this hour, so read it now and come back to it. Nothing is sent to Athena, and checklists and rubrics are self-assessed, so they never count as unaided evidence.
+
+<Checklist id="oss-01-checklist-first-contribution" />
+
+A first comment has four short parts. Replace every part in angle brackets, delete the question if you have none, write it in a text editor, and rate it below.
+
+```text
+Hi, I'd like to work on this issue.
+
+What I understand: <one sentence: what is wrong now, and what should happen instead>
+What I plan to change: <the file or area, and the approach in one or two sentences>
+How I will check it: <the test I will add, or the command I will run>
+One question: <a specific question, with the answer you will assume unless told otherwise>
+```
+
+The checklist and this rubric are work for the coming days, so their time on this page is only for reading them. You post it, by hand, from your own account, only when you mean to do the work.
+
+<Rubric id="oss-01-rubric-first-comment" />
+
+## Mastery check
+
+<MasteryCheck lesson="oss-01" count={6} />
+
+## Further reading
+
+- [GitHub Docs: contributing to a project](https://docs.github.com/en/get-started/quickstart/contributing-to-projects)
+- [Open Source Guides: how to contribute](https://opensource.guide/how-to-contribute/)
+- [Developer Certificate of Origin 1.1](https://developercertificate.org/)

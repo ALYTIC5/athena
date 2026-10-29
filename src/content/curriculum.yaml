@@ -129,7 +129,7 @@
     - id: oss-01
       title: 'Your first open-source contribution'
       durationMin: 60
-      status: planned
+      status: published
   lab: []
   gym:
     focus: 'Code-reading drill 1; 1 mixed'

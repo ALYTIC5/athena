@@ -1,0 +1,111 @@
+id: oss-01-mastery-signoff
+lesson: oss-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Check a commit message for a DCO sign-off
+difficulty: 2
+competencies:
+  - git.pull-requests
+timeoutMs: 5000
+packages: []
+prompt: |
+  A project asks every commit to carry a sign-off line, which `git commit -s` adds at the end of the message: `Signed-off-by: Name <email>`. Write `has_signoff(message, name, email)`. It returns `True` when the message contains a line that is exactly `Signed-off-by: ` followed by that name, a space, and the email in angle brackets. Spaces at the start or end of a line are ignored. This exercise matches the text exactly, including capital letters. Real projects may use a bot with its own rules, so read the project's.
+
+  A sign-off that is only mentioned inside a sentence does not count, and neither does a sign-off by someone else.
+
+  Example: `has_signoff("fix: trim phone\n\nSigned-off-by: Amara Okafor <amara@example.com>\n", "Amara Okafor", "amara@example.com")` returns `True`.
+starter: |
+  def has_signoff(message: str, name: str, email: str) -> bool:
+      ...
+visibleTests: |
+  def test_signed_message():
+      message = "fix: trim phone\n\nSigned-off-by: Amara Okafor <amara@example.com>\n"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is True
+
+  def test_unsigned_message():
+      assert has_signoff("fix: trim phone\n", "Amara Okafor", "amara@example.com") is False
+hiddenTests: |
+  def test_sign_off_by_someone_else_does_not_count():
+      message = "fix: trim phone\n\nSigned-off-by: Jin Park <jin@example.com>\n"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is False
+
+  def test_wrong_email_does_not_count():
+      message = "fix\n\nSigned-off-by: Amara Okafor <other@example.com>\n"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is False
+
+  def test_mention_inside_a_sentence_does_not_count():
+      message = "fix\n\nI forgot Signed-off-by: Amara Okafor <amara@example.com> here\n"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is False
+
+  def test_sign_off_followed_by_another_trailer():
+      message = (
+          "fix\n\nSigned-off-by: Amara Okafor <amara@example.com>\n"
+          "Co-authored-by: Jin Park <jin@example.com>\n"
+      )
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is True
+
+  def test_sign_off_without_final_newline():
+      message = "fix\n\nSigned-off-by: Amara Okafor <amara@example.com>"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is True
+
+  def test_surrounding_spaces_are_ignored():
+      message = "fix\n\n  Signed-off-by: Amara Okafor <amara@example.com>  \n"
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is True
+
+  def test_one_of_two_sign_offs_is_enough():
+      message = (
+          "fix\n\nSigned-off-by: Jin Park <jin@example.com>\n"
+          "Signed-off-by: Amara Okafor <amara@example.com>\n"
+      )
+      assert has_signoff(message, "Amara Okafor", "amara@example.com") is True
+
+  def test_empty_message():
+      assert has_signoff("", "Amara Okafor", "amara@example.com") is False
+feedback:
+  - test: test_mention_inside_a_sentence_does_not_count
+    message: The sign-off must be a whole line. Compare each line with the wanted text instead of searching the whole message for it.
+  - test: test_sign_off_by_someone_else_does_not_count
+    message: The name must match as well as the format. A sign-off by a different person does not cover your commit.
+  - test: test_wrong_email_does_not_count
+    message: The email must match too.
+  - test: test_sign_off_followed_by_another_trailer
+    message: A sign-off does not have to be the last line. Check every line.
+  - test: test_sign_off_without_final_newline
+    message: A message may or may not end with a newline. Split it into lines and compare each one.
+  - test: test_surrounding_spaces_are_ignored
+    message: Strip spaces from each line before you compare it.
+referenceSolution: |
+  def has_signoff(message: str, name: str, email: str) -> bool:
+      wanted = f"Signed-off-by: {name} <{email}>"
+      return any(line.strip() == wanted for line in message.splitlines())
+wrongSolutions:
+  - label: Searches the whole message, so a sentence that mentions the sign-off counts
+    code: |
+      def has_signoff(message: str, name: str, email: str) -> bool:
+          return f"Signed-off-by: {name} <{email}>" in message
+  - label: Checks only that some sign-off line exists, whoever signed it
+    code: |
+      def has_signoff(message: str, name: str, email: str) -> bool:
+          return any(line.strip().startswith("Signed-off-by: ") for line in message.splitlines())
+  - label: Looks only at the last line, so a later trailer hides the sign-off
+    code: |
+      def has_signoff(message: str, name: str, email: str) -> bool:
+          lines = message.strip().splitlines()
+          return bool(lines) and lines[-1].strip() == f"Signed-off-by: {name} <{email}>"
+  - label: Ignores the email, so a sign-off with another address counts
+    code: |
+      def has_signoff(message: str, name: str, email: str) -> bool:
+          return any(
+              line.strip().startswith(f"Signed-off-by: {name} <")
+              for line in message.splitlines()
+          )
+explanation: |
+  The function builds the exact line it wants, then asks whether any line of the message equals it after stripping spaces. Comparing whole lines means a sentence that merely contains the text does not count, and `any` over all lines means the sign-off can sit anywhere, for example before a `Co-authored-by` trailer. Alternative: a regular expression with `re.MULTILINE` and anchors does the same in one pattern, but you must escape the name and email with `re.escape`, so the plain comparison is simpler. The sign-off only records that you agree to the Developer Certificate of Origin; it does not check who you are, which is why the lesson tells you to read what you are certifying.
+hints:
+  - A message can mention the words "Signed-off-by" in a sentence without being signed. What makes a line a real sign-off line?
+  - 'Build the exact text you want once. Split the message into lines, strip the spaces around each line, and return True if any line equals the wanted text.'
+  - |
+    wanted = f"Signed-off-by: {name} <{email}>"
+    return any(line.____() == wanted for line in message.____())

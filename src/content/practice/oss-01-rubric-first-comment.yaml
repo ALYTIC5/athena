@@ -1,0 +1,49 @@
+id: oss-01-rubric-first-comment
+lesson: oss-01
+kind: rubric
+competencies:
+  - com.clarifying
+  - git.pull-requests
+title: Rate your first comment on the issue before you post it
+estMin: 2
+criteria:
+  - name: Restates the problem
+    levels:
+      - score: 0
+        description: The comment does not say what I think the problem is, or it only repeats the issue title.
+      - score: 1
+        description: I describe the problem, but not what should happen instead, so a maintainer cannot tell whether I understood.
+      - score: 2
+        description: In one sentence I say what is wrong now and what should happen instead, in my own words.
+  - name: Plan and check
+    levels:
+      - score: 0
+        description: I say only that I want to work on it.
+      - score: 1
+        description: I name the area I will change or the test I will run, but not both.
+      - score: 2
+        description: I name the file or area and the approach in a sentence or two, and the test or command that will show it works.
+  - name: The question
+    levels:
+      - score: 0
+        description: I ask something vague, such as "how do I fix this?", or I ask several questions at once.
+      - score: 1
+        description: I ask one question, but it is something CONTRIBUTING.md or the code already answers.
+      - score: 2
+        description: I ask one specific question that I could not answer by reading, and I say what I will assume unless told otherwise. If I have no question, I leave it out.
+  - name: Respect for the project
+    levels:
+      - score: 0
+        description: I demand to be assigned, I expect a quick answer, or I have not checked whether someone else is working on it.
+      - score: 1
+        description: I am polite, but I did not read CONTRIBUTING.md, so I may be breaking a rule about how to ask.
+      - score: 2
+        description: I checked for assignees and linked pull requests, I followed the contribution rules, and I will wait for an answer before starting large work.
+  - name: Short and safe
+    levels:
+      - score: 0
+        description: The comment is long, or it includes private details, a secret or someone else's personal information.
+      - score: 1
+        description: The comment is safe but longer than it needs to be, so the maintainer has to hunt for the question.
+      - score: 2
+        description: The comment fits on one screen, contains only public information, and I will post it myself, by hand, from my own account.

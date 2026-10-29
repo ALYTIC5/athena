@@ -1,0 +1,189 @@
+id: oss-01-make-skip-reasons
+lesson: oss-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: List the reasons to skip an issue
+difficulty: 2
+competencies:
+  - git.pull-requests
+  - com.clarifying
+timeoutMs: 5000
+packages: []
+estMin: 6
+prompt: |
+  Before you comment on an issue, you check whether it is a good first choice. Write `skip_reasons(issue)`. It takes a dict describing one issue and returns the codes of every reason to skip it, in this order:
+
+  1. `"assigned"`: `assignees` is not empty.
+  2. `"has-open-pr"`: `linked_open_prs` is more than 0.
+  3. `"too-big"`: `estimated_files` (how many files you think the fix touches) is more than 3.
+  4. `"maintainers-quiet"`: `days_since_maintainer_reply` is `None` (no reply at all) or more than 14.
+
+  Return an empty list when the issue is a good choice. The numbers are this exercise's own rules of thumb, in line with the lesson's "one to three files" and "about two weeks". Real projects differ.
+
+  Example: an unassigned issue with no pull request, 2 files and a reply 5 days ago gives `[]`.
+starter: |
+  def skip_reasons(issue: dict) -> list[str]:
+      ...
+visibleTests: |
+  def make_issue(**changes):
+      issue = {
+          "assignees": [],
+          "linked_open_prs": 0,
+          "estimated_files": 2,
+          "days_since_maintainer_reply": 5,
+      }
+      issue.update(changes)
+      return issue
+
+
+  def test_good_issue_has_no_reasons():
+      assert skip_reasons(make_issue()) == []
+
+  def test_assigned_issue_is_skipped():
+      assert skip_reasons(make_issue(assignees=["jin-park"])) == ["assigned"]
+hiddenTests: |
+  def make_issue(**changes):
+      issue = {
+          "assignees": [],
+          "linked_open_prs": 0,
+          "estimated_files": 2,
+          "days_since_maintainer_reply": 5,
+      }
+      issue.update(changes)
+      return issue
+
+
+  def test_open_pull_request():
+      assert skip_reasons(make_issue(linked_open_prs=1)) == ["has-open-pr"]
+
+  def test_three_files_is_fine_four_is_too_big():
+      assert skip_reasons(make_issue(estimated_files=3)) == []
+      assert skip_reasons(make_issue(estimated_files=4)) == ["too-big"]
+
+  def test_fourteen_days_is_fine_fifteen_is_quiet():
+      assert skip_reasons(make_issue(days_since_maintainer_reply=14)) == []
+      assert skip_reasons(make_issue(days_since_maintainer_reply=15)) == ["maintainers-quiet"]
+
+  def test_no_reply_at_all_is_quiet():
+      assert skip_reasons(make_issue(days_since_maintainer_reply=None)) == ["maintainers-quiet"]
+
+  def test_several_assignees():
+      assert skip_reasons(make_issue(assignees=["jin-park", "amara-okafor"])) == ["assigned"]
+
+  def test_every_reason_is_reported_in_order():
+      issue = make_issue(
+          assignees=["jin-park"],
+          linked_open_prs=2,
+          estimated_files=9,
+          days_since_maintainer_reply=None,
+      )
+      assert skip_reasons(issue) == ["assigned", "has-open-pr", "too-big", "maintainers-quiet"]
+
+  def test_input_is_not_changed():
+      issue = make_issue(assignees=["jin-park"])
+      before = {**issue, "assignees": list(issue["assignees"])}
+      skip_reasons(issue)
+      assert issue == before
+feedback:
+  - test: test_every_reason_is_reported_in_order
+    message: Report every reason that applies, not only the first one, and add them in the order of the numbered list.
+  - test: test_open_pull_request
+    message: A linked open pull request means somebody has already done the work. Skip when linked_open_prs is more than 0.
+  - test: test_three_files_is_fine_four_is_too_big
+    message: The limit is "more than 3 files", so exactly 3 is allowed.
+  - test: test_fourteen_days_is_fine_fifteen_is_quiet
+    message: The limit is "more than 14 days", so exactly 14 is allowed.
+  - test: test_no_reply_at_all_is_quiet
+    message: None means no maintainer has replied. Check for None before you compare it with 14, because None cannot be compared with a number.
+  - test: test_assigned_issue_is_skipped
+    message: An empty assignees list means nobody has claimed the issue. Any name in the list means somebody has.
+  - test: test_several_assignees
+    message: Report "assigned" once, however many people are assigned.
+  - test: test_input_is_not_changed
+    message: Do not change the dict you are given. Only read from it.
+referenceSolution: |
+  def skip_reasons(issue: dict) -> list[str]:
+      reasons = []
+      if issue["assignees"]:
+          reasons.append("assigned")
+      if issue["linked_open_prs"] > 0:
+          reasons.append("has-open-pr")
+      if issue["estimated_files"] > 3:
+          reasons.append("too-big")
+      days = issue["days_since_maintainer_reply"]
+      if days is None or days > 14:
+          reasons.append("maintainers-quiet")
+      return reasons
+wrongSolutions:
+  - label: Returns at the first reason instead of collecting all of them
+    code: |
+      def skip_reasons(issue: dict) -> list[str]:
+          if issue["assignees"]:
+              return ["assigned"]
+          if issue["linked_open_prs"] > 0:
+              return ["has-open-pr"]
+          if issue["estimated_files"] > 3:
+              return ["too-big"]
+          days = issue["days_since_maintainer_reply"]
+          if days is None or days > 14:
+              return ["maintainers-quiet"]
+          return []
+  - label: Treats a missing maintainer reply as fine
+    code: |
+      def skip_reasons(issue: dict) -> list[str]:
+          reasons = []
+          if issue["assignees"]:
+              reasons.append("assigned")
+          if issue["linked_open_prs"] > 0:
+              reasons.append("has-open-pr")
+          if issue["estimated_files"] > 3:
+              reasons.append("too-big")
+          days = issue["days_since_maintainer_reply"]
+          if days is not None and days > 14:
+              reasons.append("maintainers-quiet")
+          return reasons
+  - label: Uses an off-by-one limit for the size and the quiet period
+    code: |
+      def skip_reasons(issue: dict) -> list[str]:
+          reasons = []
+          if issue["assignees"]:
+              reasons.append("assigned")
+          if issue["linked_open_prs"] > 0:
+              reasons.append("has-open-pr")
+          if issue["estimated_files"] >= 3:
+              reasons.append("too-big")
+          days = issue["days_since_maintainer_reply"]
+          if days is None or days >= 14:
+              reasons.append("maintainers-quiet")
+          return reasons
+  - label: Empties the caller's assignees list while checking it
+    code: |
+      def skip_reasons(issue: dict) -> list[str]:
+          reasons = []
+          if issue["assignees"]:
+              reasons.append("assigned")
+              issue["assignees"].clear()
+          if issue["linked_open_prs"] > 0:
+              reasons.append("has-open-pr")
+          if issue["estimated_files"] > 3:
+              reasons.append("too-big")
+          days = issue["days_since_maintainer_reply"]
+          if days is None or days > 14:
+              reasons.append("maintainers-quiet")
+          return reasons
+explanation: |
+  The function checks the four rules one after another and appends a code for each rule that applies, so it reports every problem in the documented order. The `None` check comes first so the number comparison never sees `None`. Alternative: keep a list of `(code, test)` pairs and loop over it. That scales better when you add rules, but for four rules the plain `if` statements are easier to read. The thresholds are rules of thumb, not GitHub rules, and a real maintainer's reply is a better guide than any score.
+hints:
+  - Which of the four rules could apply to the same issue at the same time? What does that tell you about when to return?
+  - 'Start with an empty list. Add one code for each rule that applies, in the order of the numbered list, and return the list at the end. Check for None before you compare the reply days with 14.'
+  - |
+    reasons = []
+    if issue["assignees"]:
+        reasons.append("assigned")
+    # ... has-open-pr, too-big ...
+    days = issue["days_since_maintainer_reply"]
+    if days is ____ or days > 14:
+        reasons.append("maintainers-quiet")
+    return reasons
