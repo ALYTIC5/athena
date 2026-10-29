@@ -25,6 +25,17 @@ files:
     def clock(minute):
         """Format minutes since midnight as HH:MM."""
         return f"{minute // 60:02d}:{minute % 60:02d}"
+
+
+    def parse_clock(text):
+        """Parse "HH:MM" into minutes since midnight."""
+        hours, minutes = text.strip().split(":")
+        return int(hours) * 60 + int(minutes)
+
+
+    def overlaps(start_a, length_a, start_b, length_b):
+        """True if two slots share any time. Slots that only touch do not overlap."""
+        return start_a < start_b + length_b and start_b < start_a + length_a
   booked.py: |
     """Take booked slots out of a day's slots."""
 
@@ -46,21 +57,87 @@ files:
             if slot > after:
                 return slot
         return None
+
+
+    def booked_ratio(slots, booked):
+        """Share of the slots that are booked, from 0.0 to 1.0 (0.0 when there are no slots)."""
+        if not slots:
+            return 0.0
+        return 1 - count_free(slots, booked) / len(slots)
+  hours.py: |
+    """Weekly opening hours. Days are three-letter names; times are minutes since midnight."""
+
+    from slots import clock, generate_slots
+
+    WEEK = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+    OPENING_HOURS = {
+        "Mon": (540, 1020),
+        "Tue": (540, 1020),
+        "Wed": (540, 780),
+        "Thu": (540, 1020),
+        "Fri": (540, 960),
+        "Sat": (600, 720),
+    }
+
+
+    def hours_for(day):
+        """(open, close) minutes for a day, or None when the practice is closed."""
+        return OPENING_HOURS.get(day)
+
+
+    def is_open(day, minute):
+        """True if the practice is open at this minute. Closing time itself counts as closed."""
+        hours = hours_for(day)
+        if hours is None:
+            return False
+        return hours[0] <= minute < hours[1]
+
+
+    def hours_text(day):
+        """Text such as "Mon 09:00-17:00" or "Sun closed"."""
+        hours = hours_for(day)
+        if hours is None:
+            return f"{day} closed"
+        return f"{day} {clock(hours[0])}-{clock(hours[1])}"
+
+
+    def slots_per_day(length):
+        """{day: number of slots} for every day of the week."""
+        counts = {}
+        for day in WEEK:
+            hours = hours_for(day)
+            counts[day] = len(generate_slots(hours[0], hours[1], length)) if hours else 0
+        return counts
   report.py: |
     """Printed list of free slots for a day."""
 
-    from booked import free_slots
-    from slots import generate_slots, slot_label
+    from booked import booked_ratio, free_slots
+    from slots import generate_slots, parse_clock, slot_label
 
 
     def day_sheet(open_minute, close_minute, length, booked):
         slots = generate_slots(open_minute, close_minute, length)
         lines = [slot_label(slot, length) for slot in free_slots(slots, booked)]
         return "\n".join(lines) if lines else "fully booked"
+
+
+    def sheet_from_text(open_text, close_text, length, booked_texts):
+        """Same sheet, but with "HH:MM" strings for the hours and the booked starts."""
+        booked = [parse_clock(text) for text in booked_texts]
+        return day_sheet(parse_clock(open_text), parse_clock(close_text), length, booked)
+
+
+    def occupancy_line(open_minute, close_minute, length, booked):
+        """Text such as "50% booked" for the day."""
+        slots = generate_slots(open_minute, close_minute, length)
+        percent = round(100 * booked_ratio(slots, booked))
+        return f"{percent}% booked"
 failingTest: |
   from booked import count_free, next_free
-  from report import day_sheet
-  from slots import generate_slots
+  from hours import is_open, slots_per_day
+  from report import day_sheet, occupancy_line, sheet_from_text
+  from slots import generate_slots, overlaps
 
 
   def test_last_slot_ends_exactly_at_closing_time():
@@ -76,10 +153,24 @@ failingTest: |
       assert count_free(generate_slots(540, 660, 30), [570]) == 3
       assert next_free(generate_slots(540, 660, 30), [], 600) == 630
       assert day_sheet(540, 600, 30, [540]) == "09:30-10:00"
+
+
+  def test_text_sheet_and_occupancy():
+      assert sheet_from_text("09:00", "10:00", 30, ["09:00"]) == "09:30-10:00"
+      assert occupancy_line(540, 660, 30, [540, 570]) == "50% booked"
+      assert not overlaps(540, 30, 570, 30)
+
+
+  def test_week_counts():
+      counts = slots_per_day(60)
+      assert counts["Wed"] == 4
+      assert counts["Sun"] == 0
+      assert is_open("Mon", 540) and not is_open("Mon", 1020)
 bugExplanation: |
   `range` stops before its end value, so `range(open, close - length, length)` stops before the start minute of the last
   slot that still fits: the slot that ends exactly at closing time never appears. A slot starting at `start` fits when
   `start + length <= close`, that is `start <= close - length`, so the `range` end must be `close - length + 1`.
+  `overlaps` (strict `<`) and `booked_ratio` are correct; they just inherit the missing slot.
 fixedFiles:
   slots.py: |
     """Generate appointment slots inside opening hours. Times are minutes since midnight."""
@@ -102,6 +193,17 @@ fixedFiles:
     def clock(minute):
         """Format minutes since midnight as HH:MM."""
         return f"{minute // 60:02d}:{minute % 60:02d}"
+
+
+    def parse_clock(text):
+        """Parse "HH:MM" into minutes since midnight."""
+        hours, minutes = text.strip().split(":")
+        return int(hours) * 60 + int(minutes)
+
+
+    def overlaps(start_a, length_a, start_b, length_b):
+        """True if two slots share any time. Slots that only touch do not overlap."""
+        return start_a < start_b + length_b and start_b < start_a + length_a
   booked.py: |
     """Take booked slots out of a day's slots."""
 
@@ -123,14 +225,79 @@ fixedFiles:
             if slot > after:
                 return slot
         return None
+
+
+    def booked_ratio(slots, booked):
+        """Share of the slots that are booked, from 0.0 to 1.0 (0.0 when there are no slots)."""
+        if not slots:
+            return 0.0
+        return 1 - count_free(slots, booked) / len(slots)
+  hours.py: |
+    """Weekly opening hours. Days are three-letter names; times are minutes since midnight."""
+
+    from slots import clock, generate_slots
+
+    WEEK = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+    OPENING_HOURS = {
+        "Mon": (540, 1020),
+        "Tue": (540, 1020),
+        "Wed": (540, 780),
+        "Thu": (540, 1020),
+        "Fri": (540, 960),
+        "Sat": (600, 720),
+    }
+
+
+    def hours_for(day):
+        """(open, close) minutes for a day, or None when the practice is closed."""
+        return OPENING_HOURS.get(day)
+
+
+    def is_open(day, minute):
+        """True if the practice is open at this minute. Closing time itself counts as closed."""
+        hours = hours_for(day)
+        if hours is None:
+            return False
+        return hours[0] <= minute < hours[1]
+
+
+    def hours_text(day):
+        """Text such as "Mon 09:00-17:00" or "Sun closed"."""
+        hours = hours_for(day)
+        if hours is None:
+            return f"{day} closed"
+        return f"{day} {clock(hours[0])}-{clock(hours[1])}"
+
+
+    def slots_per_day(length):
+        """{day: number of slots} for every day of the week."""
+        counts = {}
+        for day in WEEK:
+            hours = hours_for(day)
+            counts[day] = len(generate_slots(hours[0], hours[1], length)) if hours else 0
+        return counts
   report.py: |
     """Printed list of free slots for a day."""
 
-    from booked import free_slots
-    from slots import generate_slots, slot_label
+    from booked import booked_ratio, free_slots
+    from slots import generate_slots, parse_clock, slot_label
 
 
     def day_sheet(open_minute, close_minute, length, booked):
         slots = generate_slots(open_minute, close_minute, length)
         lines = [slot_label(slot, length) for slot in free_slots(slots, booked)]
         return "\n".join(lines) if lines else "fully booked"
+
+
+    def sheet_from_text(open_text, close_text, length, booked_texts):
+        """Same sheet, but with "HH:MM" strings for the hours and the booked starts."""
+        booked = [parse_clock(text) for text in booked_texts]
+        return day_sheet(parse_clock(open_text), parse_clock(close_text), length, booked)
+
+
+    def occupancy_line(open_minute, close_minute, length, booked):
+        """Text such as "50% booked" for the day."""
+        slots = generate_slots(open_minute, close_minute, length)
+        percent = round(100 * booked_ratio(slots, booked))
+        return f"{percent}% booked"

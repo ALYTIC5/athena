@@ -1,0 +1,286 @@
+id: gym-drill-sortkey
+kind: code-reading
+title: 'The statement that files invoice 10 before 9'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  invoices.py: |
+    """Invoice records parsed from the billing export.
+
+    Each export line is: number,customer,amount,due
+    for example: 10,Brightway Ltd,1250.50,2026-03-09
+    """
+
+    from dataclasses import dataclass
+
+
+    @dataclass(frozen=True)
+    class Invoice:
+        number: str
+        customer: str
+        cents: int
+        due: str  # ISO date, YYYY-MM-DD
+
+
+    def to_cents(text):
+        """Convert '1250.50' (or '1250') to integer cents without float rounding."""
+        whole, _, frac = text.strip().partition(".")
+        frac = (frac + "00")[:2]
+        return int(whole) * 100 + int(frac)
+
+
+    def parse_line(line):
+        """Parse one export line into an Invoice."""
+        number, customer, amount, due = [part.strip() for part in line.split(",")]
+        return Invoice(number, customer, to_cents(amount), due)
+
+
+    def parse_export(text):
+        """Parse a whole export, skipping blank lines and # comments."""
+        invoices = []
+        for line in text.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                invoices.append(parse_line(line))
+        return invoices
+  ordering.py: |
+    """Sort keys used by the invoice report."""
+
+
+    def customer_key(name):
+        """Customers sort case-insensitively so 'acme' and 'Acme Ltd' stay together."""
+        return name.casefold()
+
+
+    def invoice_key(invoice):
+        """Order within one customer: oldest due date first, then invoice number.
+
+        Due dates are ISO strings (YYYY-MM-DD), so plain string comparison is
+        already chronological.
+        """
+        return (invoice.due, invoice.number)
+  report.py: |
+    """Customer statements built from parsed invoices."""
+
+    from ordering import customer_key, invoice_key
+
+
+    def group_by_customer(invoices):
+        """Return {customer: [invoices]} with each list in statement order."""
+        groups = {}
+        for invoice in invoices:
+            groups.setdefault(invoice.customer, []).append(invoice)
+        for items in groups.values():
+            items.sort(key=invoice_key)
+        return groups
+
+
+    def outstanding(items):
+        """Total cents owed across a list of invoices."""
+        return sum(item.cents for item in items)
+
+
+    def rank_customers(groups):
+        """Largest outstanding balance first; ties are alphabetical."""
+        return sorted(groups, key=lambda name: (-outstanding(groups[name]), customer_key(name)))
+
+
+    def money(cents):
+        """Format integer cents as 1,250.50."""
+        return f"{cents // 100:,}.{cents % 100:02d}"
+
+
+    def overdue(invoices, today):
+        """Invoices due strictly before `today` (an ISO date string)."""
+        return [invoice for invoice in invoices if invoice.due < today]
+
+
+    def oldest_due(items):
+        """Earliest due date among a list of invoices, or None when empty."""
+        return min((item.due for item in items), default=None)
+
+
+    def numbers(items):
+        """Invoice numbers in statement order, for compact log lines."""
+        return [item.number for item in items]
+
+
+    def balance_summary(groups):
+        """One line per customer: name, invoice count and balance, in rank order."""
+        return [
+            f"{name}: {len(groups[name])} invoices, {money(outstanding(groups[name]))}"
+            for name in rank_customers(groups)
+        ]
+
+
+    def render(invoices):
+        """Plain-text statement, one block per customer."""
+        groups = group_by_customer(invoices)
+        lines = []
+        for name in rank_customers(groups):
+            items = groups[name]
+            lines.append(f"{name} - {money(outstanding(items))}")
+            for item in items:
+                lines.append(f"  #{item.number} due {item.due} {money(item.cents)}")
+        return "\n".join(lines)
+failingTest: |
+  from invoices import parse_export
+  from report import group_by_customer, overdue, rank_customers, render
+
+  EXPORT = """
+  # number,customer,amount,due
+  9,Brightway Ltd,100.00,2026-03-09
+  10,Brightway Ltd,250.50,2026-03-09
+  100,Brightway Ltd,75,2026-03-09
+  11,Brightway Ltd,10.00,2026-02-15
+  12,acme,40.00,2026-02-01
+  """
+
+
+  def test_customers_are_ranked_by_balance():
+      groups = group_by_customer(parse_export(EXPORT))
+      assert rank_customers(groups) == ["Brightway Ltd", "acme"]
+
+
+  def test_overdue_compares_due_dates():
+      invoices = parse_export(EXPORT)
+      assert [i.number for i in overdue(invoices, "2026-03-01")] == ["11", "12"]
+
+
+  def test_invoices_sharing_a_due_date_follow_invoice_number():
+      groups = group_by_customer(parse_export(EXPORT))
+      assert [i.number for i in groups["Brightway Ltd"]] == ["11", "9", "10", "100"]
+
+
+  def test_statement_text():
+      assert render(parse_export(EXPORT)).split("\n") == [
+          "Brightway Ltd - 435.50",
+          "  #11 due 2026-02-15 10.00",
+          "  #9 due 2026-03-09 100.00",
+          "  #10 due 2026-03-09 250.50",
+          "  #100 due 2026-03-09 75.00",
+          "acme - 40.00",
+          "  #12 due 2026-02-01 40.00",
+      ]
+bugExplanation: |
+  `Invoice.number` is kept as a string (it comes straight from the export line), and `invoice_key` puts it in the sort tuple unchanged. Invoices that share a due date are therefore ordered by text, so "10" and "100" sort before "9". The ISO due dates are fine as strings, which is why the chronological and overdue checks pass, but the invoice number needs numeric ordering. Convert it in the key: `(invoice.due, int(invoice.number))`.
+fixedFiles:
+  invoices.py: |
+    """Invoice records parsed from the billing export.
+
+    Each export line is: number,customer,amount,due
+    for example: 10,Brightway Ltd,1250.50,2026-03-09
+    """
+
+    from dataclasses import dataclass
+
+
+    @dataclass(frozen=True)
+    class Invoice:
+        number: str
+        customer: str
+        cents: int
+        due: str  # ISO date, YYYY-MM-DD
+
+
+    def to_cents(text):
+        """Convert '1250.50' (or '1250') to integer cents without float rounding."""
+        whole, _, frac = text.strip().partition(".")
+        frac = (frac + "00")[:2]
+        return int(whole) * 100 + int(frac)
+
+
+    def parse_line(line):
+        """Parse one export line into an Invoice."""
+        number, customer, amount, due = [part.strip() for part in line.split(",")]
+        return Invoice(number, customer, to_cents(amount), due)
+
+
+    def parse_export(text):
+        """Parse a whole export, skipping blank lines and # comments."""
+        invoices = []
+        for line in text.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                invoices.append(parse_line(line))
+        return invoices
+  ordering.py: |
+    """Sort keys used by the invoice report."""
+
+
+    def customer_key(name):
+        """Customers sort case-insensitively so 'acme' and 'Acme Ltd' stay together."""
+        return name.casefold()
+
+
+    def invoice_key(invoice):
+        """Order within one customer: oldest due date first, then invoice number.
+
+        Due dates are ISO strings (YYYY-MM-DD), so plain string comparison is
+        already chronological.
+        """
+        return (invoice.due, int(invoice.number))
+  report.py: |
+    """Customer statements built from parsed invoices."""
+
+    from ordering import customer_key, invoice_key
+
+
+    def group_by_customer(invoices):
+        """Return {customer: [invoices]} with each list in statement order."""
+        groups = {}
+        for invoice in invoices:
+            groups.setdefault(invoice.customer, []).append(invoice)
+        for items in groups.values():
+            items.sort(key=invoice_key)
+        return groups
+
+
+    def outstanding(items):
+        """Total cents owed across a list of invoices."""
+        return sum(item.cents for item in items)
+
+
+    def rank_customers(groups):
+        """Largest outstanding balance first; ties are alphabetical."""
+        return sorted(groups, key=lambda name: (-outstanding(groups[name]), customer_key(name)))
+
+
+    def money(cents):
+        """Format integer cents as 1,250.50."""
+        return f"{cents // 100:,}.{cents % 100:02d}"
+
+
+    def overdue(invoices, today):
+        """Invoices due strictly before `today` (an ISO date string)."""
+        return [invoice for invoice in invoices if invoice.due < today]
+
+
+    def oldest_due(items):
+        """Earliest due date among a list of invoices, or None when empty."""
+        return min((item.due for item in items), default=None)
+
+
+    def numbers(items):
+        """Invoice numbers in statement order, for compact log lines."""
+        return [item.number for item in items]
+
+
+    def balance_summary(groups):
+        """One line per customer: name, invoice count and balance, in rank order."""
+        return [
+            f"{name}: {len(groups[name])} invoices, {money(outstanding(groups[name]))}"
+            for name in rank_customers(groups)
+        ]
+
+
+    def render(invoices):
+        """Plain-text statement, one block per customer."""
+        groups = group_by_customer(invoices)
+        lines = []
+        for name in rank_customers(groups):
+            items = groups[name]
+            lines.append(f"{name} - {money(outstanding(items))}")
+            for item in items:
+                lines.append(f"  #{item.number} due {item.due} {money(item.cents)}")
+        return "\n".join(lines)

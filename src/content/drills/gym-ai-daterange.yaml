@@ -1,0 +1,123 @@
+id: gym-ai-daterange
+kind: ai-assisted
+title: 'Date ranges and month ends'
+competencies: [int.ai-assisted]
+timeLimitMin: 30
+task: |
+  `days_between` should count the days from a start date to an end date including both ends (the same day counts as 1,
+  an end before the start counts as 0), `list_dates` should list those days, and `add_months` should move a date by
+  whole months, clamping to the last day of a shorter month. The tests below fail. You may use an AI assistant. Before
+  each prompt, write down what you think is wrong and why. Verify any answer with the tests before you trust it, and
+  re-run all of them after every change.
+files:
+  dateranges.py: |
+    """Date ranges and month arithmetic. No clocks: every date is passed in."""
+    from datetime import date, timedelta
+
+
+    def is_leap(year):
+        """True for leap years."""
+        return year % 4 == 0 and year % 100 != 0
+
+
+    def days_in_month(year, month):
+        """Number of days in the given month."""
+        if month == 2:
+            return 29 if is_leap(year) else 28
+        return 30 if month in (4, 6, 9, 11) else 31
+
+
+    def days_between(start, end):
+        """Days from start to end, counting both ends. Zero if end is before start."""
+        return (end - start).days
+
+
+    def list_dates(start, end):
+        """Every date from start to end, both included."""
+        return [start + timedelta(days=i) for i in range(days_between(start, end))]
+
+
+    def add_months(d, months):
+        """Move d by whole months; the day is clamped to the length of the target month."""
+        month = d.month + months
+        year = d.year + month // 12
+        month = month % 12
+        day = min(d.day, days_in_month(year, month))
+        return date(year, month, day)
+failingTest: |
+  from datetime import date
+
+  from dateranges import add_months, days_between, days_in_month, list_dates
+
+
+  def test_add_months_clamps_to_month_end():
+      assert add_months(date(2024, 1, 31), 1) == date(2024, 2, 29)
+      assert add_months(date(2023, 1, 31), 1) == date(2023, 2, 28)
+      assert add_months(date(2024, 3, 15), 2) == date(2024, 5, 15)
+
+
+  def test_days_between_counts_both_ends():
+      assert days_between(date(2024, 3, 1), date(2024, 3, 1)) == 1
+      assert days_between(date(2024, 1, 1), date(2024, 1, 31)) == 31
+      assert days_between(date(2024, 2, 27), date(2024, 3, 1)) == 4
+
+
+  def test_list_dates_includes_the_last_day():
+      assert list_dates(date(2024, 2, 28), date(2024, 3, 1)) == [date(2024, 2, 28), date(2024, 2, 29), date(2024, 3, 1)]
+
+
+  def test_add_months_reaching_december():
+      assert add_months(date(2023, 10, 15), 2) == date(2023, 12, 15)
+      assert add_months(date(2023, 11, 30), 3) == date(2024, 2, 29)
+
+
+  def test_century_leap_years():
+      assert days_in_month(2000, 2) == 29
+      assert days_in_month(1900, 2) == 28
+      assert add_months(date(2000, 1, 31), 1) == date(2000, 2, 29)
+
+
+  def test_end_before_start_is_empty():
+      assert days_between(date(2024, 3, 2), date(2024, 3, 1)) == 0
+      assert list_dates(date(2024, 3, 2), date(2024, 3, 1)) == []
+bugExplanation: |
+  There are three separate problems. `days_between` returns the plain difference, which leaves out one end; it needs
+  `+ 1`, wrapped in `max(0, ...)` so a reversed range gives 0 rather than a negative number. `is_leap` forgets that
+  years divisible by 400 are leap years, so 2000 is treated as a common year; add `or year % 400 == 0`. `add_months`
+  rolls the year over with `month // 12`, which is wrong when the month lands exactly on 12 (December becomes month 0 of
+  the next year); work with `month - 1` instead: `year = d.year + (month - 1) // 12` and `month = (month - 1) % 12 + 1`.
+fixedFiles:
+  dateranges.py: |
+    """Date ranges and month arithmetic. No clocks: every date is passed in."""
+    from datetime import date, timedelta
+
+
+    def is_leap(year):
+        """True for leap years."""
+        return year % 4 == 0 and year % 100 != 0 or year % 400 == 0
+
+
+    def days_in_month(year, month):
+        """Number of days in the given month."""
+        if month == 2:
+            return 29 if is_leap(year) else 28
+        return 30 if month in (4, 6, 9, 11) else 31
+
+
+    def days_between(start, end):
+        """Days from start to end, counting both ends. Zero if end is before start."""
+        return max(0, (end - start).days + 1)
+
+
+    def list_dates(start, end):
+        """Every date from start to end, both included."""
+        return [start + timedelta(days=i) for i in range(days_between(start, end))]
+
+
+    def add_months(d, months):
+        """Move d by whole months; the day is clamped to the length of the target month."""
+        month = d.month + months
+        year = d.year + (month - 1) // 12
+        month = (month - 1) % 12 + 1
+        day = min(d.day, days_in_month(year, month))
+        return date(year, month, day)

@@ -1,0 +1,280 @@
+id: gym-drill-boundary
+kind: code-reading
+title: 'The caller who stays blocked one second too long'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  window.py: |
+    """Sliding-window helpers for call-rate limiting.
+
+    A window of W seconds ending at `now` covers the half-open interval
+    (now - W, now]: an event stamped exactly W seconds ago has just expired.
+    Timestamps are plain integer seconds supplied by the caller.
+    """
+
+
+    def window_start(now, window):
+        """Return the exclusive lower bound of the window that ends at `now`."""
+        return now - window
+
+
+    def events_in_window(events, now, window):
+        """Return the timestamps that still count towards the window ending at `now`.
+
+        Timestamps later than `now` (a skewed feed) are ignored.
+        """
+        start = window_start(now, window)
+        return [t for t in events if start <= t <= now]
+
+
+    def oldest(events):
+        """Return the earliest timestamp, or None when there are no events."""
+        return min(events) if events else None
+  limiter.py: |
+    """Per-caller call limiter for the phone-API gateway."""
+
+    from window import events_in_window, oldest
+
+
+    class CallLimiter:
+        """Allow at most `limit` calls per caller in any sliding `window` seconds."""
+
+        def __init__(self, limit, window):
+            if limit < 1 or window < 1:
+                raise ValueError("limit and window must be at least 1")
+            self.limit = limit
+            self.window = window
+            self._calls = {}
+
+        def _recent(self, caller, now):
+            """Timestamps of this caller's calls that still count at `now`."""
+            return events_in_window(self._calls.get(caller, []), now, self.window)
+
+        def allow(self, caller, now):
+            """Record a call attempt and return True if it is within the limit.
+
+            Denied attempts are not recorded, so hammering the gateway does not
+            extend a caller's own lockout.
+            """
+            recent = self._recent(caller, now)
+            if len(recent) >= self.limit:
+                self._calls[caller] = recent
+                return False
+            recent.append(now)
+            self._calls[caller] = recent
+            return True
+
+        def remaining(self, caller, now):
+            """How many more calls the caller may make right now."""
+            return max(0, self.limit - len(self._recent(caller, now)))
+
+        def retry_after(self, caller, now):
+            """Seconds until the caller may call again (0 if they may call now)."""
+            recent = self._recent(caller, now)
+            if len(recent) < self.limit:
+                return 0
+            return oldest(recent) + self.window - now
+
+        def reset(self, caller):
+            """Forget everything about one caller."""
+            self._calls.pop(caller, None)
+  report.py: |
+    """Usage reports built from a gateway call log."""
+
+
+    def replay(limiter, log):
+        """Feed (caller, timestamp) rows through the limiter in time order.
+
+        Returns a list of (caller, timestamp, allowed) tuples.
+        """
+        ordered = sorted(log, key=lambda row: row[1])
+        return [(caller, ts, limiter.allow(caller, ts)) for caller, ts in ordered]
+
+
+    def denied_counts(decisions):
+        """Map caller -> number of denied calls (callers with none are omitted)."""
+        counts = {}
+        for caller, _ts, allowed in decisions:
+            if not allowed:
+                counts[caller] = counts.get(caller, 0) + 1
+        return counts
+
+
+    def busiest(decisions, top=3):
+        """Callers ranked by allowed calls (most first), ties broken by name."""
+        allowed_calls = {}
+        for caller, _ts, allowed in decisions:
+            if allowed:
+                allowed_calls[caller] = allowed_calls.get(caller, 0) + 1
+        ranked = sorted(allowed_calls.items(), key=lambda item: (-item[1], item[0]))
+        return ranked[:top]
+
+
+    def usage_line(limiter, caller, now):
+        """One-line summary for the on-call dashboard."""
+        used = limiter.limit - limiter.remaining(caller, now)
+        wait = limiter.retry_after(caller, now)
+        return f"{caller}: {used}/{limiter.limit} used, retry in {wait}s"
+
+
+    def utilisation(limiter, callers, now):
+        """Fraction of the limit in use per caller, as {caller: float}."""
+        return {c: (limiter.limit - limiter.remaining(c, now)) / limiter.limit for c in sorted(callers)}
+
+
+    def saturated(limiter, callers, now):
+        """Callers that are at their limit right now, sorted."""
+        return [c for c in sorted(callers) if limiter.remaining(c, now) == 0]
+failingTest: |
+  from limiter import CallLimiter
+  from report import denied_counts, replay
+
+
+  def warm_limiter():
+      limiter = CallLimiter(limit=3, window=60)
+      for ts in (0, 10, 20):
+          assert limiter.allow("acme", ts) is True
+      return limiter
+
+
+  def test_fourth_call_inside_the_window_is_denied():
+      limiter = warm_limiter()
+      assert limiter.allow("acme", 30) is False
+      assert limiter.allow("acme", 59) is False
+      assert limiter.retry_after("acme", 30) == 30
+
+
+  def test_call_is_allowed_again_when_the_oldest_call_ages_out():
+      limiter = warm_limiter()
+      assert limiter.remaining("acme", 60) == 1
+      assert limiter.allow("acme", 60) is True
+
+
+  def test_replay_of_a_steady_caller_has_no_denials():
+      log = [("acme", 0), ("acme", 10), ("acme", 20), ("acme", 60), ("acme", 70), ("acme", 80)]
+      decisions = replay(CallLimiter(3, 60), log)
+      assert denied_counts(decisions) == {}
+bugExplanation: |
+  `events_in_window` documents the window as the half-open interval (now - window, now], but its filter uses `start <= t`, so an event stamped exactly `window` seconds ago is still counted. At the window edge a caller therefore stays blocked one second too long: the call at t=60 is denied because the call from t=0 has not "expired", and `remaining` and `retry_after` are off by one in the same way. Mid-window cases look fine, which is why only the boundary tests fail. Use a strict lower bound, `start < t <= now`.
+fixedFiles:
+  window.py: |
+    """Sliding-window helpers for call-rate limiting.
+
+    A window of W seconds ending at `now` covers the half-open interval
+    (now - W, now]: an event stamped exactly W seconds ago has just expired.
+    Timestamps are plain integer seconds supplied by the caller.
+    """
+
+
+    def window_start(now, window):
+        """Return the exclusive lower bound of the window that ends at `now`."""
+        return now - window
+
+
+    def events_in_window(events, now, window):
+        """Return the timestamps that still count towards the window ending at `now`.
+
+        Timestamps later than `now` (a skewed feed) are ignored.
+        """
+        start = window_start(now, window)
+        return [t for t in events if start < t <= now]
+
+
+    def oldest(events):
+        """Return the earliest timestamp, or None when there are no events."""
+        return min(events) if events else None
+  limiter.py: |
+    """Per-caller call limiter for the phone-API gateway."""
+
+    from window import events_in_window, oldest
+
+
+    class CallLimiter:
+        """Allow at most `limit` calls per caller in any sliding `window` seconds."""
+
+        def __init__(self, limit, window):
+            if limit < 1 or window < 1:
+                raise ValueError("limit and window must be at least 1")
+            self.limit = limit
+            self.window = window
+            self._calls = {}
+
+        def _recent(self, caller, now):
+            """Timestamps of this caller's calls that still count at `now`."""
+            return events_in_window(self._calls.get(caller, []), now, self.window)
+
+        def allow(self, caller, now):
+            """Record a call attempt and return True if it is within the limit.
+
+            Denied attempts are not recorded, so hammering the gateway does not
+            extend a caller's own lockout.
+            """
+            recent = self._recent(caller, now)
+            if len(recent) >= self.limit:
+                self._calls[caller] = recent
+                return False
+            recent.append(now)
+            self._calls[caller] = recent
+            return True
+
+        def remaining(self, caller, now):
+            """How many more calls the caller may make right now."""
+            return max(0, self.limit - len(self._recent(caller, now)))
+
+        def retry_after(self, caller, now):
+            """Seconds until the caller may call again (0 if they may call now)."""
+            recent = self._recent(caller, now)
+            if len(recent) < self.limit:
+                return 0
+            return oldest(recent) + self.window - now
+
+        def reset(self, caller):
+            """Forget everything about one caller."""
+            self._calls.pop(caller, None)
+  report.py: |
+    """Usage reports built from a gateway call log."""
+
+
+    def replay(limiter, log):
+        """Feed (caller, timestamp) rows through the limiter in time order.
+
+        Returns a list of (caller, timestamp, allowed) tuples.
+        """
+        ordered = sorted(log, key=lambda row: row[1])
+        return [(caller, ts, limiter.allow(caller, ts)) for caller, ts in ordered]
+
+
+    def denied_counts(decisions):
+        """Map caller -> number of denied calls (callers with none are omitted)."""
+        counts = {}
+        for caller, _ts, allowed in decisions:
+            if not allowed:
+                counts[caller] = counts.get(caller, 0) + 1
+        return counts
+
+
+    def busiest(decisions, top=3):
+        """Callers ranked by allowed calls (most first), ties broken by name."""
+        allowed_calls = {}
+        for caller, _ts, allowed in decisions:
+            if allowed:
+                allowed_calls[caller] = allowed_calls.get(caller, 0) + 1
+        ranked = sorted(allowed_calls.items(), key=lambda item: (-item[1], item[0]))
+        return ranked[:top]
+
+
+    def usage_line(limiter, caller, now):
+        """One-line summary for the on-call dashboard."""
+        used = limiter.limit - limiter.remaining(caller, now)
+        wait = limiter.retry_after(caller, now)
+        return f"{caller}: {used}/{limiter.limit} used, retry in {wait}s"
+
+
+    def utilisation(limiter, callers, now):
+        """Fraction of the limit in use per caller, as {caller: float}."""
+        return {c: (limiter.limit - limiter.remaining(c, now)) / limiter.limit for c in sorted(callers)}
+
+
+    def saturated(limiter, callers, now):
+        """Callers that are at their limit right now, sorted."""
+        return [c for c in sorted(callers) if limiter.remaining(c, now) == 0]

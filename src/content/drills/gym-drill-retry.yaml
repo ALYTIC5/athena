@@ -1,0 +1,291 @@
+id: gym-drill-retry
+kind: code-reading
+title: 'The job that gives up one attempt early'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  policy.py: |
+    """Retry policy for the nightly log-export jobs."""
+
+
+    class TransientError(Exception):
+        """A failure worth retrying (timeouts, 503 responses)."""
+
+
+    class PermanentError(Exception):
+        """A failure that retrying cannot fix (bad input, 404 responses)."""
+
+
+    class RetryPolicy:
+        """How many times to try a job and how long to wait between tries.
+
+        `max_attempts` counts every call to the job, including the first.
+        """
+
+        def __init__(self, max_attempts=3, base_delay=1, max_delay=30, retry_on=(TransientError,)):
+            if max_attempts < 1:
+                raise ValueError("max_attempts must be at least 1")
+            self.max_attempts = max_attempts
+            self.base_delay = base_delay
+            self.max_delay = max_delay
+            self.retry_on = retry_on
+
+        def attempts_left(self, made):
+            """Attempts still available after `made` attempts have been used."""
+            return self.max_attempts - made
+
+        def can_retry(self, made):
+            """True if another attempt is allowed after `made` failed attempts."""
+            return self.attempts_left(made) > 1
+
+        def delay_for(self, made):
+            """Seconds to wait after the `made`-th failure (1-based): doubling, capped."""
+            return min(self.base_delay * 2 ** (made - 1), self.max_delay)
+  runner.py: |
+    """Run one job under a RetryPolicy."""
+
+    from dataclasses import dataclass, field
+
+
+    @dataclass
+    class JobResult:
+        ok: bool
+        value: object = None
+        attempts: int = 0
+        error: str = ""
+        delays: list = field(default_factory=list)
+
+
+    def run_job(func, policy, wait):
+        """Call `func()` until it succeeds or the policy gives up.
+
+        `wait(seconds)` is injected so callers (and tests) control time.
+        Errors outside `policy.retry_on` are permanent and propagate at once;
+        exhausting the retries returns a failed JobResult instead of raising.
+        """
+        made = 0
+        delays = []
+        while True:
+            made += 1
+            try:
+                value = func()
+            except policy.retry_on as exc:
+                if not policy.can_retry(made):
+                    return JobResult(False, None, made, repr(exc), delays)
+                delay = policy.delay_for(made)
+                delays.append(delay)
+                wait(delay)
+            else:
+                return JobResult(True, value, made, "", delays)
+  jobs.py: |
+    """Batch execution of named export jobs."""
+
+    from runner import run_job
+
+
+    def run_batch(jobs, policy, wait):
+        """Run every job (name -> callable) in name order and return {name: JobResult}."""
+        results = {}
+        for name in sorted(jobs):
+            results[name] = run_job(jobs[name], policy, wait)
+        return results
+
+
+    def failed_names(results):
+        """Names of jobs that never succeeded, sorted."""
+        return sorted(name for name, result in results.items() if not result.ok)
+
+
+    def total_attempts(results):
+        """Total number of job calls made across the batch."""
+        return sum(result.attempts for result in results.values())
+
+
+    def retried_names(results):
+        """Names of jobs that needed more than one attempt, sorted."""
+        return sorted(name for name, result in results.items() if result.attempts > 1)
+
+
+    def total_wait(results):
+        """Total seconds the batch spent waiting between attempts."""
+        return sum(sum(result.delays) for result in results.values())
+
+
+    def summary(results):
+        """Short text line for the nightly log."""
+        failed = failed_names(results)
+        done = len(results) - len(failed)
+        text = f"{done}/{len(results)} jobs ok, {total_attempts(results)} calls"
+        if failed:
+            text += "; failed: " + ", ".join(failed)
+        return text
+failingTest: |
+  from jobs import run_batch, summary
+  from policy import PermanentError, RetryPolicy, TransientError
+  from runner import run_job
+
+
+  def flaky(failures, error=TransientError):
+      """A fake job that raises `error` `failures` times, then returns "done"."""
+      state = {"calls": 0}
+
+      def job():
+          state["calls"] += 1
+          if state["calls"] <= failures:
+              raise error("boom")
+          return "done"
+
+      job.state = state
+      return job
+
+
+  def test_first_try_success_needs_no_wait():
+      waits = []
+      result = run_job(flaky(0), RetryPolicy(max_attempts=3), waits.append)
+      assert result.ok and result.attempts == 1
+      assert waits == []
+
+
+  def test_permanent_error_is_not_retried():
+      job = flaky(5, error=PermanentError)
+      raised = False
+      try:
+          run_job(job, RetryPolicy(max_attempts=3), lambda s: None)
+      except PermanentError:
+          raised = True
+      assert raised
+      assert job.state["calls"] == 1
+
+
+  def test_job_that_succeeds_on_its_last_allowed_attempt():
+      waits = []
+      job = flaky(2)
+      result = run_job(job, RetryPolicy(max_attempts=3), waits.append)
+      assert result.ok and result.value == "done"
+      assert job.state["calls"] == 3
+      assert waits == [1, 2]
+
+
+  def test_batch_uses_every_allowed_attempt_before_giving_up():
+      jobs = {"a-logs": flaky(0), "b-logs": flaky(99)}
+      results = run_batch(jobs, RetryPolicy(max_attempts=4), lambda s: None)
+      assert results["b-logs"].attempts == 4
+      assert summary(results) == "1/2 jobs ok, 5 calls; failed: b-logs"
+bugExplanation: |
+  `RetryPolicy.can_retry` asks whether more than one attempt is left (`attempts_left(made) > 1`) after `made` attempts. With `max_attempts=3`, after the second failure `attempts_left` is 1, so it refuses and the runner gives up, which means the job only ever gets `max_attempts - 1` calls. A job that succeeds on its final allowed attempt is reported as failed and batches under-count calls. `max_attempts` includes the first call, so one remaining attempt is enough: change the condition to `attempts_left(made) > 0`.
+fixedFiles:
+  policy.py: |
+    """Retry policy for the nightly log-export jobs."""
+
+
+    class TransientError(Exception):
+        """A failure worth retrying (timeouts, 503 responses)."""
+
+
+    class PermanentError(Exception):
+        """A failure that retrying cannot fix (bad input, 404 responses)."""
+
+
+    class RetryPolicy:
+        """How many times to try a job and how long to wait between tries.
+
+        `max_attempts` counts every call to the job, including the first.
+        """
+
+        def __init__(self, max_attempts=3, base_delay=1, max_delay=30, retry_on=(TransientError,)):
+            if max_attempts < 1:
+                raise ValueError("max_attempts must be at least 1")
+            self.max_attempts = max_attempts
+            self.base_delay = base_delay
+            self.max_delay = max_delay
+            self.retry_on = retry_on
+
+        def attempts_left(self, made):
+            """Attempts still available after `made` attempts have been used."""
+            return self.max_attempts - made
+
+        def can_retry(self, made):
+            """True if another attempt is allowed after `made` failed attempts."""
+            return self.attempts_left(made) > 0
+
+        def delay_for(self, made):
+            """Seconds to wait after the `made`-th failure (1-based): doubling, capped."""
+            return min(self.base_delay * 2 ** (made - 1), self.max_delay)
+  runner.py: |
+    """Run one job under a RetryPolicy."""
+
+    from dataclasses import dataclass, field
+
+
+    @dataclass
+    class JobResult:
+        ok: bool
+        value: object = None
+        attempts: int = 0
+        error: str = ""
+        delays: list = field(default_factory=list)
+
+
+    def run_job(func, policy, wait):
+        """Call `func()` until it succeeds or the policy gives up.
+
+        `wait(seconds)` is injected so callers (and tests) control time.
+        Errors outside `policy.retry_on` are permanent and propagate at once;
+        exhausting the retries returns a failed JobResult instead of raising.
+        """
+        made = 0
+        delays = []
+        while True:
+            made += 1
+            try:
+                value = func()
+            except policy.retry_on as exc:
+                if not policy.can_retry(made):
+                    return JobResult(False, None, made, repr(exc), delays)
+                delay = policy.delay_for(made)
+                delays.append(delay)
+                wait(delay)
+            else:
+                return JobResult(True, value, made, "", delays)
+  jobs.py: |
+    """Batch execution of named export jobs."""
+
+    from runner import run_job
+
+
+    def run_batch(jobs, policy, wait):
+        """Run every job (name -> callable) in name order and return {name: JobResult}."""
+        results = {}
+        for name in sorted(jobs):
+            results[name] = run_job(jobs[name], policy, wait)
+        return results
+
+
+    def failed_names(results):
+        """Names of jobs that never succeeded, sorted."""
+        return sorted(name for name, result in results.items() if not result.ok)
+
+
+    def total_attempts(results):
+        """Total number of job calls made across the batch."""
+        return sum(result.attempts for result in results.values())
+
+
+    def retried_names(results):
+        """Names of jobs that needed more than one attempt, sorted."""
+        return sorted(name for name, result in results.items() if result.attempts > 1)
+
+
+    def total_wait(results):
+        """Total seconds the batch spent waiting between attempts."""
+        return sum(sum(result.delays) for result in results.values())
+
+
+    def summary(results):
+        """Short text line for the nightly log."""
+        failed = failed_names(results)
+        done = len(results) - len(failed)
+        text = f"{done}/{len(results)} jobs ok, {total_attempts(results)} calls"
+        if failed:
+            text += "; failed: " + ", ".join(failed)
+        return text

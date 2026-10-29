@@ -1,0 +1,319 @@
+id: gym-drill-cache
+kind: code-reading
+title: 'The warehouse log everyone shares'
+competencies: [int.code-reading]
+timeLimitMin: 30
+files:
+  inventory.py: |
+    """Stock levels for a single warehouse, with an audit trail of every movement."""
+
+    DEFAULT_REORDER_POINT = 5
+
+
+    class Inventory:
+        """On-hand quantities per SKU for one warehouse.
+
+        Every receive/remove call is recorded in ``movements`` as (sku, delta).
+        """
+
+        reorder_point = DEFAULT_REORDER_POINT
+        movements = []
+
+        def __init__(self, name, stock=None):
+            self.name = name
+            self.stock = dict(stock or {})
+
+        def on_hand(self, sku):
+            """Quantity currently on hand; unknown SKUs have none."""
+            return self.stock.get(sku, 0)
+
+        def receive(self, sku, qty):
+            """Add qty units of sku to stock."""
+            if qty <= 0:
+                raise ValueError("received quantity must be positive")
+            self.stock[sku] = self.on_hand(sku) + qty
+            self.movements.append((sku, qty))
+
+        def remove(self, sku, qty):
+            """Take qty units of sku out of stock; refuses to go negative."""
+            if qty <= 0:
+                raise ValueError("removed quantity must be positive")
+            if qty > self.on_hand(sku):
+                raise ValueError(f"only {self.on_hand(sku)} of {sku} on hand")
+            self.stock[sku] = self.on_hand(sku) - qty
+            self.movements.append((sku, -qty))
+
+        def low_stock(self):
+            """SKUs at or below the reorder point, sorted."""
+            return sorted(sku for sku, qty in self.stock.items() if qty <= self.reorder_point)
+
+        def history(self):
+            """A copy of the movement log, oldest first."""
+            return list(self.movements)
+
+        def net_change(self, sku):
+            """Net units moved for one SKU according to the audit trail."""
+            return sum(delta for moved, delta in self.movements if moved == sku)
+  orders.py: |
+    """Order lines and fulfilment against an inventory."""
+
+
+    class OrderLine:
+        """One SKU and quantity on an order."""
+
+        def __init__(self, sku, qty):
+            self.sku = sku
+            self.qty = qty
+
+        def __repr__(self):
+            return f"OrderLine({self.sku!r}, {self.qty})"
+
+
+    class Order:
+        """A customer order made of lines; repeated SKUs are merged."""
+
+        def __init__(self, order_id, lines=None):
+            self.order_id = order_id
+            self.lines = []
+            for sku, qty in (lines or []):
+                self.add(sku, qty)
+
+        def add(self, sku, qty):
+            """Add qty of sku, merging into an existing line for the same SKU."""
+            for line in self.lines:
+                if line.sku == sku:
+                    line.qty += qty
+                    return line
+            line = OrderLine(sku, qty)
+            self.lines.append(line)
+            return line
+
+        def total_units(self):
+            """Units across all lines."""
+            return sum(line.qty for line in self.lines)
+
+
+    def shortfalls(order, inventory):
+        """Map of sku -> units missing for lines the inventory cannot cover."""
+        missing = {}
+        for line in order.lines:
+            gap = line.qty - inventory.on_hand(line.sku)
+            if gap > 0:
+                missing[line.sku] = gap
+        return missing
+
+
+    def fulfil(order, inventory):
+        """Remove every line from inventory, or change nothing if any line is short."""
+        missing = shortfalls(order, inventory)
+        if missing:
+            raise ValueError(f"cannot fulfil {order.order_id}: short {missing}")
+        for line in order.lines:
+            inventory.remove(line.sku, line.qty)
+        return order.total_units()
+  report.py: |
+    """Plain-text stock report."""
+
+    from orders import shortfalls
+
+
+    def stock_lines(inventory):
+        """One 'SKU qty' line per SKU, sorted by SKU."""
+        return [f"{sku:<8}{qty:>4}" for sku, qty in sorted(inventory.stock.items())]
+
+
+    def reorder_note(inventory):
+        """Mention the SKUs that need reordering, if any."""
+        low = inventory.low_stock()
+        if not low:
+            return "nothing to reorder"
+        return "reorder: " + ", ".join(low)
+
+
+    def movement_summary(inventory):
+        """Count of units received and removed according to the audit trail."""
+        received = sum(d for _, d in inventory.history() if d > 0)
+        removed = -sum(d for _, d in inventory.history() if d < 0)
+        return f"{inventory.name}: received {received}, removed {removed}"
+
+
+    def order_check(order, inventory):
+        """Describe whether an order could ship right now."""
+        missing = shortfalls(order, inventory)
+        if not missing:
+            return f"{order.order_id}: ready to ship"
+        parts = [f"{sku} short by {gap}" for sku, gap in sorted(missing.items())]
+        return f"{order.order_id}: " + "; ".join(parts)
+failingTest: |
+  from inventory import Inventory
+  from orders import Order, fulfil
+  from report import movement_summary
+
+
+  def test_stock_is_tracked_per_warehouse():
+      east = Inventory("east", {"bolt": 10})
+      west = Inventory("west")
+      east.receive("nut", 4)
+      west.receive("bolt", 2)
+      assert east.stock == {"bolt": 10, "nut": 4}
+      assert west.stock == {"bolt": 2}
+
+
+  def test_warehouse_history_only_lists_its_own_movements():
+      east = Inventory("east")
+      west = Inventory("west")
+      east.receive("bolt", 10)
+      west.receive("nut", 3)
+      assert east.history() == [("bolt", 10)]
+      assert movement_summary(west) == "west: received 3, removed 0"
+
+
+  def test_fulfilling_an_order_only_moves_stock_in_its_warehouse():
+      east = Inventory("east", {"bolt": 10})
+      west = Inventory("west", {"bolt": 10})
+      fulfil(Order("A1", [("bolt", 4)]), east)
+      assert east.net_change("bolt") == -4
+      assert west.net_change("bolt") == 0
+bugExplanation: |
+  `Inventory.movements = []` is declared at class level, so every `Inventory` instance appends to and reads the same list. Stock itself is per instance (`self.stock` is built in `__init__`), which is why quantities look right while `history()`, `net_change()` and `movement_summary()` mix movements from different warehouses. The `reorder_point` class attribute is an immutable int and `dict(stock or {})` copies its argument, so those are fine. Create the list per instance with `self.movements = []` in `__init__` and delete the class-level attribute.
+fixedFiles:
+  inventory.py: |
+    """Stock levels for a single warehouse, with an audit trail of every movement."""
+
+    DEFAULT_REORDER_POINT = 5
+
+
+    class Inventory:
+        """On-hand quantities per SKU for one warehouse.
+
+        Every receive/remove call is recorded in ``movements`` as (sku, delta).
+        """
+
+        reorder_point = DEFAULT_REORDER_POINT
+
+        def __init__(self, name, stock=None):
+            self.name = name
+            self.movements = []
+            self.stock = dict(stock or {})
+
+        def on_hand(self, sku):
+            """Quantity currently on hand; unknown SKUs have none."""
+            return self.stock.get(sku, 0)
+
+        def receive(self, sku, qty):
+            """Add qty units of sku to stock."""
+            if qty <= 0:
+                raise ValueError("received quantity must be positive")
+            self.stock[sku] = self.on_hand(sku) + qty
+            self.movements.append((sku, qty))
+
+        def remove(self, sku, qty):
+            """Take qty units of sku out of stock; refuses to go negative."""
+            if qty <= 0:
+                raise ValueError("removed quantity must be positive")
+            if qty > self.on_hand(sku):
+                raise ValueError(f"only {self.on_hand(sku)} of {sku} on hand")
+            self.stock[sku] = self.on_hand(sku) - qty
+            self.movements.append((sku, -qty))
+
+        def low_stock(self):
+            """SKUs at or below the reorder point, sorted."""
+            return sorted(sku for sku, qty in self.stock.items() if qty <= self.reorder_point)
+
+        def history(self):
+            """A copy of the movement log, oldest first."""
+            return list(self.movements)
+
+        def net_change(self, sku):
+            """Net units moved for one SKU according to the audit trail."""
+            return sum(delta for moved, delta in self.movements if moved == sku)
+  orders.py: |
+    """Order lines and fulfilment against an inventory."""
+
+
+    class OrderLine:
+        """One SKU and quantity on an order."""
+
+        def __init__(self, sku, qty):
+            self.sku = sku
+            self.qty = qty
+
+        def __repr__(self):
+            return f"OrderLine({self.sku!r}, {self.qty})"
+
+
+    class Order:
+        """A customer order made of lines; repeated SKUs are merged."""
+
+        def __init__(self, order_id, lines=None):
+            self.order_id = order_id
+            self.lines = []
+            for sku, qty in (lines or []):
+                self.add(sku, qty)
+
+        def add(self, sku, qty):
+            """Add qty of sku, merging into an existing line for the same SKU."""
+            for line in self.lines:
+                if line.sku == sku:
+                    line.qty += qty
+                    return line
+            line = OrderLine(sku, qty)
+            self.lines.append(line)
+            return line
+
+        def total_units(self):
+            """Units across all lines."""
+            return sum(line.qty for line in self.lines)
+
+
+    def shortfalls(order, inventory):
+        """Map of sku -> units missing for lines the inventory cannot cover."""
+        missing = {}
+        for line in order.lines:
+            gap = line.qty - inventory.on_hand(line.sku)
+            if gap > 0:
+                missing[line.sku] = gap
+        return missing
+
+
+    def fulfil(order, inventory):
+        """Remove every line from inventory, or change nothing if any line is short."""
+        missing = shortfalls(order, inventory)
+        if missing:
+            raise ValueError(f"cannot fulfil {order.order_id}: short {missing}")
+        for line in order.lines:
+            inventory.remove(line.sku, line.qty)
+        return order.total_units()
+  report.py: |
+    """Plain-text stock report."""
+
+    from orders import shortfalls
+
+
+    def stock_lines(inventory):
+        """One 'SKU qty' line per SKU, sorted by SKU."""
+        return [f"{sku:<8}{qty:>4}" for sku, qty in sorted(inventory.stock.items())]
+
+
+    def reorder_note(inventory):
+        """Mention the SKUs that need reordering, if any."""
+        low = inventory.low_stock()
+        if not low:
+            return "nothing to reorder"
+        return "reorder: " + ", ".join(low)
+
+
+    def movement_summary(inventory):
+        """Count of units received and removed according to the audit trail."""
+        received = sum(d for _, d in inventory.history() if d > 0)
+        removed = -sum(d for _, d in inventory.history() if d < 0)
+        return f"{inventory.name}: received {received}, removed {removed}"
+
+
+    def order_check(order, inventory):
+        """Describe whether an order could ship right now."""
+        missing = shortfalls(order, inventory)
+        if not missing:
+            return f"{order.order_id}: ready to ship"
+        parts = [f"{sku} short by {gap}" for sku, gap in sorted(missing.items())]
+        return f"{order.order_id}: " + "; ".join(parts)
