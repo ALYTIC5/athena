@@ -1,0 +1,189 @@
+id: api-01-mastery-authorize
+lesson: api-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Answer 401, 403 or 200 for an API key
+difficulty: 3
+competencies:
+  - api.auth
+  - api.status-codes
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write `authorize(headers, keys, required_scope)`. It decides the status code for a request to a booking API.
+
+  - `headers` is a dict of the request headers. Header names are case-insensitive, so `"authorization"` and `"Authorization"` are the same header.
+  - `keys` maps each valid token to a dict with an `"owner"` and a set of `"scopes"`, such as `{"ATHENA_FAKE_key_a1": {"owner": "agent-17", "scopes": {"bookings:read"}}}`.
+  - The credentials must be in the `Authorization` header as `Bearer <token>`. The word `Bearer` is case-insensitive, and the token is case-sensitive.
+  - Return `401` when the caller has not proved who they are: no `Authorization` header, another scheme such as `Basic`, a missing token, or a token that is not in `keys`.
+  - Return `403` when the token is valid but its `"scopes"` do not include `required_scope`.
+  - Otherwise return `200`.
+starter: |
+  def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+      ...
+visibleTests: |
+  KEYS = {
+      "ATHENA_FAKE_key_a1": {"owner": "agent-17", "scopes": {"bookings:read"}},
+      "ATHENA_FAKE_key_b2": {"owner": "agent-23", "scopes": {"bookings:read", "bookings:write"}},
+  }
+
+
+  def test_valid_key_with_the_scope_is_allowed():
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_a1"}, KEYS, "bookings:read") == 200
+
+  def test_valid_key_without_the_scope_is_forbidden():
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_a1"}, KEYS, "bookings:write") == 403
+
+  def test_no_header_is_unauthorized():
+      assert authorize({"Accept": "application/json"}, KEYS, "bookings:read") == 401
+hiddenTests: |
+  KEYS = {
+      "ATHENA_FAKE_key_a1": {"owner": "agent-17", "scopes": {"bookings:read"}},
+      "ATHENA_FAKE_key_b2": {"owner": "agent-23", "scopes": {"bookings:read", "bookings:write"}},
+  }
+
+
+  def test_header_name_is_case_insensitive():
+      assert authorize({"authorization": "Bearer ATHENA_FAKE_key_b2"}, KEYS, "bookings:write") == 200
+      assert authorize({"AUTHORIZATION": "Bearer ATHENA_FAKE_key_b2"}, KEYS, "bookings:write") == 200
+
+  def test_scheme_is_case_insensitive():
+      assert authorize({"Authorization": "bearer ATHENA_FAKE_key_a1"}, KEYS, "bookings:read") == 200
+
+  def test_token_is_case_sensitive():
+      assert authorize({"Authorization": "Bearer athena_fake_key_a1"}, KEYS, "bookings:read") == 401
+
+  def test_unknown_token_is_unauthorized_not_forbidden():
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_revoked"}, KEYS, "bookings:read") == 401
+
+  def test_bearer_without_a_token_is_unauthorized():
+      assert authorize({"Authorization": "Bearer"}, KEYS, "bookings:read") == 401
+      assert authorize({"Authorization": "Bearer "}, KEYS, "bookings:read") == 401
+
+  def test_basic_scheme_is_unauthorized_even_if_the_text_is_a_known_key():
+      assert authorize({"Authorization": "Basic ATHENA_FAKE_key_a1"}, KEYS, "bookings:read") == 401
+
+  def test_another_scheme_with_a_known_key_is_unauthorized():
+      assert authorize({"Authorization": "Digest ATHENA_FAKE_key_a1"}, KEYS, "bookings:read") == 401
+
+  def test_a_key_among_several_scopes():
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_b2"}, KEYS, "bookings:read") == 200
+
+  def test_a_scope_nobody_has_is_forbidden_for_a_valid_key():
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_b2"}, KEYS, "agents:delete") == 403
+
+  def test_empty_headers_and_empty_keys():
+      assert authorize({}, KEYS, "bookings:read") == 401
+      assert authorize({"Authorization": "Bearer ATHENA_FAKE_key_a1"}, {}, "bookings:read") == 401
+feedback:
+  - test: test_no_header_is_unauthorized
+    message: A caller who sent no credentials has not proved who they are. That is 401, not 403.
+  - test: test_valid_key_without_the_scope_is_forbidden
+    message: The key is valid, so the server knows who is calling, and the answer is no. That is 403 Forbidden.
+  - test: test_unknown_token_is_unauthorized_not_forbidden
+    message: A token that is not in keys (revoked or invented) does not identify anyone. That is 401.
+  - test: test_header_name_is_case_insensitive
+    message: Look for the header by comparing lower-case names, because HTTP header names are not case-sensitive.
+  - test: test_scheme_is_case_insensitive
+    message: Compare the scheme word with .lower(). Leave the token exactly as it was sent.
+  - test: test_token_is_case_sensitive
+    message: Do not lower-case the token. A key is a secret string and must match exactly.
+  - test: test_basic_scheme_is_unauthorized_even_if_the_text_is_a_known_key
+    message: Accept only the Bearer scheme. Do not just take the last word of the header.
+  - test: test_another_scheme_with_a_known_key_is_unauthorized
+    message: Check the scheme word before you read the token. Cutting the header at a fixed position accepts any scheme.
+  - test: test_bearer_without_a_token_is_unauthorized
+    message: A Bearer header with nothing after it carries no credentials, so return 401.
+hints:
+  - Which question comes first, "do I know who this is?" or "may they do this?", and which code does each failed answer give?
+  - "Find the Authorization header ignoring case, split it into a scheme and a token, return 401 unless the scheme is bearer and the token is in keys, then return 403 unless required_scope is in that key's scopes, and otherwise 200."
+  - |-
+    value = ""
+    for name, v in headers.items():
+        if name.lower() == "____":
+            value = v
+    scheme, _, token = value.partition(" ")
+    if scheme.lower() != "bearer" or token not in keys:
+        return ____
+    if required_scope not in keys[token]["scopes"]:
+        return ____
+    return 200
+referenceSolution: |
+  def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+      value = ""
+      for name, header_value in headers.items():
+          if name.lower() == "authorization":
+              value = header_value
+      scheme, _, token = value.partition(" ")
+      if scheme.lower() != "bearer" or token not in keys:
+          return 401
+      if required_scope not in keys[token]["scopes"]:
+          return 403
+      return 200
+wrongSolutions:
+  - label: Answers 403 when there are no credentials
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = next((v for name, v in headers.items() if name.lower() == "authorization"), "")
+          scheme, _, token = value.partition(" ")
+          if scheme.lower() != "bearer" or token not in keys:
+              return 403
+          if required_scope not in keys[token]["scopes"]:
+              return 403
+          return 200
+  - label: Looks for the exact header name Authorization
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = headers.get("Authorization", "")
+          scheme, _, token = value.partition(" ")
+          if scheme.lower() != "bearer" or token not in keys:
+              return 401
+          if required_scope not in keys[token]["scopes"]:
+              return 403
+          return 200
+  - label: Checks the key but never the scope
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = next((v for name, v in headers.items() if name.lower() == "authorization"), "")
+          scheme, _, token = value.partition(" ")
+          if scheme.lower() != "bearer" or token not in keys:
+              return 401
+          return 200
+  - label: Takes the last word of the header, whatever the scheme
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = next((v for name, v in headers.items() if name.lower() == "authorization"), "")
+          token = value.split(" ")[-1]
+          if token not in keys:
+              return 401
+          if required_scope not in keys[token]["scopes"]:
+              return 403
+          return 200
+  - label: Cuts the token at a fixed position without checking the scheme
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = ""
+          for name, header_value in headers.items():
+              if name.lower() == "authorization":
+                  value = header_value
+          token = value[7:]
+          if token not in keys:
+              return 401
+          if required_scope not in keys[token]["scopes"]:
+              return 403
+          return 200
+  - label: Lower-cases the whole header, so tokens match in any case
+    code: |
+      def authorize(headers: dict[str, str], keys: dict[str, dict], required_scope: str) -> int:
+          value = next((v for name, v in headers.items() if name.lower() == "authorization"), "").lower()
+          scheme, _, token = value.partition(" ")
+          lowered = {key.lower(): info for key, info in keys.items()}
+          if scheme != "bearer" or token not in lowered:
+              return 401
+          if required_scope not in lowered[token]["scopes"]:
+              return 403
+          return 200
+explanation: |
+  Authentication comes before authorisation. First work out who is calling: if there is no usable `Bearer` credential, or the token is not one you issued, the answer is 401, because the server does not know the caller. Only then ask whether this caller may do this: a known caller without the scope gets 403. Header names are case-insensitive and the scheme word is too, but the token is a secret string and must match exactly. `partition(" ")` splits at the first space and leaves an empty token when there is none, so `Bearer` alone is rejected without extra code. Alternative: build a lower-cased copy of the headers, `{k.lower(): v for k, v in headers.items()}`, and read `["authorization"]` from it. That is shorter when you need several headers, but copies the dict on every request. A real server also compares secrets in constant time, which a later lesson covers.

@@ -1,0 +1,196 @@
+id: api-01-mastery-parse-response
+lesson: api-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Read a raw HTTP response
+difficulty: 3
+competencies:
+  - api.http
+  - api.status-codes
+timeoutMs: 5000
+packages: []
+prompt: |
+  Write `parse_response(raw)`. `raw` is the text of an HTTP response, with `\r\n` after every line, for example:
+
+  ```text
+  HTTP/1.1 404 Not Found
+  Content-Type: application/json
+  Location: https://api.example.com/bookings
+
+  {"error": "booking not found"}
+  ```
+
+  Return a dict with four keys:
+
+  - `"status"`: the status code as an **int**.
+  - `"reason"`: the reason phrase after the code (`"Not Found"`, with all its words), or `""` when there is none.
+  - `"headers"`: a dict of header names to values. Names are lower-case, and values have the spaces at both ends removed. A value may contain colons.
+  - `"body"`: everything after the **first** blank line, unchanged, or `""` when there is no blank line.
+starter: |
+  def parse_response(raw: str) -> dict:
+      ...
+visibleTests: |
+  def test_status_reason_headers_and_body():
+      raw = (
+          "HTTP/1.1 404 Not Found\r\n"
+          "Content-Type: application/json\r\n"
+          "\r\n"
+          '{"error": "booking not found"}'
+      )
+      response = parse_response(raw)
+      assert response["status"] == 404
+      assert response["reason"] == "Not Found"
+      assert response["headers"] == {"content-type": "application/json"}
+      assert response["body"] == '{"error": "booking not found"}'
+
+  def test_status_is_an_int():
+      response = parse_response("HTTP/1.1 200 OK\r\n\r\n")
+      assert response["status"] == 200
+      assert isinstance(response["status"], int)
+hiddenTests: |
+  def test_header_value_may_contain_colons():
+      raw = "HTTP/1.1 201 Created\r\nLocation: https://api.example.com/bookings/b-9\r\n\r\n"
+      assert parse_response(raw)["headers"] == {"location": "https://api.example.com/bookings/b-9"}
+
+  def test_header_names_are_lower_case_and_values_are_trimmed():
+      raw = "HTTP/1.1 200 OK\r\nContent-TYPE:   application/json  \r\nRetry-After: 30\r\n\r\n"
+      assert parse_response(raw)["headers"] == {"content-type": "application/json", "retry-after": "30"}
+
+  def test_body_may_contain_blank_lines():
+      raw = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nline one\r\n\r\nline two"
+      assert parse_response(raw)["body"] == "line one\r\n\r\nline two"
+
+  def test_body_is_kept_exactly_including_trailing_line_breaks():
+      raw = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n  hello\r\n"
+      assert parse_response(raw)["body"] == "  hello\r\n"
+
+  def test_no_body():
+      response = parse_response("HTTP/1.1 204 No Content\r\nX-Request-Id: r-77\r\n\r\n")
+      assert response["body"] == ""
+      assert response["status"] == 204
+      assert response["reason"] == "No Content"
+
+  def test_no_blank_line_means_no_body():
+      response = parse_response("HTTP/1.1 503 Service Unavailable\r\nRetry-After: 5")
+      assert response["body"] == ""
+      assert response["headers"] == {"retry-after": "5"}
+
+  def test_reason_with_several_words_is_kept_whole():
+      assert parse_response("HTTP/1.1 429 Too Many Requests\r\n\r\n")["reason"] == "Too Many Requests"
+
+  def test_missing_reason_phrase():
+      response = parse_response("HTTP/1.1 200\r\n\r\n")
+      assert response["status"] == 200
+      assert response["reason"] == ""
+
+  def test_no_headers():
+      response = parse_response("HTTP/1.1 200 OK\r\n\r\nhello")
+      assert response["headers"] == {}
+      assert response["body"] == "hello"
+feedback:
+  - test: test_header_value_may_contain_colons
+    message: Split each header line at the first colon only. A value such as a URL contains more colons.
+  - test: test_body_may_contain_blank_lines
+    message: Split the message at the first blank line only (partition does this), so a body that contains blank lines stays whole.
+  - test: test_reason_with_several_words_is_kept_whole
+    message: The reason phrase is everything after the status code, including its spaces. Split the status line into at most three parts.
+  - test: test_status_is_an_int
+    message: Convert the status code with int(...). HTTP sends it as text.
+  - test: test_header_names_are_lower_case_and_values_are_trimmed
+    message: Lower-case the name and strip the value, because names are case-insensitive and there may be spaces after the colon.
+  - test: test_body_is_kept_exactly_including_trailing_line_breaks
+    message: Return the body exactly as it came. Do not strip spaces or line breaks from it.
+  - test: test_no_blank_line_means_no_body
+    message: When the message has no blank line, the body is the empty string, not an error.
+  - test: test_missing_reason_phrase
+    message: A status line may have no reason phrase. Use partition or a limited split so a missing part becomes "".
+hints:
+  - Which separator ends the headers, which character splits a header name from its value, and how many words can the reason phrase have?
+  - 'Partition the raw text at the first blank line to get the head and the body. Split the head into lines. Partition the status line on spaces to get the code and the reason, and partition each header line at the first colon.'
+  - |-
+    head, _, body = raw.partition("\r\n\r\n")
+    lines = head.split("\r\n")
+    _version, _, rest = lines[0].partition(" ")
+    code, _, reason = rest.partition(" ")
+    headers = {}
+    for line in lines[1:]:
+        name, _, value = line.partition(____)
+        headers[name.____()] = value.____()
+referenceSolution: |
+  def parse_response(raw: str) -> dict:
+      head, _, body = raw.partition("\r\n\r\n")
+      lines = head.split("\r\n")
+      _version, _, rest = lines[0].partition(" ")
+      code, _, reason = rest.partition(" ")
+      headers = {}
+      for line in lines[1:]:
+          name, _, value = line.partition(":")
+          headers[name.strip().lower()] = value.strip()
+      return {"status": int(code), "reason": reason, "headers": headers, "body": body}
+wrongSolutions:
+  - label: Splits every header line at every colon
+    code: |
+      def parse_response(raw: str) -> dict:
+          head, _, body = raw.partition("\r\n\r\n")
+          lines = head.split("\r\n")
+          _version, _, rest = lines[0].partition(" ")
+          code, _, reason = rest.partition(" ")
+          headers = {}
+          for line in lines[1:]:
+              name, value = line.split(":")[:2]
+              headers[name.strip().lower()] = value.strip()
+          return {"status": int(code), "reason": reason, "headers": headers, "body": body}
+  - label: Keeps only the first word of the reason phrase
+    code: |
+      def parse_response(raw: str) -> dict:
+          head, _, body = raw.partition("\r\n\r\n")
+          lines = head.split("\r\n")
+          parts = lines[0].split(" ")
+          headers = {}
+          for line in lines[1:]:
+              name, _, value = line.partition(":")
+              headers[name.strip().lower()] = value.strip()
+          reason = parts[2] if len(parts) > 2 else ""
+          return {"status": int(parts[1]), "reason": reason, "headers": headers, "body": body}
+  - label: Cuts the body at the next blank line
+    code: |
+      def parse_response(raw: str) -> dict:
+          pieces = raw.split("\r\n\r\n")
+          head = pieces[0]
+          body = pieces[1] if len(pieces) > 1 else ""
+          lines = head.split("\r\n")
+          _version, _, rest = lines[0].partition(" ")
+          code, _, reason = rest.partition(" ")
+          headers = {}
+          for line in lines[1:]:
+              name, _, value = line.partition(":")
+              headers[name.strip().lower()] = value.strip()
+          return {"status": int(code), "reason": reason, "headers": headers, "body": body}
+  - label: Strips the body, so spaces and line breaks are lost
+    code: |
+      def parse_response(raw: str) -> dict:
+          head, _, body = raw.partition("\r\n\r\n")
+          lines = head.split("\r\n")
+          _version, _, rest = lines[0].partition(" ")
+          code, _, reason = rest.partition(" ")
+          headers = {}
+          for line in lines[1:]:
+              name, _, value = line.partition(":")
+              headers[name.strip().lower()] = value.strip()
+          return {"status": int(code), "reason": reason, "headers": headers, "body": body.strip()}
+  - label: Returns the status as text and keeps the header names as sent
+    code: |
+      def parse_response(raw: str) -> dict:
+          head, _, body = raw.partition("\r\n\r\n")
+          lines = head.split("\r\n")
+          _version, _, rest = lines[0].partition(" ")
+          code, _, reason = rest.partition(" ")
+          headers = {}
+          for line in lines[1:]:
+              name, _, value = line.partition(":")
+              headers[name.strip()] = value.strip()
+          return {"status": code, "reason": reason, "headers": headers, "body": body}
+explanation: |
+  A response has the same layout as a request: a first line, header lines, a blank line, then the body. `partition` splits at the first occurrence only, which is exactly the rule for all three splits here: the first blank line ends the headers (the body may contain more), the first colon ends a header name (a value such as a URL may contain more), and the first space after the code starts the reason phrase (which may have several words, or none). The status code is text on the wire, so convert it with `int`. Header names are case-insensitive, so lower-casing them gives one form to look up. Alternative: a regular expression such as `^HTTP/\S+ (\d{3}) ?(.*)$` for the status line is compact, but harder to read and to debug for a small fixed format. In real code you would use an HTTP library, which also handles things this exercise ignores, such as repeated headers and chunked bodies.

@@ -1,0 +1,242 @@
+id: api-01-make-paginate
+lesson: api-01
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Page through bookings with a cursor
+difficulty: 3
+competencies:
+  - api.rest-design
+  - api.http
+timeoutMs: 5000
+estMin: 12
+packages: []
+prompt: |
+  Write `paginate(items, limit, cursor=None)`, the helper behind `GET /bookings?limit=2&cursor=b-002`.
+
+  - `items` is a list of dicts, each with a string `"id"` such as `"b-003"`. The ids are unique and sort correctly as text. The list is **not** guaranteed to be in order.
+  - Pages go in ascending order of `"id"`.
+  - `cursor` is the `"id"` of the last item on the previous page, or `None` for the first page. A page holds the items whose `"id"` is **greater than** the cursor.
+  - Return a dict `{"items": [...], "next_cursor": ...}`. `items` has at most `limit` entries. `next_cursor` is the `"id"` of the last returned item **if more items follow it**, and `None` on the last page.
+  - `limit` must be an integer from 1 to 100. Otherwise raise `ValueError`.
+  - Do not change the list you were given.
+
+  The cursor item may have been deleted since the last request, so do not look it up in the list.
+
+  Example: for ids `b-001` to `b-005` and `limit=2`, the first call returns `b-001`, `b-002` and `next_cursor` `"b-002"`. Calling again with that cursor returns `b-003`, `b-004` and `"b-004"`, and then the last call returns `b-005` and `None`.
+starter: |
+  def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+      ...
+visibleTests: |
+  BOOKINGS = [{"id": f"b-{n:03d}", "customer": f"customer {n}"} for n in range(1, 6)]
+
+
+  def ids(page):
+      return [item["id"] for item in page["items"]]
+
+
+  def test_first_page():
+      page = paginate(BOOKINGS, 2)
+      assert ids(page) == ["b-001", "b-002"]
+      assert page["next_cursor"] == "b-002"
+
+  def test_second_page_uses_the_cursor():
+      page = paginate(BOOKINGS, 2, "b-002")
+      assert ids(page) == ["b-003", "b-004"]
+      assert page["next_cursor"] == "b-004"
+
+  def test_last_page_has_no_next_cursor():
+      page = paginate(BOOKINGS, 2, "b-004")
+      assert ids(page) == ["b-005"]
+      assert page["next_cursor"] is None
+hiddenTests: |
+  BOOKINGS = [{"id": f"b-{n:03d}", "customer": f"customer {n}"} for n in range(1, 6)]
+
+
+  def ids(page):
+      return [item["id"] for item in page["items"]]
+
+
+  def test_a_page_that_ends_exactly_at_the_end_has_no_next_cursor():
+      page = paginate(BOOKINGS, 5)
+      assert ids(page) == ["b-001", "b-002", "b-003", "b-004", "b-005"]
+      assert page["next_cursor"] is None
+
+  def test_exact_multiple_of_the_limit_ends_cleanly():
+      page = paginate(BOOKINGS[:4], 2, "b-002")
+      assert ids(page) == ["b-003", "b-004"]
+      assert page["next_cursor"] is None
+
+  def test_limit_larger_than_what_is_left():
+      page = paginate(BOOKINGS, 100, "b-003")
+      assert ids(page) == ["b-004", "b-005"]
+      assert page["next_cursor"] is None
+
+  def test_empty_list():
+      assert paginate([], 3) == {"items": [], "next_cursor": None}
+
+  def test_cursor_after_the_last_item():
+      assert paginate(BOOKINGS, 2, "b-005") == {"items": [], "next_cursor": None}
+
+  def test_unsorted_input_is_returned_in_id_order():
+      shuffled = [BOOKINGS[3], BOOKINGS[0], BOOKINGS[4], BOOKINGS[2], BOOKINGS[1]]
+      page = paginate(shuffled, 3)
+      assert ids(page) == ["b-001", "b-002", "b-003"]
+      assert page["next_cursor"] == "b-003"
+
+  def test_the_input_list_is_not_changed():
+      shuffled = [BOOKINGS[3], BOOKINGS[0], BOOKINGS[2]]
+      before = list(shuffled)
+      paginate(shuffled, 2)
+      assert shuffled == before
+
+  def test_a_deleted_cursor_item_still_works():
+      remaining = [b for b in BOOKINGS if b["id"] != "b-002"]
+      page = paginate(remaining, 2, "b-002")
+      assert ids(page) == ["b-003", "b-004"]
+      assert page["next_cursor"] == "b-004"
+
+  def test_items_are_returned_whole():
+      page = paginate(BOOKINGS, 1)
+      assert page["items"] == [{"id": "b-001", "customer": "customer 1"}]
+
+  def test_following_the_cursors_visits_every_item_once():
+      seen = []
+      cursor = None
+      for _ in range(10):
+          page = paginate(BOOKINGS, 2, cursor)
+          seen.extend(ids(page))
+          cursor = page["next_cursor"]
+          if cursor is None:
+              break
+      assert seen == ["b-001", "b-002", "b-003", "b-004", "b-005"]
+
+  def test_bad_limits_raise_value_error():
+      for bad in (0, -1, 101):
+          try:
+              paginate(BOOKINGS, bad)
+          except ValueError:
+              continue
+          raise AssertionError(f"limit {bad} should raise ValueError")
+
+  def test_non_integer_limits_raise_value_error():
+      for bad in (2.5, "3", None):
+          try:
+              paginate(BOOKINGS, bad)
+          except ValueError:
+              continue
+          raise AssertionError(f"limit {bad!r} should raise ValueError")
+
+  def test_the_limits_one_and_one_hundred_are_allowed():
+      assert ids(paginate(BOOKINGS, 1)) == ["b-001"]
+      assert len(paginate(BOOKINGS, 100)["items"]) == 5
+feedback:
+  - test: test_a_page_that_ends_exactly_at_the_end_has_no_next_cursor
+    message: Set next_cursor only when at least one more item follows the page. A full last page must not hand the client a cursor that leads to an empty page.
+  - test: test_exact_multiple_of_the_limit_ends_cleanly
+    message: When the page uses up the last items exactly, next_cursor must be None. Check whether items remain after the page, not whether the page is full.
+  - test: test_unsorted_input_is_returned_in_id_order
+    message: The list may arrive in any order. Sort a copy by id before you cut the page.
+  - test: test_the_input_list_is_not_changed
+    message: Do not call .sort() on the list you were given. Use sorted(...), which builds a new list.
+  - test: test_a_deleted_cursor_item_still_works
+    message: The cursor item may be gone. Compare ids with the cursor (item id greater than cursor) instead of looking the cursor up in the list.
+  - test: test_second_page_uses_the_cursor
+    message: The page starts after the cursor, not at it. Keep items whose id is greater than the cursor.
+  - test: test_non_integer_limits_raise_value_error
+    message: A limit that is not a whole number, such as 2.5 or "3", must raise ValueError too. Check the type as well as the range.
+  - test: test_bad_limits_raise_value_error
+    message: Raise ValueError when limit is below 1 or above 100, before you build the page.
+  - test: test_cursor_after_the_last_item
+    message: A cursor at or beyond the last id gives an empty page with next_cursor None.
+hints:
+  - Which items belong on the page that follows a cursor, and how do you know whether the page you built is the last one?
+  - 'Validate the limit (an integer from 1 to 100), sort a copy by id, keep the items with id greater than the cursor (all of them when cursor is None), cut off the first limit of them, and set next_cursor to the last id only if some of the kept items were left over.'
+  - |-
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit must be from 1 to 100")
+    ordered = sorted(items, key=lambda item: item["id"])
+    if cursor is not None:
+        ordered = [item for item in ordered if item["id"] ____ cursor]
+    page = ordered[:____]
+    more = len(ordered) > ____
+    return {"items": page, "next_cursor": page[-1]["id"] if ____ else None}
+referenceSolution: |
+  def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+      if type(limit) is not int or not 1 <= limit <= 100:
+          raise ValueError("limit must be an integer from 1 to 100")
+      ordered = sorted(items, key=lambda item: item["id"])
+      if cursor is not None:
+          ordered = [item for item in ordered if item["id"] > cursor]
+      page = ordered[:limit]
+      more = len(ordered) > limit
+      return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+wrongSolutions:
+  - label: Always returns the last id as next_cursor, even on the last page
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if not 1 <= limit <= 100:
+              raise ValueError("limit must be from 1 to 100")
+          ordered = sorted(items, key=lambda item: item["id"])
+          if cursor is not None:
+              ordered = [item for item in ordered if item["id"] > cursor]
+          page = ordered[:limit]
+          return {"items": page, "next_cursor": page[-1]["id"] if page else None}
+  - label: Looks the cursor up in the list, so a deleted cursor item raises an error
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if not 1 <= limit <= 100:
+              raise ValueError("limit must be from 1 to 100")
+          ordered = sorted(items, key=lambda item: item["id"])
+          ids = [item["id"] for item in ordered]
+          start = 0 if cursor is None else ids.index(cursor) + 1
+          page = ordered[start:start + limit]
+          more = start + limit < len(ordered)
+          return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+  - label: Sorts the caller's list in place
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if not 1 <= limit <= 100:
+              raise ValueError("limit must be from 1 to 100")
+          items.sort(key=lambda item: item["id"])
+          if cursor is not None:
+              rest = [item for item in items if item["id"] > cursor]
+          else:
+              rest = items
+          page = rest[:limit]
+          more = len(rest) > limit
+          return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+  - label: Includes the cursor item again (greater than or equal)
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if not 1 <= limit <= 100:
+              raise ValueError("limit must be from 1 to 100")
+          ordered = sorted(items, key=lambda item: item["id"])
+          if cursor is not None:
+              ordered = [item for item in ordered if item["id"] >= cursor]
+          page = ordered[:limit]
+          more = len(ordered) > limit
+          return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+  - label: Checks only the range, so 2.5 and "3" raise the wrong error
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if limit < 1 or limit > 100:
+              raise ValueError("limit must be from 1 to 100")
+          ordered = sorted(items, key=lambda item: item["id"])
+          if cursor is not None:
+              ordered = [item for item in ordered if item["id"] > cursor]
+          page = ordered[:limit]
+          more = len(ordered) > limit
+          return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+  - label: Does not sort, so unsorted input gives pages in the wrong order
+    code: |
+      def paginate(items: list[dict], limit: int, cursor: str | None = None) -> dict:
+          if not 1 <= limit <= 100:
+              raise ValueError("limit must be from 1 to 100")
+          rest = items if cursor is None else [item for item in items if item["id"] > cursor]
+          page = rest[:limit]
+          more = len(rest) > limit
+          return {"items": page, "next_cursor": page[-1]["id"] if more else None}
+explanation: |
+  The cursor is a position in id order, not a place in the list. Sorting a copy by id, keeping the ids greater than the cursor and cutting off `limit` items gives the page, and the client sends the last id back to continue. The page is the last one when nothing is left after it, so `next_cursor` is set only when `len(ordered) > limit`. Because the comparison uses ids, it keeps working when the cursor item has been deleted or new items arrive earlier in the list, which is exactly where offset pagination repeats or skips rows. `sorted` builds a new list, so the caller's list stays unchanged. Alternative: offset pagination is `ordered[offset:offset + limit]`. It is simpler and lets a client jump to page 40, but pages shift when rows are inserted or deleted, and a database must still read past all the skipped rows. In a real API the cursor is usually encoded so that clients treat it as opaque, and for a database table the filter becomes a query with `WHERE id > cursor ORDER BY id LIMIT limit`.

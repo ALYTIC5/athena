@@ -1,0 +1,790 @@
+lesson: api-01
+items:
+  # ---- Chunk 1: requests, responses and URLs (objective 1) ----
+  - id: api-01-q-predict-query
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: predict
+    competencies: [api.http]
+    code: |
+      from urllib.parse import urlsplit, parse_qs
+
+      url = "https://api.example.com/bookings?status=confirmed&status=pending&limit=10#top"
+      parts = urlsplit(url)
+      query = parse_qs(parts.query)
+
+      print(parts.path)
+      print(query["limit"])
+      print(len(query["status"]))
+    investigate:
+      - Why is query["limit"] a list that holds the text "10" instead of the number 10?
+      - What happened to the part after the # sign, and would the server have seen it?
+  - id: api-01-q-parsons-parse-request
+    pools: [mastery]
+    chunk: 1
+    objective: 1
+    type: parsons
+    competencies: [api.http]
+    lines:
+      - 'def parse_request(raw: str) -> dict:'
+      - '    head, _, body = raw.partition("\r\n\r\n")'
+      - '    lines = head.split("\r\n")'
+      - '    method, target, _version = lines[0].split(" ")'
+      - '    headers = {}'
+      - '    for line in lines[1:]:'
+      - '        name, _, value = line.partition(":")'
+      - '        headers[name.strip().lower()] = value.strip()'
+      - '    return {"method": method, "target": target, "headers": headers, "body": body}'
+    distractors:
+      - '        headers[name] = value'
+      - '    method, target = lines[0].split(" ")'
+  - id: api-01-q-order-api-call
+    pools: [check, mastery]
+    chunk: 1
+    objective: 1
+    type: order
+    competencies: [api.http]
+    stem: Your code calls a booking API. Put what happens in order.
+    steps:
+      - The client builds the request (method, path, headers and body)
+      - The client sends it over HTTPS
+      - The server matches the route and checks the credentials
+      - The handler decides the status code
+      - The server returns the status line, headers and body
+      - The client reads the status code first, then the body
+  - id: api-01-q-request-line
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.http]
+    stem: Which line of this raw HTTP request tells the server what to do and to which resource?
+    code: |
+      POST /bookings HTTP/1.1
+      Host: api.example.com
+      Content-Type: application/json
+
+      {"customer": "Amara Okafor"}
+    options:
+      - text: 'POST /bookings HTTP/1.1'
+        correct: true
+        why: The first line is the request line. It holds the method (POST, create something), the target (the /bookings collection) and the protocol version.
+      - text: 'Host: api.example.com'
+        correct: false
+        why: This is a header. It says which server name the request is for, not what to do with which resource.
+      - text: 'Content-Type: application/json'
+        correct: false
+        why: This header describes the body, saying that it is JSON. It does not choose the action.
+      - text: '{"customer": "Amara Okafor"}'
+        correct: false
+        why: This is the body, the data that travels with the request. The method and target come from the first line.
+  - id: api-01-q-header-case
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.http]
+    stem: 'A client sends the header `content-type: application/json`. Your code looks for `Content-Type`. What does HTTP say?'
+    options:
+      - text: Header names are case-insensitive, so these are the same header, and your code should compare names in lower case
+        correct: true
+        why: The HTTP standard says field names are case-insensitive. Servers, proxies and libraries may change the case, so look names up in one form, for example lower case.
+      - text: Header names are case-sensitive, so the server must reject the request
+        correct: false
+        why: Names are not case-sensitive. Rejecting a request for this reason would break many real clients.
+      - text: Only the first letter of a header name may be lower case
+        correct: false
+        why: The standard has no such rule. Any mix of cases names the same header.
+      - text: Header values are case-insensitive but names are not
+        correct: false
+        why: It is the other way round. Names are case-insensitive, and whether a value is depends on the header. A token in Authorization must match exactly.
+  - id: api-01-q-fragment
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.http]
+    stem: 'Which part of `https://api.example.com/bookings?status=confirmed&limit=10#top` is not sent to the server?'
+    options:
+      - text: '#top'
+        correct: true
+        why: The fragment, after the #, is used only by the client (for example to scroll to a part of a page). It is not part of the request.
+      - text: '?status=confirmed&limit=10'
+        correct: false
+        why: The query string is part of the request target. The server reads it, for example to filter the list.
+      - text: '/bookings'
+        correct: false
+        why: The path is part of the request target and decides which resource the request is for.
+      - text: api.example.com
+        correct: false
+        why: The client uses the host to connect, and it is also sent in the Host header.
+  - id: api-01-q-query-bug
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: bug
+    competencies: [api.http]
+    code: |
+      from urllib.parse import parse_qs
+      query = parse_qs("limit=20&status=confirmed")
+      page_size = int(query["limit"])
+    buggyLine: 3
+    explanation: parse_qs returns a list of strings for every key, because a name can appear more than once. query["limit"] is ["20"], and int() of a list raises TypeError. Take the first value, int(query["limit"][0]).
+  - id: api-01-q-https
+    pools: [mastery]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.http]
+    stem: What does using HTTPS instead of plain HTTP give you?
+    options:
+      - text: The path, query, headers and body are encrypted between the client and the server, but the server still sees them
+        correct: true
+        why: HTTPS is HTTP over an encrypted connection. It stops people on the network from reading or changing the traffic. The server itself receives the full request and may log it, so a URL still ends up in server logs.
+      - text: The server is told who the caller is, so no Authorization header is needed
+        correct: false
+        why: HTTPS can prove the server's identity to the client. It does not identify the caller. Authentication is a separate step.
+      - text: The request is hidden from the server's logs
+        correct: false
+        why: The server decrypts the request, and what it logs is its own choice. That is why secrets do not belong in URLs.
+      - text: Requests and responses become smaller and faster
+        correct: false
+        why: HTTPS adds a little work. Its purpose is privacy and integrity, not speed.
+
+  # ---- Chunk 2: methods, status codes and idempotency (objective 2) ----
+  - id: api-01-q-predict-idempotent
+    pools: [check, mastery]
+    chunk: 2
+    objective: 2
+    type: predict
+    competencies: [api.methods]
+    code: |
+      visits = {"b-1": 0}
+
+
+      def put_visits(ref, count):
+          visits[ref] = count
+
+
+      def patch_add_visit(ref):
+          visits[ref] += 1
+
+
+      for _ in range(3):
+          put_visits("b-1", 5)
+      print(visits["b-1"])
+
+      for _ in range(3):
+          patch_add_visit("b-1")
+      print(visits["b-1"])
+    investigate:
+      - Which of the two functions would you be happy to retry after a timeout when you do not know whether the first call arrived, and why?
+      - Is a PATCH request always like patch_add_visit? What would make a PATCH safe to repeat?
+  - id: api-01-q-idempotent-which
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: multiple
+    competencies: [api.methods]
+    stem: Which methods are idempotent according to the HTTP standard? Choose all that apply.
+    options:
+      - text: GET
+        correct: true
+        why: A read changes nothing on the server, so repeating it has the same effect as sending it once. GET is also safe.
+      - text: PUT
+        correct: true
+        why: PUT replaces a resource with the body. Doing it again leaves the same state.
+      - text: DELETE
+        correct: true
+        why: After the first DELETE the resource is gone, and repeating it changes nothing further. The response may differ (204, then 404) but the effect on the server is the same.
+      - text: POST
+        correct: false
+        why: POST usually creates something or runs an action, so sending it twice can create two bookings.
+      - text: PATCH
+        correct: false
+        why: The standard does not guarantee it. "Set status to cancelled" is safe to repeat, but "add one to attempts" is not.
+  - id: api-01-q-retry-post
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.methods]
+    stem: A client sends POST /bookings, the connection drops, and no response arrives. What is the risk of simply sending the same request again?
+    options:
+      - text: The first request may have reached the server, so the retry can create a second booking
+        correct: true
+        why: The client cannot tell whether the server received the request. POST is not idempotent, so repeating it can repeat the effect. Idempotency keys, covered in a later lesson, solve this.
+      - text: The second request always fails with 409 Conflict
+        correct: false
+        why: Nothing in HTTP makes the server detect a repeat. Unless the API checks for duplicates, the second request simply creates another booking.
+      - text: POST requests cannot be sent twice
+        correct: false
+        why: They can be sent twice. The problem is what the repetition does, not whether it is allowed.
+      - text: There is no risk, because POST is idempotent
+        correct: false
+        why: POST is not idempotent. GET, PUT and DELETE are.
+  - id: api-01-q-put-patch
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.methods]
+    stem: 'A booking has `customer`, `slot` and `notes`. A client sends `PUT /bookings/b-1` with the body `{"slot": "10:00"}`. What does PUT mean here?'
+    options:
+      - text: The body replaces the whole booking, so a complete PUT body is needed and fields left out may be dropped (or the request refused)
+        correct: true
+        why: PUT sends the full new version of the resource. To change only the slot, the client should use PATCH, which sends only the changes.
+      - text: Only the slot changes and customer and notes are kept
+        correct: false
+        why: That is what PATCH means. PUT replaces the resource with what the body says.
+      - text: A second booking is created next to the first
+        correct: false
+        why: Creating is POST on the collection. PUT addresses one existing resource.
+      - text: Nothing changes, because PUT only reads
+        correct: false
+        why: Reading is GET. PUT writes.
+  - id: api-01-q-status-created
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: A client POSTs a valid new booking and the server creates it. Which response fits best?
+    options:
+      - text: 201 Created, with a Location header holding the URL of the new booking
+        correct: true
+        why: 201 says a new resource now exists, and Location tells the client where. That is the usual answer to a successful create.
+      - text: 200 OK with the booking in the body
+        correct: false
+        why: It would work, but 200 only says the request succeeded. 201 is more precise for a create.
+      - text: 202 Accepted
+        correct: false
+        why: 202 means the request was accepted for processing later. The booking here already exists.
+      - text: 204 No Content
+        correct: false
+        why: 204 means success with no body. A create should tell the client where the new resource is.
+  - id: api-01-q-status-conflict
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: A client POSTs a booking for 09:00, but another customer already holds that slot. Which status code fits best?
+    options:
+      - text: 409 Conflict
+        correct: true
+        why: The request is understood and correctly formed, but it clashes with the current state of the server's data.
+      - text: 400 Bad Request
+        correct: false
+        why: 400 is for a request that cannot be understood. This one can be, it is the slot that is taken.
+      - text: 403 Forbidden
+        correct: false
+        why: 403 means the caller is not allowed to do this. Here the caller may book, but not this slot.
+      - text: 500 Internal Server Error
+        correct: false
+        why: The server did not fail. It refused a request that clashes with its data, which is a 4xx problem.
+  - id: api-01-q-status-unparsable
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: 'A client sends the JSON body `{"customer": "Amara Okafor"` with the closing brace missing. Which status code fits best?'
+    options:
+      - text: 400 Bad Request
+        correct: true
+        why: The server cannot even parse the body, so the request is malformed. That is the typical use of 400.
+      - text: 422 Unprocessable Content
+        correct: false
+        why: 422 is for a body that parses but breaks the rules, such as a missing field. This body does not parse.
+      - text: 404 Not Found
+        correct: false
+        why: 404 means there is no resource at the path. The path is fine here.
+      - text: 500 Internal Server Error
+        correct: false
+        why: Bad input from the client is a 4xx problem. A 500 would mean the server crashed instead of handling it.
+  - id: api-01-q-status-unprocessable
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: The JSON body parses fine, but the required field `slot` is missing. Which status code fits best?
+    options:
+      - text: 422 Unprocessable Content
+        correct: true
+        why: The content was understood, but it breaks the rules. (Many teams use 400 for this case too; what matters is to be consistent and to document it.)
+      - text: 409 Conflict
+        correct: false
+        why: 409 is for a clash with data already stored. Nothing is stored yet that this body clashes with.
+      - text: 404 Not Found
+        correct: false
+        why: 404 means the resource at the path does not exist. The path /bookings does exist.
+      - text: 500 Internal Server Error
+        correct: false
+        why: A missing field is the caller's mistake. A 500 says the server failed.
+  - id: api-01-q-403-agent
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes, api.auth]
+    stem: An agent's API key is valid, but the key may only read, and it sends `DELETE /agents/a-3`. Which status code says "I know who you are, and the answer is no"?
+    options:
+      - text: 403 Forbidden
+        correct: true
+        why: The caller is identified, but not permitted to do this. Authentication succeeded and authorisation failed.
+      - text: 401 Unauthorized
+        correct: false
+        why: Despite its name, 401 means the caller has not proved who they are. Here the key was accepted.
+      - text: 400 Bad Request
+        correct: false
+        why: The request is well formed. The problem is permission.
+      - text: 409 Conflict
+        correct: false
+        why: There is no clash with stored data. The caller is simply not allowed.
+  - id: api-01-q-401-missing
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes, api.auth]
+    stem: A request to `GET /bookings` has no Authorization header. Which status code should the API return?
+    options:
+      - text: 401 Unauthorized, with a WWW-Authenticate header saying how to log in
+        correct: true
+        why: The server does not know who the caller is. 401 asks for credentials, and WWW-Authenticate names the scheme, such as Bearer.
+      - text: 403 Forbidden
+        correct: false
+        why: 403 is for a caller the server knows but will not allow. With no credentials, the server does not know the caller.
+      - text: 404 Not Found
+        correct: false
+        why: The path exists. Hiding it behind a 404 is sometimes done for private resources, but missing credentials call for 401.
+      - text: 400 Bad Request
+        correct: false
+        why: A request without credentials is well formed. It lacks authentication, which has its own code.
+  - id: api-01-q-status-429
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: 'The API answers 429 with the header `Retry-After: 30`. What should your client do?'
+    options:
+      - text: Wait at least 30 seconds, then send the request again
+        correct: true
+        why: 429 Too Many Requests means you are sending requests too fast. Retry-After says how long to wait. The request itself was fine.
+      - text: Send it again at once, in a loop, until it works
+        correct: false
+        why: That keeps you over the limit and may get your key blocked.
+      - text: Give up, because 4xx errors can never be retried
+        correct: false
+        why: Most 4xx errors need a change to the request, but 429 is a request to slow down, and a retry after the wait is the right response.
+      - text: Fix the body of the request
+        correct: false
+        why: The body was not the problem. The rate was.
+  - id: api-01-q-status-503
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: 'A call gets `503 Service Unavailable` with `Retry-After: 5`. What does this tell you?'
+    options:
+      - text: The server is temporarily unable to handle requests (overloaded or in maintenance), and trying again later is reasonable
+        correct: true
+        why: 503 is a 5xx code, so the fault is on the server's side and is often temporary. Retry-After suggests when to try again.
+      - text: Your API key is invalid
+        correct: false
+        why: A bad key gives 401 or 403. A 5xx says the server has the problem.
+      - text: The path you asked for does not exist
+        correct: false
+        why: A missing resource gives 404.
+      - text: Your request body broke the rules
+        correct: false
+        why: Broken rules give a 4xx such as 400 or 422.
+  - id: api-01-q-status-502
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: A proxy in front of the booking service answers `502 Bad Gateway`. Where is the likely problem?
+    options:
+      - text: Behind the proxy, where the booking service sent a bad reply or could not be reached properly
+        correct: true
+        why: 502 is returned by a gateway or proxy that received an invalid response from the server behind it. It is a server-side problem and often goes away on a later try.
+      - text: In the JSON of the request, which the client should fix
+        correct: false
+        why: A client mistake would give a 4xx code.
+      - text: In the client's API key
+        correct: false
+        why: A key problem gives 401 or 403.
+      - text: In the URL path, which does not exist
+        correct: false
+        why: A missing path gives 404.
+  - id: api-01-q-redirect
+    pools: [mastery]
+    chunk: 2
+    objective: 2
+    type: single
+    competencies: [api.status-codes]
+    stem: 'A GET gets `301 Moved Permanently` with `Location: https://api.example.com/v2/bookings`. What should the client do?'
+    options:
+      - text: Request the new URL, and use it from now on
+        correct: true
+        why: 301 says the resource has permanently moved, and the Location header gives the new address.
+      - text: Treat it as an error and stop, because 3xx means failure
+        correct: false
+        why: 3xx codes are redirections, not failures. The client is expected to follow them.
+      - text: Send the same request again to the old URL later
+        correct: false
+        why: The old URL has been replaced. A 503 would suggest trying again later.
+      - text: Ask the user to log in
+        correct: false
+        why: Needing credentials is 401. A redirect only points to another address.
+  - id: api-01-q-status-family
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 2
+    type: short
+    competencies: [api.status-codes]
+    stem: Which family of status codes (write it as 2xx, 3xx, 4xx or 5xx) means the client's request was at fault?
+    accepted:
+      - 4xx
+      - 400s
+      - the 4xx range
+      - 400-499
+      - 400 to 499
+    patterns:
+      - ^(the )?4xx( range| family| codes)?$
+      - ^4\d\d\s*(-|to)\s*499$
+    explanation: 4xx codes mean the client should change the request before trying again. 5xx codes mean the server failed, and 2xx mean success.
+
+  # ---- Chunk 3: REST design, JSON and pagination (objective 3) ----
+  - id: api-01-q-predict-offset
+    pools: [check, mastery]
+    chunk: 3
+    objective: 3
+    type: predict
+    competencies: [api.rest-design]
+    code: |
+      newest_first = ["b-5", "b-4", "b-3", "b-2", "b-1"]
+
+      page_1 = newest_first[0:2]
+      newest_first.insert(0, "b-6")  # a new booking arrives between the two requests
+      page_2 = newest_first[2:4]
+
+      print(page_1, page_2)
+    investigate:
+      - Which booking does the client see twice, and why did the new booking cause that?
+      - How would "give me the two bookings after b-4" behave in the same situation?
+  - id: api-01-q-rest-path
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.rest-design]
+    stem: Which request is a well-designed way to list the confirmed bookings of one customer?
+    options:
+      - text: 'GET /customers/c-7/bookings?status=confirmed'
+        correct: true
+        why: Nouns in the path, one level of nesting, the verb in the method and the filter in the query. (GET /bookings?customer=c-7&status=confirmed is a fine alternative.)
+      - text: 'GET /getConfirmedBookings?customer=c-7'
+        correct: false
+        why: The path contains a verb. In REST the method is the verb, and the path names the resource.
+      - text: 'POST /bookings/list'
+        correct: false
+        why: POST is for creating or running actions. Reading a list is GET, and "list" is a verb.
+      - text: 'GET /customers/c-7/bookings/confirmed/list'
+        correct: false
+        why: A filter is better as a query parameter than as extra path segments, and "list" is again a verb.
+  - id: api-01-q-nesting
+    pools: [mastery]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.rest-design]
+    stem: Which path shows that nesting has gone too far?
+    options:
+      - text: '/customers/c-7/bookings/b-1/reminders/r-2/attempts/3'
+        correct: true
+        why: Every extra level makes the URL longer and the code that builds it harder. Give deep resources their own top-level path, such as /reminders/r-2, and filter with a query.
+      - text: '/customers/c-7/bookings'
+        correct: false
+        why: One level of nesting that says whose bookings these are is clear and common.
+      - text: '/bookings/b-1'
+        correct: false
+        why: This is a plain collection and item path.
+      - text: '/bookings?customer=c-7'
+        correct: false
+        why: This uses a query filter instead of nesting, which is also a good design.
+  - id: api-01-q-cursor-offset
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.rest-design]
+    stem: A new booking is added at the start of a newest-first list between two page requests. Why can this repeat or skip rows with offset pagination, but not with cursor pagination?
+    options:
+      - text: An offset counts positions, which shift when rows are added or removed, but a cursor names the last item seen, so the next page starts right after it
+        correct: true
+        why: This is the main reason to prefer a cursor for lists that change.
+      - text: Cursor pagination locks the table while the client reads
+        correct: false
+        why: A cursor is only a value in the next request. It locks nothing.
+      - text: Offsets are only valid for the first page
+        correct: false
+        why: Offsets work for any page. They are simple, and fine for lists that rarely change.
+      - text: Cursors hold all the pages in memory on the server
+        correct: false
+        why: The server keeps no page state for a cursor. The position is in the cursor the client sends back.
+  - id: api-01-q-next-cursor
+    pools: [mastery]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.rest-design]
+    stem: A client reads a cursor-paginated list with `limit=20`. How does it know it has reached the last page?
+    options:
+      - text: '`next_cursor` is null in the response'
+        correct: true
+        why: The server says where to continue, and says null when nothing follows. The client stops there.
+      - text: The page has fewer than 20 items
+        correct: false
+        why: A last page can be exactly full. If 40 items exist, the second page has 20 and is still the last.
+      - text: The server answers 404
+        correct: false
+        why: An empty or final page is still a successful answer, so the status is 200.
+      - text: The cursor equals the first id
+        correct: false
+        why: The cursor is the id of the last item returned. It never goes back to the first.
+  - id: api-01-q-content-type
+    pools: [mastery]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.http, api.rest-design]
+    stem: A client sends `POST /bookings` with a JSON text body but no `Content-Type` header. What is the risk?
+    options:
+      - text: 'The server does not know the body is JSON, so it may reject the request or read the body wrongly. Send `Content-Type: application/json`'
+        correct: true
+        why: Content-Type describes the body being sent. Servers use it to choose how to read the body.
+      - text: There is no risk, because servers always guess JSON
+        correct: false
+        why: Many frameworks refuse a body whose type they do not expect, or treat it as plain text.
+      - text: The Accept header does this job
+        correct: false
+        why: Accept says what the client wants in the response. Content-Type describes the body of the message that carries it.
+      - text: HTTPS adds the header automatically
+        correct: false
+        why: HTTPS only encrypts the traffic. It does not change the headers.
+  - id: api-01-q-json-python
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 3
+    type: single
+    competencies: [api.rest-design]
+    stem: 'What does `json.dumps({"paid": True, "notes": None, "n": (1, 2)})` produce?'
+    options:
+      - text: '{"paid": true, "notes": null, "n": [1, 2]}'
+        correct: true
+        why: JSON has true, false and null in lower case, and no tuples, so Python's True, None and the tuple become true, null and an array.
+      - text: '{"paid": True, "notes": None, "n": (1, 2)}'
+        correct: false
+        why: That is how Python prints the dict. JSON text uses its own spellings.
+      - text: "{'paid': true, 'notes': null, 'n': [1, 2]}"
+        correct: false
+        why: JSON strings use double quotes only. Single quotes make the text invalid JSON.
+      - text: It raises TypeError, because a tuple is not JSON
+        correct: false
+        why: A tuple is written as an array. TypeError appears for values with no JSON form, such as a datetime.
+  - id: api-01-q-design-booking
+    pools: [mastery]
+    chunk: 3
+    objective: 3
+    type: multiple
+    competencies: [api.rest-design, api.status-codes]
+    stem: Which choices are good for a booking API? Choose all that apply.
+    options:
+      - text: '`POST /bookings` answers 201 with a `Location` header for the new booking'
+        correct: true
+        why: This is the usual contract for creating a resource.
+      - text: Every endpoint reports errors in the same JSON shape, with a code and a message
+        correct: true
+        why: A fixed shape lets clients handle failures in one place.
+      - text: '`GET /cancelBooking?ref=b-1` cancels the booking'
+        correct: false
+        why: GET must be safe, and this one changes data. A browser, a prefetching tool or a link checker could cancel bookings. Use PATCH or DELETE on /bookings/b-1.
+      - text: '`GET /bookings` takes `limit` and `cursor`, and caps `limit`'
+        correct: true
+        why: Paging keeps responses small, and the cap stops one client asking for everything at once.
+      - text: Failures answer 200 OK with an error message in the body
+        correct: false
+        why: Clients, caches and monitoring tools read the status code. A failure hidden behind 200 is missed by all of them.
+
+  # ---- Chunk 3 (part 2): authentication (objective 4) ----
+  - id: api-01-q-predict-jwt
+    pools: [mastery]
+    chunk: 3
+    objective: 4
+    type: predict
+    competencies: [api.auth]
+    code: |
+      import base64
+      import json
+
+      claims = {"sub": "agent-17", "scope": "bookings:read", "exp": 1800000000}
+      segment = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+
+      padded = segment + "=" * (-len(segment) % 4)
+      decoded = json.loads(base64.urlsafe_b64decode(padded))
+      print(decoded["scope"], decoded["exp"] > 1700000000)
+      print("agent-17" in segment)
+    investigate:
+      - Did you need any key or secret to read the claims? What does that mean for what you put in a JWT?
+      - Why can the program read the claims but still not be sure who made them?
+  - id: api-01-q-key-in-url
+    pools: [check, mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [api.auth]
+    stem: 'Why should an API key not be sent in the URL, as in `?api_key=...`?'
+    options:
+      - text: URLs are written to server logs, proxy logs, browser history and Referer headers, so the key leaks into places where headers are rarely stored
+        correct: true
+        why: The key is not secret for long when every system on the way records the URL. Send keys in the Authorization header.
+      - text: HTTPS does not encrypt URLs
+        correct: false
+        why: HTTPS encrypts the whole request, including the path and query, while it travels. The leak happens after delivery, in logs and history.
+      - text: Servers cannot read query strings
+        correct: false
+        why: Servers read query strings all the time. That is how filters such as ?status=confirmed work.
+      - text: URLs are limited to a few characters
+        correct: false
+        why: URLs can be long, and keys are short. Length is not the reason.
+  - id: api-01-q-key-url-bug
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: bug
+    competencies: [api.auth]
+    code: |
+      import os
+      api_key = os.environ["BOOKINGS_API_KEY"]
+      url = f"https://api.example.com/bookings?api_key={api_key}"
+      response = client.get(url)
+    buggyLine: 3
+    explanation: 'The key is read from the environment correctly, but then it is put into the URL, where logs, history and proxies will record it. Send it in a header instead, for example headers={"Authorization": f"Bearer {api_key}"}.'
+  - id: api-01-q-basic
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [api.auth]
+    stem: 'A request carries `Authorization: Basic YWdlbnQtMTc6QVRIRU5BX0ZBS0VfcHc=`. What is true about it?'
+    options:
+      - text: The text is only base64-encoded, so anyone who sees the header can decode the user name and password. Use it only over HTTPS
+        correct: true
+        why: Base64 is a reversible encoding, not encryption. Decoding this value gives agent-17 and a password.
+      - text: The value is encrypted, so it is safe to log
+        correct: false
+        why: It is not encrypted. Logging it stores the password in a form anyone can decode.
+      - text: Basic means the server will not check the password
+        correct: false
+        why: Basic is the name of the scheme. The server still checks the credentials.
+      - text: The scheme word must be in lower case
+        correct: false
+        why: Scheme names are case-insensitive. The encoded value is what must match.
+  - id: api-01-q-jwt-verify
+    pools: [mastery]
+    chunk: 3
+    objective: 4
+    type: multiple
+    competencies: [api.auth]
+    stem: Your API receives a JWT. Which checks must it make before it trusts the claims? Choose all that apply.
+    options:
+      - text: Verify the signature with the key it expects
+        correct: true
+        why: The signature is the only proof that the issuer created the token and nobody changed the payload.
+      - text: Check that the expiry time (exp) has not passed
+        correct: true
+        why: A token is valid only for a limited time. An old token that was stolen or leaked would otherwise work for ever.
+      - text: Check that the issuer (iss) and audience (aud) are the ones it expects
+        correct: true
+        why: A correctly signed token from another issuer, or meant for another service, must not be accepted here.
+      - text: Decode the payload and read the sub claim
+        correct: false
+        why: Anyone can build a payload with any sub. Reading it proves nothing without the signature check.
+      - text: Accept whichever signing algorithm the token's header names
+        correct: false
+        why: A token can name a weak algorithm, or none at all. The server decides which algorithms it accepts.
+  - id: api-01-q-oauth-order
+    pools: [mastery]
+    chunk: 3
+    objective: 4
+    type: order
+    competencies: [api.auth]
+    stem: A user connects their calendar to your service with OAuth 2.0. Put the authorisation code flow in order.
+    steps:
+      - Your app sends the user's browser to the provider's authorisation page
+      - The user logs in at the provider and approves the listed scopes
+      - The provider redirects the browser back to your app with a short-lived code
+      - Your server exchanges the code, with its client secret, for an access token
+      - Your server calls the API with the access token in an Authorization header
+  - id: api-01-q-oauth-why
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [api.auth]
+    stem: Why does a "Connect your calendar" button use OAuth 2.0 instead of asking for the user's calendar password?
+    options:
+      - text: The app never sees the password, and it receives a token with limited scopes that the user can revoke
+        correct: true
+        why: This is the purpose of OAuth 2.0. The user signs in at the provider, and the app gets only the access the user approved.
+      - text: OAuth encrypts the calendar data
+        correct: false
+        why: Encryption of the traffic comes from HTTPS. OAuth is about delegated access.
+      - text: OAuth removes the need for HTTPS
+        correct: false
+        why: Tokens are bearer credentials, so they must travel over HTTPS.
+      - text: The password is stored by the app, but hashed
+        correct: false
+        why: With OAuth the app does not receive the password at all.
+  - id: api-01-q-authn-authz
+    pools: [mastery]
+    chunk: 3
+    objective: 4
+    type: short
+    competencies: [api.auth]
+    stem: What is the word for deciding what a caller who has already been identified is allowed to do?
+    accepted:
+      - authorisation
+      - authorization
+      - authz
+    patterns:
+      - ^authori[sz]ation$
+    explanation: This is authorisation. Authentication proves who the caller is, and authorisation decides what they may do. A failure of the first gives 401, and a failure of the second gives 403.
+  - id: api-01-q-key-storage
+    pools: [mastery, warmup]
+    chunk: 3
+    objective: 4
+    type: single
+    competencies: [api.auth]
+    stem: Where should a deployed service read its API key from?
+    options:
+      - text: An environment variable or a secret manager, kept out of the repository
+        correct: true
+        why: This keeps the value out of version control, and lets you rotate it without changing code. This is the rule from the secrets lesson.
+      - text: A constant in the source code
+        correct: false
+        why: Everyone with the repository, and its history, can read the key.
+      - text: A query parameter in the base URL
+        correct: false
+        why: URLs are logged. Send keys in a header.
+      - text: The committed .env.example file
+        correct: false
+        why: The example file lists names with blank values. A real value in it is a leak.
