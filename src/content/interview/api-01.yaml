@@ -1,0 +1,30 @@
+lesson: api-01
+questions:
+  - id: api-01-iq-401-403
+    competencies: [api.status-codes, api.auth]
+    question: What is the difference between a 401 and a 403 response, and when would you return a 404 instead of a 403?
+    modelAnswer: A 401 means the server does not know who is calling, because the credentials are missing or invalid, so the client should authenticate and try again. A 403 means the server knows who is calling and refuses, so sending the same credentials again changes nothing. I keep the two apart because they tell the client different things to do, and because authentication and authorisation fail in different places in the code. If a resource is private and I do not want to reveal that it exists to someone who may not see it, I can return 404 instead of 403. I would do that deliberately and consistently, and I would log the real reason on the server.
+    listenFor:
+      - 401 is about who you are (authentication), and 403 is about what you may do (authorisation)
+      - 401 invites new credentials, and 403 does not
+      - a 404 can hide that a private resource exists
+      - uses the codes consistently
+  - id: api-01-iq-booking-endpoint
+    competencies: [api.rest-design, api.methods, api.status-codes]
+    question: Design the HTTP endpoints for creating, reading, listing and cancelling bookings. Which methods and status codes would you use, and how do you stop a retry from creating a double booking?
+    modelAnswer: I would use a bookings collection. POST /bookings creates one and answers 201 with a Location header, 422 if the body breaks the rules, and 409 if the slot is taken. GET /bookings/b-1 answers 200 or 404. GET /bookings takes filters such as status and a date range, plus limit and a cursor, and returns items with a next_cursor that is null on the last page. To cancel, I would use PATCH /bookings/b-1 with a status of cancelled, which is safe to repeat, or DELETE, which is idempotent too. POST is not idempotent, so a client that times out could create a second booking. I would let the client send an idempotency key that the server stores with the result, so a repeat gets the original answer, and the slot conflict check is the second line of defence. Every call needs authentication, and the server checks that the caller may touch that booking.
+    listenFor:
+      - nouns in plural paths, with the method as the verb
+      - 201 with Location, 404, 409 and 422 used correctly
+      - pagination with a limit, a cap and a cursor
+      - knows POST is not idempotent, and uses an idempotency key or another duplicate check
+      - authentication, and an ownership check on every request
+  - id: api-01-iq-idempotency
+    competencies: [api.methods]
+    question: What does idempotent mean for an HTTP method, and why does it matter when a client retries?
+    modelAnswer: A method is idempotent if sending the same request several times has the same effect on the server as sending it once. GET, PUT and DELETE are idempotent, and POST is not. PATCH depends on the body, because "set status to cancelled" is safe to repeat and "add one to attempts" is not. It matters because a client that gets no reply cannot know whether the request arrived, so it has to retry, and a retried POST can create a second booking. For a POST I would accept an idempotency key, store the result under it, and return the stored answer for a repeat. Idempotent does not mean the same response, since a second DELETE returns 404.
+    listenFor:
+      - safe means read-only, and idempotent means the same effect when repeated
+      - PUT replaces the whole resource and PATCH changes part of it, so PATCH is not always idempotent
+      - a retry is risky for POST because the first request may have worked
+      - idempotency keys, or another duplicate check, make a POST safe to retry

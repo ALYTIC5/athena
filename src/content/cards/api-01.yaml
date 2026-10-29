@@ -1,0 +1,80 @@
+lesson: api-01
+cards:
+  - id: api-01-c-message-layout
+    type: explain
+    competencies: [api.http]
+    front: What are the parts of an HTTP request, and how does a response differ?
+    back: A request has a first line (method, target, version), header lines, a blank line and an optional body. A response has the same layout, but its first line is a status line with the version, a status code and a reason, such as HTTP/1.1 201 Created.
+  - id: api-01-c-url-parts
+    type: basic
+    competencies: [api.http]
+    front: 'Name the parts of `https://api.example.com/bookings?limit=10#top`, and say which one the server never receives.'
+    back: Scheme (https), host (api.example.com), path (/bookings), query (limit=10) and fragment (top). The fragment is used only by the client and is not sent.
+  - id: api-01-c-predict-qs
+    type: predict
+    competencies: [api.http]
+    front: |
+      from urllib.parse import parse_qs
+
+      print(parse_qs("limit=10&status=confirmed&status=pending"))
+    back: Every value in a query string is text, and a name can appear more than once, so parse_qs gives a list of strings for each name. To use the limit as a number you need int(query["limit"][0]).
+  - id: api-01-c-safe-idempotent
+    type: explain
+    competencies: [api.methods]
+    front: What do "safe" and "idempotent" mean for an HTTP method, and which methods are which?
+    back: Safe means the method only reads and changes nothing (GET). Idempotent means sending the same request several times has the same effect on the server as sending it once (GET, PUT and DELETE). POST is neither, and PATCH is idempotent only if its body is, for example "set status to cancelled" and not "add one".
+  - id: api-01-c-retry-post
+    type: explain
+    competencies: [api.methods]
+    front: A POST to create a booking times out and you do not know whether it arrived. Why is retrying risky, and what makes a retry safe?
+    back: The first request may have been processed, so a repeat can create a second booking, because POST is not idempotent. A retry is safe for idempotent methods, or when the API supports an idempotency key that lets the server recognise the repeat.
+  - id: api-01-c-put-patch
+    type: basic
+    competencies: [api.methods]
+    front: What is the difference between PUT and PATCH?
+    back: PUT sends the complete new version of the resource, so a field you leave out is lost. PATCH sends only the fields to change.
+  - id: api-01-c-401-403
+    type: explain
+    competencies: [api.status-codes, api.auth]
+    front: What is the difference between 401 and 403?
+    back: 401 means the server does not know who is calling, because the credentials are missing or invalid, so the client should authenticate. 403 means the server knows who is calling and the answer is no, so new credentials will not help unless they belong to someone with more permission.
+  - id: api-01-c-4xx-codes
+    type: basic
+    competencies: [api.status-codes]
+    front: When do you use 400, 404, 409 and 422?
+    back: 400 for a request that cannot be parsed, such as broken JSON. 404 when nothing exists at the path. 409 when a valid request clashes with stored data, such as a slot already booked. 422 when the body parses but breaks the rules, such as a missing field.
+  - id: api-01-c-success-codes
+    type: basic
+    competencies: [api.status-codes]
+    front: What do 200, 201, 202 and 204 each tell the client?
+    back: 200 means it worked and there is a body. 201 means a new resource was created, and Location gives its URL. 202 means the work was accepted and will be done later. 204 means it worked and there is nothing to send back, as for a DELETE.
+  - id: api-01-c-retryable
+    type: explain
+    competencies: [api.status-codes]
+    front: Which status codes are worth retrying, and which are not?
+    back: 4xx means the request must change first, so do not retry it as it is, with the exception of 429, where you wait for the time in Retry-After. 5xx such as 502 and 503 are the server's problem and often pass, so retry after a wait, and only when it is safe to repeat the request.
+  - id: api-01-c-rest-paths
+    type: explain
+    competencies: [api.rest-design]
+    front: What are the main rules for REST paths, with an example for listing one customer's confirmed bookings?
+    back: The path names a resource with a plural noun, and the method is the verb. Nest at most one level, and use query parameters to filter, sort and page. For example GET /customers/c-7/bookings?status=confirmed, not GET /getConfirmedBookings.
+  - id: api-01-c-pagination
+    type: explain
+    competencies: [api.rest-design]
+    front: Why is cursor pagination more reliable than offset pagination?
+    back: An offset counts positions, so when rows are added or removed between requests the pages shift and a row is repeated or skipped. A cursor is the id of the last item seen, so the next page starts right after it, whatever changed earlier. The response gives next_cursor, which is null on the last page.
+  - id: api-01-c-key-in-url
+    type: explain
+    competencies: [api.auth]
+    front: Why must an API key travel in a header and not in the URL?
+    back: URLs are written to server logs, proxy logs, browser history and Referer headers, so a key in a URL is stored in places that are never meant to hold secrets. Send it in the Authorization header, read it from the environment, and rotate it if it ever appears in a URL.
+  - id: api-01-c-oauth-flow
+    type: explain
+    competencies: [api.auth]
+    front: Describe the OAuth 2.0 authorisation code flow, and say why it is used.
+    back: Your app sends the user to the provider's page, the user signs in and approves scopes, and the provider redirects back with a short-lived code. Your server exchanges the code and its client secret for an access token and calls the API with it as a Bearer token. The app never sees the password, and the token has limited scopes that the user can revoke.
+  - id: api-01-c-jwt
+    type: explain
+    competencies: [api.auth]
+    front: What does a JWT contain, and what must a server do before it trusts one?
+    back: Three base64url parts, header.payload.signature. The payload holds claims such as sub, iss, aud and exp, and anyone can read it, because it is signed but not encrypted. The server must verify the signature with the key it expects, check exp, iss and aud, and accept only the algorithms it chose.

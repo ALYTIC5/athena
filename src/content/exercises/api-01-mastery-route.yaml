@@ -1,0 +1,240 @@
+id: api-01-mastery-route
+lesson: api-01
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Match a request to a route, or answer 404 or 405
+difficulty: 3
+competencies:
+  - api.rest-design
+  - api.methods
+timeoutMs: 5000
+packages: []
+prompt: |
+  A web framework matches each request to a route. Write `match_route(method, path, routes)`.
+
+  - `routes` is a list of `(method, pattern)` pairs, such as `("GET", "/bookings/{ref}")`. A pattern is split into segments at `/`. A segment in braces, like `{ref}`, matches **exactly one** non-empty segment of the path and captures it. Every other segment must match exactly.
+  - If a route matches both the method and the path, return `{"status": 200, "params": {...}}` with the captured values, for example `{"ref": "b-7"}`. The first matching route wins.
+  - If the path matches some route but not for this method, return `{"status": 405, "allow": [...]}` where `allow` is the sorted list of methods that route set accepts for that path (no duplicates).
+  - If no route matches the path, return `{"status": 404}`.
+
+  Paths always start with `/` and have no trailing slash or query string.
+starter: |
+  def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+      ...
+visibleTests: |
+  ROUTES = [
+      ("GET", "/bookings"),
+      ("POST", "/bookings"),
+      ("GET", "/bookings/{ref}"),
+      ("DELETE", "/bookings/{ref}"),
+      ("GET", "/customers/{customer}/bookings"),
+  ]
+
+
+  def test_a_collection_route():
+      assert match_route("GET", "/bookings", ROUTES) == {"status": 200, "params": {}}
+
+  def test_a_route_with_a_parameter():
+      assert match_route("DELETE", "/bookings/b-7", ROUTES) == {"status": 200, "params": {"ref": "b-7"}}
+
+  def test_unknown_path_is_404():
+      assert match_route("GET", "/agents", ROUTES) == {"status": 404}
+hiddenTests: |
+  ROUTES = [
+      ("GET", "/bookings"),
+      ("POST", "/bookings"),
+      ("GET", "/bookings/{ref}"),
+      ("DELETE", "/bookings/{ref}"),
+      ("GET", "/customers/{customer}/bookings"),
+  ]
+
+
+  def test_wrong_method_is_405_with_the_sorted_allow_list():
+      assert match_route("PUT", "/bookings/b-7", ROUTES) == {"status": 405, "allow": ["DELETE", "GET"]}
+
+  def test_405_for_a_collection():
+      assert match_route("DELETE", "/bookings", ROUTES) == {"status": 405, "allow": ["GET", "POST"]}
+
+  def test_a_longer_path_is_not_matched_by_a_shorter_pattern():
+      assert match_route("GET", "/bookings/b-7/cancel", ROUTES) == {"status": 404}
+
+  def test_a_shorter_path_is_not_matched_by_a_longer_pattern():
+      assert match_route("GET", "/customers/c-1", ROUTES) == {"status": 404}
+
+  def test_nested_route_captures_the_middle_segment():
+      assert match_route("GET", "/customers/c-1/bookings", ROUTES) == {"status": 200, "params": {"customer": "c-1"}}
+
+  def test_fixed_segments_must_match_exactly():
+      assert match_route("GET", "/customers/c-1/calls", ROUTES) == {"status": 404}
+
+  def test_an_empty_segment_does_not_match_a_parameter():
+      assert match_route("GET", "/bookings/", ROUTES) == {"status": 404}
+
+  def test_no_routes():
+      assert match_route("GET", "/bookings", []) == {"status": 404}
+
+  def test_the_first_matching_route_wins():
+      routes = [("GET", "/calls/{id}"), ("GET", "/calls/{call}")]
+      assert match_route("GET", "/calls/c-5", routes) == {"status": 200, "params": {"id": "c-5"}}
+
+  def test_methods_from_all_routes_for_the_path_are_listed_once():
+      routes = [("GET", "/calls/{id}"), ("PATCH", "/calls/{call}"), ("GET", "/calls/{x}")]
+      assert match_route("DELETE", "/calls/c-5", routes) == {"status": 405, "allow": ["GET", "PATCH"]}
+
+  def test_method_names_are_exact():
+      assert match_route("get", "/bookings", ROUTES) == {"status": 405, "allow": ["GET", "POST"]}
+feedback:
+  - test: test_wrong_method_is_405_with_the_sorted_allow_list
+    message: When the path exists but the method does not, answer 405 and list the allowed methods, sorted. A 404 would say the path does not exist.
+  - test: test_405_for_a_collection
+    message: The 405 allow list is every method that some route accepts for this path, sorted, without repeats.
+  - test: test_a_longer_path_is_not_matched_by_a_shorter_pattern
+    message: Compare the number of segments first. A pattern with fewer segments must not match a longer path.
+  - test: test_a_shorter_path_is_not_matched_by_a_longer_pattern
+    message: A pattern with more segments must not match a shorter path.
+  - test: test_fixed_segments_must_match_exactly
+    message: A segment that is not in braces has to be equal to the path segment.
+  - test: test_an_empty_segment_does_not_match_a_parameter
+    message: A {parameter} needs a non-empty segment. The path /bookings/ has an empty last segment.
+  - test: test_the_first_matching_route_wins
+    message: Return the first route that matches both the method and the path, with its own parameter names.
+  - test: test_methods_from_all_routes_for_the_path_are_listed_once
+    message: Collect the methods of every route whose path matches, in a set, then sort them.
+hints:
+  - What must be true about the segments of a path and a pattern for them to match, and what is the difference between "no route has this path" and "the path exists but not for this method"?
+  - 'Write a helper that compares a pattern with a path segment by segment and returns the captured parameters or None. Then go through the routes: a path match with the right method gives 200, and collect the methods of path matches for the 405 answer.'
+  - |-
+    def captures(pattern, path):
+        wanted, actual = pattern.split("/"), path.split("/")
+        if len(wanted) != len(actual):
+            return None
+        params = {}
+        for i in range(len(wanted)):
+            want, got = wanted[i], actual[i]
+            if want[:1] == "{" and want[-1:] == "}" and ____:
+                params[want[1:-1]] = got
+            elif want != got:
+                return None
+        return params
+referenceSolution: |
+  def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+      def captures(pattern: str, actual_path: str) -> dict | None:
+          wanted = pattern.split("/")
+          actual = actual_path.split("/")
+          if len(wanted) != len(actual):
+              return None
+          params = {}
+          for i in range(len(wanted)):
+              want, got = wanted[i], actual[i]
+              if want[:1] == "{" and want[-1:] == "}" and got != "":
+                  params[want[1:-1]] = got
+              elif want != got:
+                  return None
+          return params
+
+      allowed = set()
+      for route_method, pattern in routes:
+          params = captures(pattern, path)
+          if params is None:
+              continue
+          if route_method == method:
+              return {"status": 200, "params": params}
+          allowed.add(route_method)
+      if allowed:
+          return {"status": 405, "allow": sorted(allowed)}
+      return {"status": 404}
+wrongSolutions:
+  - label: Answers 404 when the path exists but the method is wrong
+    code: |
+      def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+          for route_method, pattern in routes:
+              wanted = pattern.split("/")
+              actual = path.split("/")
+              if route_method != method or len(wanted) != len(actual):
+                  continue
+              params = {}
+              for want, got in zip(wanted, actual):
+                  if want.startswith("{") and got != "":
+                      params[want[1:-1]] = got
+                  elif want != got:
+                      break
+              else:
+                  return {"status": 200, "params": params}
+          return {"status": 404}
+  - label: Lets a pattern match the start of a longer path
+    code: |
+      def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+          allowed = set()
+          for route_method, pattern in routes:
+              wanted = pattern.split("/")
+              actual = path.split("/")
+              params = {}
+              ok = len(actual) >= len(wanted)
+              for want, got in zip(wanted, actual):
+                  if want.startswith("{") and got != "":
+                      params[want[1:-1]] = got
+                  elif want != got:
+                      ok = False
+                      break
+              if not ok:
+                  continue
+              if route_method == method:
+                  return {"status": 200, "params": params}
+              allowed.add(route_method)
+          if allowed:
+              return {"status": 405, "allow": sorted(allowed)}
+          return {"status": 404}
+  - label: Reports only the first route's method in the 405 answer, unsorted
+    code: |
+      def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+          allowed = []
+          for route_method, pattern in routes:
+              wanted = pattern.split("/")
+              actual = path.split("/")
+              if len(wanted) != len(actual):
+                  continue
+              params = {}
+              ok = True
+              for want, got in zip(wanted, actual):
+                  if want.startswith("{") and got != "":
+                      params[want[1:-1]] = got
+                  elif want != got:
+                      ok = False
+                      break
+              if not ok:
+                  continue
+              if route_method == method:
+                  return {"status": 200, "params": params}
+              allowed.append(route_method)
+          if allowed:
+              return {"status": 405, "allow": allowed[:1]}
+          return {"status": 404}
+  - label: Lets a parameter match an empty segment
+    code: |
+      def match_route(method: str, path: str, routes: list[tuple[str, str]]) -> dict:
+          allowed = set()
+          for route_method, pattern in routes:
+              wanted = pattern.split("/")
+              actual = path.split("/")
+              if len(wanted) != len(actual):
+                  continue
+              params = {}
+              ok = True
+              for want, got in zip(wanted, actual):
+                  if want.startswith("{"):
+                      params[want[1:-1]] = got
+                  elif want != got:
+                      ok = False
+                      break
+              if not ok:
+                  continue
+              if route_method == method:
+                  return {"status": 200, "params": params}
+              allowed.add(route_method)
+          if allowed:
+              return {"status": 405, "allow": sorted(allowed)}
+          return {"status": 404}
+explanation: |
+  Routing is a comparison of segments. Splitting both the pattern and the path at `/` and requiring the same number of segments stops `/bookings/{ref}` from matching `/bookings/b-7/cancel`. A braced segment captures one non-empty segment and every other segment must be equal. The method comes second on purpose: a path that matches some route but not for this method is a different problem from a path nobody knows, so the answer is 405 Method Not Allowed with the allowed methods, instead of 404. Collecting the methods in a set removes repeats and `sorted` makes the answer stable. Alternative: a regular expression per route, built from the pattern, is what many frameworks do. It is faster for many routes, but the segment version is easier to read and shows the rule.

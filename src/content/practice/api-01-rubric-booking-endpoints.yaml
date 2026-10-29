@@ -1,0 +1,50 @@
+id: api-01-rubric-booking-endpoints
+lesson: api-01
+kind: rubric
+competencies:
+  - api.rest-design
+  - api.methods
+  - api.status-codes
+title: Rate your design for the booking endpoints (create, read, list and cancel)
+estMin: 8
+criteria:
+  - name: Paths and nesting
+    levels:
+      - score: 0
+        description: My paths contain verbs, such as /createBooking, or I did not write paths at all.
+      - score: 1
+        description: My paths use nouns, but they are singular, inconsistent or nested more than one level.
+      - score: 2
+        description: I used plural nouns, such as /bookings and /bookings/b-1, with at most one level of nesting and filters in the query.
+  - name: Methods and idempotency
+    levels:
+      - score: 0
+        description: I used GET or POST for everything, or I did not say which methods are safe to repeat.
+      - score: 1
+        description: I chose fitting methods, but I did not say what happens when a client repeats a request.
+      - score: 2
+        description: I chose POST, GET and PATCH or DELETE, said which are idempotent, and described a safe retry for the POST, such as an idempotency key.
+  - name: Status codes
+    levels:
+      - score: 0
+        description: I used 200 for everything, or I gave no error codes.
+      - score: 1
+        description: I gave success and error codes, but I mixed up some, such as 401 and 403 or 409 and 422.
+      - score: 2
+        description: I used 201 with a Location header for the create, 404 for a missing booking, 409 for a taken slot, 422 for a body that breaks the rules, and 401 versus 403 correctly.
+  - name: List design
+    levels:
+      - score: 0
+        description: The list returns every booking in one response.
+      - score: 1
+        description: The list has a limit, but no cursor, or no cap on the limit.
+      - score: 2
+        description: The list takes filters, a capped limit and a cursor, and the response has items and a next_cursor that is null on the last page.
+  - name: Errors and authentication
+    levels:
+      - score: 0
+        description: I did not say who may call each endpoint, and errors have no fixed shape.
+      - score: 1
+        description: I required a credential, but errors differ between endpoints, or I did not check that the caller owns the booking.
+      - score: 2
+        description: Every call needs a Bearer credential in a header, the server checks ownership, and every error has the same JSON shape without stack traces.

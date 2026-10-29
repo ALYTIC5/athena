@@ -1,0 +1,343 @@
+---
+title: HTTP and REST
+description: Reading and building HTTP requests and responses, choosing methods and status codes, designing REST endpoints with JSON and cursor pagination, and the basics of API keys, OAuth 2.0 and JWTs.
+sidebar:
+  order: 100
+lessonId: api-01
+week: 10
+track: api
+durationMin: 105
+anatomy: short
+competencies: [api.http, api.methods, api.status-codes, api.rest-design, api.auth]
+prerequisites: [py-04, sec-01]
+whyItMatters: >
+  REST APIs and webhooks appear in 54% of the postings you are targeting, and LLM APIs in 32%. A voice agent, a
+  booking system and a payment provider all talk to each other with HTTP requests, so reading a request, choosing the
+  right status code and keeping a key out of a URL are everyday work. Interviewers ask about idempotency, about 401
+  versus 403, and how you would design an endpoint, because the answers show whether you understand what happens
+  between two systems.
+objectives:
+  - Describe the parts of an HTTP request and response, and read a URL
+  - Choose methods and status codes, and explain safe, idempotent, PUT versus PATCH and 401 versus 403
+  - Design REST resource paths with filtering, JSON bodies and cursor pagination
+  - Explain API keys, Bearer and Basic authorisation, the OAuth 2.0 authorisation code flow, and what a JWT contains and why it must be verified
+sources:
+  - title: "RFC 9110: HTTP Semantics"
+    url: https://www.rfc-editor.org/rfc/rfc9110
+  - title: "RFC 6585: Additional HTTP Status Codes (429 Too Many Requests)"
+    url: https://www.rfc-editor.org/rfc/rfc6585
+  - title: "RFC 7617: The 'Basic' HTTP Authentication Scheme"
+    url: https://www.rfc-editor.org/rfc/rfc7617
+  - title: "RFC 6750: The OAuth 2.0 Bearer Token Usage"
+    url: https://www.rfc-editor.org/rfc/rfc6750
+  - title: "RFC 6749: The OAuth 2.0 Authorization Framework"
+    url: https://www.rfc-editor.org/rfc/rfc6749
+  - title: "RFC 7636: Proof Key for Code Exchange (PKCE)"
+    url: https://www.rfc-editor.org/rfc/rfc7636
+  - title: "RFC 7519: JSON Web Token (JWT)"
+    url: https://www.rfc-editor.org/rfc/rfc7519
+  - title: "RFC 8725: JSON Web Token Best Current Practices"
+    url: https://www.rfc-editor.org/rfc/rfc8725
+  - title: "Python documentation: urllib.parse"
+    url: https://docs.python.org/3/library/urllib.parse.html
+  - title: "Python documentation: json"
+    url: https://docs.python.org/3/library/json.html
+  - title: "Python documentation: base64"
+    url: https://docs.python.org/3/library/base64.html
+---
+
+<WarmUp lesson="api-01" count={5} />
+
+## Why this matters
+
+REST APIs and webhooks appear in 54% of the postings you are targeting, and LLM APIs in 32%. A voice agent, a booking system and a payment provider all talk to each other with HTTP requests, so reading a request, choosing the right status code and keeping a key out of a URL are everyday work. Interviewers ask about idempotency, about 401 versus 403, and how you would design an endpoint, because the answers show whether you understand what happens between two systems.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Describe the parts of an HTTP request and response, and read a URL.
+2. Choose methods and status codes, and explain safe, idempotent, `PUT` versus `PATCH` and 401 versus 403.
+3. Design REST resource paths with filtering, JSON bodies and cursor pagination.
+4. Explain API keys, Bearer and Basic authorisation, the OAuth 2.0 authorisation code flow, and what a JWT contains and why it must be verified.
+
+<Callout type="note" title="What runs where in this lesson">
+
+You know Python up to py-06, including `json` and dictionaries (py-04), and the secrets rules from sec-01. A browser page cannot open network connections to real servers, so nothing here sends a request. You read and build the text of requests and responses by hand, and you write the decisions an API makes (which status code, which route, which page) as plain functions. That is the same logic you will put inside a web framework in api-02. All hosts end in example.com, and every key is invented and contains `ATHENA_FAKE`. One code block is marked `nocheck` because it needs a package that is not available here, and the block says which.
+
+</Callout>
+
+<Chunk n={1} title="Requests, responses and URLs">
+
+**HTTP** (HyperText Transfer Protocol) is how a **client** (your code, a browser, a phone provider's system) asks a **server** for something and gets an answer. Every exchange is one **request** and one **response**. Both are text with the same layout: a first line, headers, a blank line, and an optional body.
+
+A request's first line holds the method, the target and the version, as in `POST /bookings HTTP/1.1`. **Headers** are `Name: value` lines such as `Host` (the server name), `Content-Type` (what the body contains) and `Authorization` (who is calling), and their names are case-insensitive. A response starts with a status line like `HTTP/1.1 201 Created`: the version, a status code and a short reason phrase.
+
+A **URL** such as `https://api.example.com/bookings?status=confirmed&limit=10#top` has a scheme (`https`), a host, a path (`/bookings`), a query of `name=value` pairs after `?`, and a fragment after `#` that never reaches the server.
+
+<Callout type="note" title="Primer: partition, urllib.parse and line endings">
+
+`text.partition(sep)` splits at the **first** `sep` and returns three parts: before, the separator, and after. HTTP lines end with `\r\n` (carriage return, line feed), and an empty line ends the headers. `urllib.parse` is in Python's standard library: `urlsplit` cuts a URL into parts, and `parse_qs` turns a query string into a dict.
+
+</Callout>
+
+**Worked example.** A raw request as it travels over the network (the body is 60 bytes, which `Content-Length` states).
+
+```http
+POST /bookings HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Content-Length: 60
+
+{"customer": "Amara Okafor", "slot": "2026-11-12T09:00:00Z"}
+```
+
+The same request as a Python string, read by hand, and a URL taken apart.
+
+```python
+import json
+from urllib.parse import urlsplit, parse_qs
+
+raw = (
+    "POST /bookings HTTP/1.1\r\nHost: api.example.com\r\nContent-Type: application/json\r\n\r\n"
+    '{"customer": "Amara Okafor"}'
+)
+head, _, body = raw.partition("\r\n\r\n")        # before the first blank line, the blank line, the rest
+lines = head.split("\r\n")                       # the request line, then one header per line
+method, target, version = lines[0].split(" ")    # "POST", "/bookings", "HTTP/1.1"
+print(method, target)                            # POST /bookings
+print(lines[2].partition(":")[2].strip())        # application/json: the value of Content-Type
+print(json.loads(body)["customer"])              # Amara Okafor
+
+parts = urlsplit("https://api.example.com/bookings?status=confirmed&limit=10")
+print(parts.scheme, parts.hostname, parts.path)  # https api.example.com /bookings
+print(parse_qs(parts.query))                     # {'status': ['confirmed'], 'limit': ['10']}
+```
+
+<Predict lesson="api-01" item="api-01-q-predict-query" />
+
+<Quiz lesson="api-01" chunk={1} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "Header names must be capitalised exactly." They are case-insensitive. Look them up in one form, such as lower case.
+- "Query values arrive as numbers." Everything in a query string is text, and `parse_qs` gives a list of strings for each name. Convert with `int(query["limit"][0])`.
+- "HTTPS hides the URL from the server." HTTPS encrypts the request while it travels. The server still receives the full URL and may write it to a log.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Methods, status codes and idempotency">
+
+The **method** says what to do with the resource. `GET` reads, `POST` creates one or runs an action, `PUT` replaces the whole resource (a field you leave out is lost), `PATCH` changes part of it, and `DELETE` removes it. A method is **safe** if it only reads (`GET`). It is **idempotent** if sending the same request several times has the same effect on the server as sending it once.
+
+`GET`, `PUT` and `DELETE` are idempotent, and `POST` is not. `PATCH` depends on its body: "set status to cancelled" is safe to repeat, "add one to attempts" is not. A repeated `DELETE` gets 404 the second time, but the server ends in the same state. A lost reply leaves the client unsure whether the request arrived, and a retried `POST` can create a second booking.
+
+An API can make a `POST` safe to retry with an **idempotency key**: a unique value the client sends in a header. The server stores the result under that key, so a repeat gets the original answer. You will build this in a later lesson.
+
+The **status code** says what happened: 2xx is success, 3xx means look elsewhere, 4xx means the client must fix the request, and 5xx means the server failed, so a later retry may work.
+
+| Code | Name                  | Use it when                                                                              |
+| ---- | --------------------- | ---------------------------------------------------------------------------------------- |
+| 200  | OK                    | A read or update worked, and there is a body                                             |
+| 201  | Created               | A `POST` made a new resource; the `Location` header holds its URL                        |
+| 202  | Accepted              | The work will be done later; it is not finished yet                                      |
+| 204  | No Content            | It worked and there is nothing to send back, as for a `DELETE`                           |
+| 301  | Moved Permanently     | The resource has a new address in `Location`; use it from now on                         |
+| 302  | Found                 | A temporary move; keep using the old address                                             |
+| 400  | Bad Request           | The request cannot be parsed, such as broken JSON                                        |
+| 401  | Unauthorized          | The server does not know who is calling; `WWW-Authenticate` names the login scheme       |
+| 403  | Forbidden             | The caller is known but not allowed to do this                                           |
+| 404  | Not Found             | Nothing exists at this path                                                              |
+| 405  | Method Not Allowed    | The path exists, but not for this method; an `Allow` header lists the methods that work  |
+| 409  | Conflict              | The request clashes with stored data, such as a slot already booked                      |
+| 422  | Unprocessable Content | The body parses but breaks the rules, such as a missing field                            |
+| 429  | Too Many Requests     | Too fast; `Retry-After` says how long to wait                                            |
+| 500  | Internal Server Error | A bug or crash on the server                                                             |
+| 502  | Bad Gateway           | A proxy (a server that passes requests on) got an invalid reply from the server behind it |
+| 503  | Service Unavailable   | The server is overloaded or in maintenance; try again later (`Retry-After` may say when) |
+
+`401` is named "Unauthorized" but means unauthenticated: the server does not know who you are. `403` means it knows, and the answer is no. Some APIs answer 404 instead of 403 to hide that a private resource exists. Teams differ on 400 versus 422; this lesson uses 400 for a body that cannot be parsed and 422 for one that parses but breaks the rules.
+
+**Worked example.** A tiny handler, called twice to show idempotency.
+
+```python
+bookings = {"b-1": {"customer": "Amara Okafor", "slot": "09:00"}}
+
+def handle(method: str, ref: str, body: dict | None = None) -> int:
+    if ref not in bookings:
+        return 404                    # nothing at this address
+    if method == "DELETE":
+        del bookings[ref]
+        return 204                    # done, and there is nothing to send back
+    if method == "PUT":
+        bookings[ref] = body          # replace the whole booking
+        return 200
+    return 200                        # GET changes nothing
+
+new = {"customer": "Amara Okafor", "slot": "10:00"}
+print(handle("PUT", "b-1", new), handle("PUT", "b-1", new))   # 200 200: same state both times
+print(handle("DELETE", "b-1"), handle("DELETE", "b-1"))       # 204 404: same state, different reply
+```
+
+A real `PUT` to an address that does not exist yet may create the resource and answer 201; this small handler answers 404 instead.
+
+<Predict lesson="api-01" item="api-01-q-predict-idempotent" />
+
+<Quiz lesson="api-01" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "Idempotent means the server sends the same response every time." It means the same effect on the server. A repeated `DELETE` changes nothing the second time, though the reply is 404.
+- "`401` means the user is not allowed." That is 403. A 401 means the server cannot tell who is calling.
+- "`POST` always creates something." It also runs actions, such as sending a reminder. What makes it risky to retry is that it is not idempotent.
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={3} title="REST design, pagination and authentication">
+
+**REST** is a style for HTTP APIs built around **resources**, such as a booking or a call, each with its own URL. A **route** is a method plus a path pattern, like `GET /bookings/{ref}`, where the braces mark the part that changes. The path is a noun and the method is the verb, so use `DELETE /bookings/b-1`, not `/deleteBooking`. Collections are plural (`/bookings`), nest at most one level (`/customers/c-7/bookings`), and filter, sort and page with query parameters.
+
+Bodies are **JSON**, sent with `Content-Type: application/json`. JSON has no dates, so send ISO 8601 strings in UTC (py-04). Python writes a tuple as an array, and a value with no JSON form, such as a `datetime`, raises `TypeError`. Give every error one shape, without stack traces.
+
+Return lists a page at a time. **Offset pagination** (`?limit=20&offset=40`) is simple, but rows added between requests make pages shift, so a row repeats or is skipped. **Cursor pagination** (`?limit=20&cursor=b-040`) sends the id of the last item seen, and the server returns what comes after it. The response has `next_cursor`, null on the last page, and `limit` is always capped.
+
+**Authentication** proves who is calling and **authorisation** decides what they may do. Send credentials in the `Authorization` header, never in the URL. URLs are logged by servers and proxies, kept in browser history, and copied into the `Referer` header (the standard's spelling of "referrer", which tells a site which page you came from).
+
+- **API key:** a long random string that identifies your application, often sent as `Authorization: Bearer <key>`; follow the provider's docs. Read it from the environment and rotate it (sec-01).
+- **Bearer token:** whoever holds ("bears") it can use it, so treat it like a password.
+- **Basic:** `Authorization: Basic <base64 of user:password>`. Base64 is reversible, not encryption, so use it only over HTTPS.
+
+**OAuth 2.0** lets a user give your app limited access to their account at another service without sharing a password. In the **authorisation code flow**, your app sends the browser to the provider, where the user signs in and approves the **scopes** (named permissions, such as `bookings:read`). The provider redirects back with a short-lived `code` and your `state`, a random value you sent first. Your server swaps the code and its client secret (your app's password at the provider) for an access token, and sends it as a Bearer token.
+
+Current practice adds **PKCE** (Proof Key for Code Exchange, RFC 7636), a one-time secret that stops a stolen code from being used.
+
+A **JWT** (JSON Web Token) is `header.payload.signature`, each part base64url text. The payload holds claims: `sub` (who), `iss` (issuer), `aud` (audience), `exp` (expiry, in seconds since 1 January 1970 UTC) and often scopes. It is signed, not encrypted, so anyone can read it. The server must verify the signature, `exp`, `iss` and `aud`, accept only the algorithms it expects (never `none`), and use a maintained library.
+
+<Callout type="note" title="Primer: bytes and base64">
+
+Bytes are raw data. `"text".encode()` turns text into bytes and `.decode()` turns bytes back into text. `base64.b64encode` and `base64.urlsafe_b64encode` turn bytes into text made of letters, digits and a few symbols. The URL-safe form (base64url) uses `-` and `_`, and JWTs leave out its trailing `=` padding.
+
+</Callout>
+
+**Worked example.** A booking as JSON, a client that follows cursors, and where credentials go.
+
+```python
+import base64
+import json
+from datetime import datetime, timezone
+
+booking = {
+    "ref": "b-1",
+    "customer": "Amara Okafor",
+    "starts_at": datetime(2026, 11, 12, 9, 0, tzinfo=timezone.utc).isoformat(),  # a string: JSON has no dates
+    "reminder_sent": False,
+    "notes": None,
+}
+print(json.dumps(booking))   # False becomes false and None becomes null
+
+
+def read_all(fetch_page):
+    items, cursor = [], None
+    while True:
+        page = fetch_page(cursor)            # one request per page
+        items.extend(page["items"])
+        cursor = page["next_cursor"]
+        if cursor is None:                   # null means the last page: stop
+            return items
+
+
+pages = {
+    None: {"items": ["b-1", "b-2"], "next_cursor": "b-2"},
+    "b-2": {"items": ["b-3"], "next_cursor": None},
+}
+print(read_all(lambda cursor: pages[cursor]))   # ['b-1', 'b-2', 'b-3']
+
+headers = {"Authorization": "Bearer ATHENA_FAKE_key_5d1c"}   # in a header, never in the URL
+basic = base64.b64encode(b"agent-17:ATHENA_FAKE_pw").decode()
+print(base64.b64decode(basic).decode())      # agent-17:ATHENA_FAKE_pw: encoding, not encryption
+```
+
+A JWT payload is readable without any key.
+
+```python
+import base64
+import json
+
+
+def b64url(data: dict) -> str:
+    return base64.urlsafe_b64encode(json.dumps(data).encode()).decode().rstrip("=")
+
+
+token = ".".join([
+    b64url({"alg": "HS256", "typ": "JWT"}),
+    b64url({"sub": "agent-17", "aud": "bookings-api", "exp": 1800000000}),
+    "ATHENA_FAKE_signature",                              # a real signature is computed with a key
+])
+header, payload, signature = token.split(".")             # three parts
+padded = payload + "=" * (-len(payload) % 4)              # put the missing = padding back
+print(json.loads(base64.urlsafe_b64decode(padded)))       # readable without any key
+```
+
+Only a signature check proves who made it, and a library does that. The PyJWT package is installed with `pip`, which this page cannot do, so the block is not run.
+
+```python nocheck="needs the PyJWT package and a real signing key"
+import jwt  # the PyJWT package
+
+claims = jwt.decode(
+    token,
+    key,                          # the key you expect the issuer to have used
+    algorithms=["HS256"],         # only the algorithm you expect
+    audience="bookings-api",      # the token must be meant for this service
+)                                 # raises an error if the signature or exp is wrong
+```
+
+<Predict lesson="api-01" item="api-01-q-predict-offset" />
+
+<Quiz lesson="api-01" chunk={3} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 3">
+
+- "Offset pagination is always wrong." It is simple and fine for short lists that rarely change. Cursors win when rows change between requests.
+- "A page with fewer items than `limit` is the last one." The last page can be exactly full, so rely on `next_cursor`.
+- "A JWT payload is encrypted." It is only base64url text. The signature proves it was not changed, not that it is hidden.
+- "OAuth gives my app the user's password." The user signs in at the provider, and the app receives a token with limited scopes that the user can revoke.
+
+</Callout>
+
+</Chunk>
+
+## Design the booking endpoints
+
+Design the API for bookings on paper, in about five minutes. Cover four calls: create a booking, read one, list bookings (filtered and paged), and cancel one. For each give the method and path, the success code, the error codes, who may call it, and how a client can retry safely. Then rate your design.
+
+<Rubric id="api-01-rubric-booking-endpoints" />
+
+## Write it yourself
+
+Now the main exercise of this lesson, the page helper behind a list endpoint, which you write from a blank page.
+
+<Callout type="note" title="Write this yourself">
+
+Write the next exercise yourself. Claude can be your tutor (use the "I'm stuck" button) but not your author.
+
+</Callout>
+
+<Exercise id="api-01-make-paginate" />
+
+<ExplainBack lesson="api-01" exercise="api-01-make-paginate" />
+
+## Mastery check
+
+<MasteryCheck lesson="api-01" count={6} />
+
+<InterviewCorner lesson="api-01" />
+
+## Further reading
+
+- [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110)
+- [RFC 6749: The OAuth 2.0 Authorization Framework](https://www.rfc-editor.org/rfc/rfc6749)
+- [RFC 8725: JSON Web Token Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725)

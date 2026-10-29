@@ -125,7 +125,7 @@
     - id: api-01
       title: 'HTTP and REST'
       durationMin: 105
-      status: planned
+      status: published
     - id: oss-01
       title: 'Your first open-source contribution'
       durationMin: 60
