@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
 const CDN = /^https:\/\/cdn\.jsdelivr\.net\/pyodide\/v314\.0\.7\/full\/(.+)$/;
@@ -21,8 +21,9 @@ interface Item {
 
 const items = new Map<string, Item>();
 // Published lessons count as earlier lessons, so their questions can appear in a sample check.
-for (const f of ['py-01', 'sample', 'sample-2']) {
-  const doc = parse(readFileSync(`src/content/quizzes/${f}.yaml`, 'utf8')) as { items: Item[] };
+// Load every quiz file so a newly published lesson never leaves an item unknown to this spec.
+for (const file of readdirSync('src/content/quizzes').filter((f) => f.endsWith('.yaml'))) {
+  const doc = parse(readFileSync(`src/content/quizzes/${file}`, 'utf8')) as { items: Item[] };
   for (const i of doc.items) items.set(i.id, i);
 }
 const truth = JSON.parse(readFileSync('src/generated/predict-truth.json', 'utf8')) as Record<
