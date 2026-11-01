@@ -1,0 +1,267 @@
+id: api-02-make-gather-lookups
+lesson: api-02
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Load three lookups at once, with one time limit
+difficulty: 3
+competencies:
+  - py.async
+  - api.client
+timeoutMs: 5000
+estMin: 12
+packages: []
+prompt: |
+  Before a booking confirmation goes out, three lookups must finish: the customer record, the slot, and the price. Each one is a call to an external service, so each one mostly waits. Write `load_context(client, ref, timeout)`.
+
+  - `client` has one coroutine method, `await client.fetch(name, ref)`, which returns the result of one lookup. The names are `"customer"`, `"slot"` and `"price"`.
+  - Run the three lookups **at the same time**, not one after another.
+  - The whole job has **one** time limit of `timeout` seconds. If the lookups have not all finished by then, raise `TimeoutError` (the built-in one).
+  - Return a dict `{"customer": ..., "slot": ..., "price": ...}` with each lookup's result.
+  - If a lookup raises an error, let it reach the caller unchanged.
+
+  The tests use a fake client that waits with `asyncio.sleep` on a virtual clock, so they run instantly and measure exactly how long your function would have taken.
+starter: |
+  import asyncio
+
+
+  async def load_context(client, ref: str, timeout: float) -> dict:
+      ...
+visibleTests: |
+  import asyncio
+
+
+  # Page helper: runs a coroutine on a small event loop with a virtual clock, so the tests are
+  # instant and the elapsed time is exact. You do not need to read it.
+  class _Selector:
+      def __init__(self, loop):
+          self.loop = loop
+
+      def select(self, timeout=None):
+          if timeout:
+              self.loop._now += timeout
+          return []
+
+      def close(self):
+          pass
+
+
+  class _VirtualLoop(asyncio.BaseEventLoop):
+      def __init__(self):
+          super().__init__()
+          self._now = 0.0
+          self._selector = _Selector(self)
+
+      def time(self):
+          return self._now
+
+      def _process_events(self, events):
+          pass
+
+      def _write_to_self(self):
+          pass
+
+
+  def run(coro):
+      """Return (result, seconds of virtual time that passed)."""
+      outer = asyncio.events._get_running_loop()
+      asyncio.events._set_running_loop(None)
+      loop = _VirtualLoop()
+      try:
+          value = loop.run_until_complete(coro)
+          return value, loop.time()
+      finally:
+          pending = asyncio.all_tasks(loop)
+          for task in pending:
+              task.cancel()
+          if pending:
+              loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+          loop.close()
+          asyncio.events._set_running_loop(outer)
+
+
+  class FakeClient:
+      def __init__(self, delays, fail=None):
+          self.delays = delays
+          self.fail = fail
+          self.calls = []
+          self.active = 0
+          self.max_active = 0
+
+      async def fetch(self, name, ref):
+          self.calls.append((name, ref))
+          self.active += 1
+          self.max_active = max(self.max_active, self.active)
+          try:
+              await asyncio.sleep(self.delays[name])
+              if name == self.fail:
+                  raise LookupError(f"{name} not found")
+              return f"{name}:{ref}"
+          finally:
+              self.active -= 1
+
+
+  DELAYS = {"customer": 2, "slot": 3, "price": 1}
+
+
+  def test_returns_the_three_results():
+      result, _ = run(load_context(FakeClient(DELAYS), "b-7", 10))
+      assert result == {"customer": "customer:b-7", "slot": "slot:b-7", "price": "price:b-7"}
+
+  def test_the_lookups_overlap_in_time():
+      _, elapsed = run(load_context(FakeClient(DELAYS), "b-7", 10))
+      assert elapsed < 3.5, f"took {elapsed} seconds; one after another would take 6"
+hiddenTests: |
+  def caught(coro):
+      try:
+          run(coro)
+      except BaseException as error:
+          return error
+      return None
+
+
+  def test_all_three_lookups_are_in_flight_together():
+      client = FakeClient(DELAYS)
+      run(load_context(client, "b-7", 10))
+      assert client.max_active == 3
+
+  def test_each_lookup_is_made_exactly_once():
+      client = FakeClient(DELAYS)
+      run(load_context(client, "b-7", 10))
+      assert sorted(client.calls) == [("customer", "b-7"), ("price", "b-7"), ("slot", "b-7")]
+
+  def test_a_slow_lookup_beyond_the_limit_raises_timeout_error():
+      error = caught(load_context(FakeClient(DELAYS), "b-7", 2.5))
+      assert isinstance(error, TimeoutError), f"expected TimeoutError, got {error!r}"
+
+  def test_three_two_second_lookups_fit_in_a_three_second_limit():
+      even = {"customer": 2, "slot": 2, "price": 2}
+      result, elapsed = run(load_context(FakeClient(even), "b-7", 3))
+      assert result["price"] == "price:b-7"
+      assert elapsed < 3
+
+  def test_a_generous_limit_does_not_raise():
+      result, elapsed = run(load_context(FakeClient(DELAYS), "b-7", 3.5))
+      assert result["slot"] == "slot:b-7"
+      assert elapsed < 3.5
+
+  def test_a_failing_lookup_error_reaches_the_caller():
+      error = caught(load_context(FakeClient(DELAYS, fail="slot"), "b-7", 10))
+      assert isinstance(error, LookupError), f"expected LookupError, got {error!r}"
+
+  def test_each_result_goes_under_its_own_name():
+      uneven = {"customer": 3, "slot": 1, "price": 2}
+      result, _ = run(load_context(FakeClient(uneven), "b-9", 10))
+      assert result["customer"] == "customer:b-9"
+      assert result["slot"] == "slot:b-9"
+      assert result["price"] == "price:b-9"
+feedback:
+  - test: test_the_lookups_overlap_in_time
+    message: 'The lookups ran one after another. Create all three coroutines and pass them to asyncio.gather(...) in one await, instead of awaiting each fetch on its own line.'
+  - test: test_all_three_lookups_are_in_flight_together
+    message: 'Only some lookups were waiting at the same time. gather starts every coroutine you give it, so give it all three.'
+  - test: test_a_slow_lookup_beyond_the_limit_raises_timeout_error
+    message: 'Nothing stopped the wait. Wrap the gather in `async with asyncio.timeout(timeout):` (or asyncio.wait_for), and do not catch the TimeoutError yourself.'
+  - test: test_three_two_second_lookups_fit_in_a_three_second_limit
+    message: 'Three 2-second lookups finish in 2 seconds when they overlap. If you wait for them one after another they need 6, which is over the limit.'
+  - test: test_a_failing_lookup_error_reaches_the_caller
+    message: 'Do not use return_exceptions=True and do not catch the error. The default gather raises the first error to the caller. (A TaskGroup also runs tasks together, but it wraps errors in an ExceptionGroup, and this exercise wants gather.)'
+  - test: test_each_result_goes_under_its_own_name
+    message: 'gather returns results in the order you passed the coroutines, whichever finishes first. Unpack them in that order.'
+  - test: test_returns_the_three_results
+    message: "Return a dict with the keys customer, slot and price, each holding that lookup's result."
+hints:
+  - 'If you write `await client.fetch(...)` three times in a row, how long do the lookups take together? What would start them all before you wait?'
+  - 'Await one asyncio.gather(...) of the three fetch calls and unpack its list. Put that await inside `async with asyncio.timeout(timeout):` so a single limit covers all three, and build the dict from the unpacked results.'
+  - |-
+    async with asyncio.____(timeout):
+        customer, slot, price = await asyncio.____(
+            client.fetch("customer", ref),
+            client.fetch("slot", ____),
+            client.fetch("price", ref),
+        )
+    return {"customer": customer, "slot": ____, "price": price}
+referenceSolution: |
+  import asyncio
+
+
+  async def load_context(client, ref: str, timeout: float) -> dict:
+      async with asyncio.timeout(timeout):
+          customer, slot, price = await asyncio.gather(
+              client.fetch("customer", ref),
+              client.fetch("slot", ref),
+              client.fetch("price", ref),
+          )
+      return {"customer": customer, "slot": slot, "price": price}
+wrongSolutions:
+  - label: 'Awaits the lookups one after another, so the waits add up'
+    code: |
+      import asyncio
+
+
+      async def load_context(client, ref: str, timeout: float) -> dict:
+          async with asyncio.timeout(timeout):
+              customer = await client.fetch("customer", ref)
+              slot = await client.fetch("slot", ref)
+              price = await client.fetch("price", ref)
+          return {"customer": customer, "slot": slot, "price": price}
+  - label: 'Gathers the lookups but sets no time limit'
+    code: |
+      import asyncio
+
+
+      async def load_context(client, ref: str, timeout: float) -> dict:
+          customer, slot, price = await asyncio.gather(
+              client.fetch("customer", ref),
+              client.fetch("slot", ref),
+              client.fetch("price", ref),
+          )
+          return {"customer": customer, "slot": slot, "price": price}
+  - label: 'Catches the timeout and returns an empty dict, hiding the failure'
+    code: |
+      import asyncio
+
+
+      async def load_context(client, ref: str, timeout: float) -> dict:
+          try:
+              async with asyncio.timeout(timeout):
+                  customer, slot, price = await asyncio.gather(
+                      client.fetch("customer", ref),
+                      client.fetch("slot", ref),
+                      client.fetch("price", ref),
+                  )
+          except TimeoutError:
+              return {}
+          return {"customer": customer, "slot": slot, "price": price}
+  - label: 'Uses return_exceptions=True, so a failed lookup is returned as a value'
+    code: |
+      import asyncio
+
+
+      async def load_context(client, ref: str, timeout: float) -> dict:
+          async with asyncio.timeout(timeout):
+              customer, slot, price = await asyncio.gather(
+                  client.fetch("customer", ref),
+                  client.fetch("slot", ref),
+                  client.fetch("price", ref),
+                  return_exceptions=True,
+              )
+          return {"customer": customer, "slot": slot, "price": price}
+  - label: 'Pairs the names with results in the order they finish, not the order they were started'
+    code: |
+      import asyncio
+
+
+      async def load_context(client, ref: str, timeout: float) -> dict:
+          names = ["customer", "slot", "price"]
+          result = {}
+          async with asyncio.timeout(timeout):
+              tasks = [asyncio.create_task(client.fetch(name, ref)) for name in names]
+              for name, finished in zip(names, asyncio.as_completed(tasks)):
+                  result[name] = await finished
+          return result
+explanation: |
+  `asyncio.gather` starts every coroutine you give it and waits for all of them, so the lookups wait side by side and the job takes about as long as the slowest one (3 seconds here) instead of the sum (6 seconds). Its results come back in the order you passed the coroutines, which is why unpacking into `customer, slot, price` is safe. One `asyncio.timeout` around the gather sets a single limit for the whole job; when it expires, asyncio cancels the unfinished lookups and raises `TimeoutError` at the end of the `async with` block.
+
+  An alternative is `await asyncio.wait_for(asyncio.gather(...), timeout)`, which does the same in one line. Catching `TimeoutError` inside the function, as the wrong solution does, hides the failure from the caller, which is usually the part of the code that knows whether to retry or to answer 504.

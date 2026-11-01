@@ -1,0 +1,265 @@
+id: api-02-mastery-create-handler
+lesson: api-02
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Decide the status code for POST /bookings
+difficulty: 3
+competencies:
+  - api.fastapi
+  - api.status-codes
+timeoutMs: 5000
+estMin: 15
+packages: []
+prompt: |
+  A framework calls a function you write for each route. Keep the decisions in a plain function, so you can test them without a server. Write `handle_create(bookings, payload)` for `POST /bookings`. It returns a pair `(status, body)`.
+
+  - `bookings` is a dict from a booking ref such as `"b-1"` to a booking dict. It stands in for the database. `payload` is the dict parsed from the JSON body.
+  - **Rules for the payload:** `customer` is required and must be text that is not blank after stripping. `slot` is required and must be non-empty text. `party_size` is optional (default 1) and must be an `int` from 1 to 12; the text `"4"` is **not** accepted here, and neither are `True` and `False` (in Python they count as ints, so check the exact type).
+  - If any rule is broken, return `(422, {"detail": [...]})`. The list has one dict `{"field": name, "message": text}` for **every** broken rule, in the order customer, slot, party_size.
+  - Otherwise, if another booking already has the same `slot`, return `(409, {"detail": "Slot already booked"})`. Check the payload first, then the conflict.
+  - Otherwise create the booking `{"ref": ..., "customer": ..., "slot": ..., "party_size": ...}`. The ref is `"b-"` plus the number of bookings **after** adding it (so the first is `"b-1"`). The customer is stored stripped. Add it to `bookings` and return `(201, booking)`.
+  - A 422 or a 409 must leave `bookings` unchanged.
+starter: |
+  def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+      ...
+visibleTests: |
+  def test_a_valid_booking_is_created():
+      bookings = {}
+      status, body = handle_create(bookings, {"customer": "Amara Okafor", "slot": "2026-11-12T09:00"})
+      assert status == 201
+      assert body == {"ref": "b-1", "customer": "Amara Okafor", "slot": "2026-11-12T09:00", "party_size": 1}
+      assert bookings["b-1"] == body
+
+  def test_a_missing_customer_is_422():
+      status, body = handle_create({}, {"slot": "2026-11-12T09:00"})
+      assert status == 422
+      assert [d["field"] for d in body["detail"]] == ["customer"]
+
+  def test_a_taken_slot_is_409():
+      bookings = {"b-1": {"ref": "b-1", "customer": "Bo Lindqvist", "slot": "2026-11-12T09:00", "party_size": 2}}
+      status, body = handle_create(bookings, {"customer": "Amara Okafor", "slot": "2026-11-12T09:00"})
+      assert (status, body) == (409, {"detail": "Slot already booked"})
+hiddenTests: |
+  def test_every_broken_rule_is_listed_in_order():
+      status, body = handle_create({}, {"customer": "  ", "slot": "", "party_size": 0})
+      assert status == 422
+      assert [d["field"] for d in body["detail"]] == ["customer", "slot", "party_size"]
+      assert all(isinstance(d["message"], str) and d["message"] for d in body["detail"])
+
+  def test_party_size_bounds():
+      for size in (1, 12):
+          assert handle_create({}, {"customer": "A", "slot": "s", "party_size": size})[0] == 201
+      for size in (0, 13, -1):
+          status, body = handle_create({}, {"customer": "A", "slot": "s", "party_size": size})
+          assert status == 422 and [d["field"] for d in body["detail"]] == ["party_size"]
+
+  def test_party_size_text_is_not_accepted():
+      status, body = handle_create({}, {"customer": "A", "slot": "s", "party_size": "4"})
+      assert status == 422 and [d["field"] for d in body["detail"]] == ["party_size"]
+
+  def test_true_is_not_a_party_size():
+      status, body = handle_create({}, {"customer": "A", "slot": "s", "party_size": True})
+      assert status == 422 and [d["field"] for d in body["detail"]] == ["party_size"]
+
+  def test_party_size_defaults_to_one():
+      status, body = handle_create({}, {"customer": "A", "slot": "s"})
+      assert (status, body["party_size"]) == (201, 1)
+
+  def test_the_customer_is_stored_stripped():
+      status, body = handle_create({}, {"customer": "  Amara Okafor ", "slot": "s"})
+      assert body["customer"] == "Amara Okafor"
+
+  def test_a_customer_that_is_not_text_is_422():
+      status, body = handle_create({}, {"customer": 42, "slot": "s"})
+      assert status == 422 and [d["field"] for d in body["detail"]] == ["customer"]
+
+  def test_the_payload_is_checked_before_the_conflict():
+      bookings = {"b-1": {"ref": "b-1", "customer": "Bo", "slot": "s", "party_size": 1}}
+      status, body = handle_create(bookings, {"customer": "", "slot": "s"})
+      assert status == 422
+
+  def test_a_422_leaves_the_store_unchanged():
+      bookings = {}
+      handle_create(bookings, {"customer": "", "slot": "s"})
+      assert bookings == {}
+
+  def test_a_409_leaves_the_store_unchanged():
+      existing = {"ref": "b-1", "customer": "Bo", "slot": "s", "party_size": 1}
+      bookings = {"b-1": existing}
+      handle_create(bookings, {"customer": "A", "slot": "s"})
+      assert bookings == {"b-1": existing}
+
+  def test_the_second_booking_gets_the_next_ref():
+      bookings = {}
+      handle_create(bookings, {"customer": "A", "slot": "s1"})
+      status, body = handle_create(bookings, {"customer": "B", "slot": "s2", "party_size": 3})
+      assert (status, body["ref"]) == (201, "b-2")
+      assert set(bookings) == {"b-1", "b-2"}
+
+  def test_a_different_slot_is_not_a_conflict():
+      bookings = {"b-1": {"ref": "b-1", "customer": "Bo", "slot": "s1", "party_size": 1}}
+      assert handle_create(bookings, {"customer": "A", "slot": "s2"})[0] == 201
+feedback:
+  - test: test_every_broken_rule_is_listed_in_order
+    message: 'Collect all the problems in a list and return them together. Do not return at the first broken rule. Check customer, then slot, then party_size.'
+  - test: test_the_payload_is_checked_before_the_conflict
+    message: 'An invalid payload is 422 even when its slot is taken. Validate first, and look for a conflict only if the payload is valid.'
+  - test: test_a_422_leaves_the_store_unchanged
+    message: 'Add the booking to the store only after every check has passed.'
+  - test: test_a_409_leaves_the_store_unchanged
+    message: 'A booking that is refused must not be stored. Add it only after the conflict check.'
+  - test: test_party_size_text_is_not_accepted
+    message: 'Here the check is by hand and strict: party_size must be an int, so the text "4" is a 422. (A Pydantic model would convert it; this function does not.)'
+  - test: test_true_is_not_a_party_size
+    message: 'True is an int in Python, so isinstance(x, int) accepts it. Compare the exact type: type(x) is int.'
+  - test: test_the_customer_is_stored_stripped
+    message: 'Store the stripped customer, not the text as it arrived.'
+  - test: test_a_customer_that_is_not_text_is_422
+    message: 'Check isinstance(customer, str) before calling .strip(), so a number is a 422 and not a crash.'
+  - test: test_the_second_booking_gets_the_next_ref
+    message: 'The ref is b- plus the number of bookings after adding the new one.'
+  - test: test_party_size_bounds
+    message: '1 and 12 are allowed; 0, -1 and 13 are not.'
+hints:
+  - 'What does the caller need to see for each outcome, and which check must come first?'
+  - 'Build a list of problems by checking customer, slot and party_size in turn. If the list is not empty, return 422 with it. Then look for the slot in the existing bookings. Only then create the ref and store the booking.'
+  - |-
+    problems = []
+    customer = payload.get("customer")
+    if not isinstance(customer, str) or not customer.strip():
+        problems.append({"field": "customer", "message": "customer must be non-blank text"})
+    ...
+    if problems:
+        return ____, {"detail": problems}
+    if any(b["slot"] == payload["slot"] for b in bookings.values()):
+        return ____, {"detail": "Slot already booked"}
+    ref = f"b-{len(bookings) + ____}"
+referenceSolution: |
+  def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+      problems = []
+      customer = payload.get("customer")
+      if not isinstance(customer, str) or not customer.strip():
+          problems.append({"field": "customer", "message": "customer must be text that is not blank"})
+      slot = payload.get("slot")
+      if not isinstance(slot, str) or not slot:
+          problems.append({"field": "slot", "message": "slot must be non-empty text"})
+      party_size = payload.get("party_size", 1)
+      if type(party_size) is not int or not 1 <= party_size <= 12:
+          problems.append({"field": "party_size", "message": "party_size must be a whole number from 1 to 12"})
+      if problems:
+          return 422, {"detail": problems}
+      if any(b["slot"] == slot for b in bookings.values()):
+          return 409, {"detail": "Slot already booked"}
+      ref = f"b-{len(bookings) + 1}"
+      booking = {"ref": ref, "customer": customer.strip(), "slot": slot, "party_size": party_size}
+      bookings[ref] = booking
+      return 201, booking
+wrongSolutions:
+  - label: 'Returns at the first broken rule instead of listing all of them'
+    code: |
+      def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+          customer = payload.get("customer")
+          if not isinstance(customer, str) or not customer.strip():
+              return 422, {"detail": [{"field": "customer", "message": "bad customer"}]}
+          slot = payload.get("slot")
+          if not isinstance(slot, str) or not slot:
+              return 422, {"detail": [{"field": "slot", "message": "bad slot"}]}
+          party_size = payload.get("party_size", 1)
+          if type(party_size) is not int or not 1 <= party_size <= 12:
+              return 422, {"detail": [{"field": "party_size", "message": "bad size"}]}
+          if any(b["slot"] == slot for b in bookings.values()):
+              return 409, {"detail": "Slot already booked"}
+          ref = f"b-{len(bookings) + 1}"
+          booking = {"ref": ref, "customer": customer.strip(), "slot": slot, "party_size": party_size}
+          bookings[ref] = booking
+          return 201, booking
+  - label: 'Checks for a conflict before it validates the payload'
+    code: |
+      def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+          if any(b["slot"] == payload.get("slot") for b in bookings.values()):
+              return 409, {"detail": "Slot already booked"}
+          problems = []
+          customer = payload.get("customer")
+          if not isinstance(customer, str) or not customer.strip():
+              problems.append({"field": "customer", "message": "bad customer"})
+          slot = payload.get("slot")
+          if not isinstance(slot, str) or not slot:
+              problems.append({"field": "slot", "message": "bad slot"})
+          party_size = payload.get("party_size", 1)
+          if type(party_size) is not int or not 1 <= party_size <= 12:
+              problems.append({"field": "party_size", "message": "bad size"})
+          if problems:
+              return 422, {"detail": problems}
+          ref = f"b-{len(bookings) + 1}"
+          booking = {"ref": ref, "customer": customer.strip(), "slot": slot, "party_size": party_size}
+          bookings[ref] = booking
+          return 201, booking
+  - label: 'Stores the booking before the checks, so a refused request is still saved'
+    code: |
+      def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+          ref = f"b-{len(bookings) + 1}"
+          bookings[ref] = {"ref": ref, "customer": payload.get("customer"), "slot": payload.get("slot"), "party_size": payload.get("party_size", 1)}
+          problems = []
+          customer = payload.get("customer")
+          if not isinstance(customer, str) or not customer.strip():
+              problems.append({"field": "customer", "message": "bad customer"})
+          slot = payload.get("slot")
+          if not isinstance(slot, str) or not slot:
+              problems.append({"field": "slot", "message": "bad slot"})
+          party_size = payload.get("party_size", 1)
+          if type(party_size) is not int or not 1 <= party_size <= 12:
+              problems.append({"field": "party_size", "message": "bad size"})
+          if problems:
+              return 422, {"detail": problems}
+          return 201, bookings[ref]
+  - label: 'Accepts the text "4" for party_size and keeps the customer unstripped'
+    code: |
+      def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+          problems = []
+          customer = payload.get("customer")
+          if not isinstance(customer, str) or not customer.strip():
+              problems.append({"field": "customer", "message": "bad customer"})
+          slot = payload.get("slot")
+          if not isinstance(slot, str) or not slot:
+              problems.append({"field": "slot", "message": "bad slot"})
+          try:
+              party_size = int(payload.get("party_size", 1))
+          except (TypeError, ValueError):
+              party_size = 0
+          if not 1 <= party_size <= 12:
+              problems.append({"field": "party_size", "message": "bad size"})
+          if problems:
+              return 422, {"detail": problems}
+          if any(b["slot"] == slot for b in bookings.values()):
+              return 409, {"detail": "Slot already booked"}
+          ref = f"b-{len(bookings) + 1}"
+          booking = {"ref": ref, "customer": customer, "slot": slot, "party_size": party_size}
+          bookings[ref] = booking
+          return 201, booking
+  - label: 'Uses isinstance(party_size, int), which accepts True'
+    code: |
+      def handle_create(bookings: dict, payload: dict) -> tuple[int, dict]:
+          problems = []
+          customer = payload.get("customer")
+          if not isinstance(customer, str) or not customer.strip():
+              problems.append({"field": "customer", "message": "bad customer"})
+          slot = payload.get("slot")
+          if not isinstance(slot, str) or not slot:
+              problems.append({"field": "slot", "message": "bad slot"})
+          party_size = payload.get("party_size", 1)
+          if not isinstance(party_size, int) or not 1 <= party_size <= 12:
+              problems.append({"field": "party_size", "message": "bad size"})
+          if problems:
+              return 422, {"detail": problems}
+          if any(b["slot"] == slot for b in bookings.values()):
+              return 409, {"detail": "Slot already booked"}
+          ref = f"b-{len(bookings) + 1}"
+          booking = {"ref": ref, "customer": customer.strip(), "slot": slot, "party_size": party_size}
+          bookings[ref] = booking
+          return 201, booking
+explanation: |
+  The function keeps the decisions apart from the framework: first validate the whole payload and report every problem (422), then check the state of the world (409), and only then change it (201). Order matters because a request that is malformed should never reach the database check, and nothing is stored until every check has passed. A FastAPI route would do the same work, with the Pydantic model doing the first step and an `HTTPException` doing the second.
+
+  An alternative is to raise a small exception class from each check and turn it into a status code in one place. That reads well when there are many rules, at the cost of reporting only the first problem unless you collect them.

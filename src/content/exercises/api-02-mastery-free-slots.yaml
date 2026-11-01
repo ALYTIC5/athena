@@ -1,0 +1,255 @@
+id: api-02-mastery-free-slots
+lesson: api-02
+runtime: python
+kind: make
+pools:
+  - mastery
+title: Fetch free slots from a calendar service with a timeout
+difficulty: 3
+competencies:
+  - api.client
+  - py.async
+timeoutMs: 5000
+estMin: 15
+packages: []
+prompt: |
+  A calendar service lists free appointment slots. Write `free_slots(client, calendar_id, timeout=5.0)`, a coroutine that uses an httpx-style client.
+
+  - Call `await client.get(f"/calendars/{calendar_id}/slots", timeout=timeout)`. Always pass the timeout as the `timeout=` keyword, so a stalled server cannot hold your code forever.
+  - The response has `.status_code`, `.json()` and `.raise_for_status()`. Like httpx, `raise_for_status()` raises an exception for any 4xx or 5xx status.
+  - If the status is **404**, the calendar does not exist: return `[]`.
+  - For any other error status, let `response.raise_for_status()` raise, and do not catch it.
+  - If the status is a success, return `response.json()["slots"]`.
+  - If the client raises `TimeoutError` because the service was too slow, let it reach the caller. Do not catch it. (The real httpx client raises `httpx.TimeoutException`, not the built-in `TimeoutError`; the fake raises the built-in one so the tests need no package.)
+
+  The tests use a fake client with a virtual clock, so no network is used and nothing really waits.
+starter: |
+  import asyncio
+
+
+  async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+      ...
+visibleTests: |
+  import asyncio
+
+
+  # Page helper: runs a coroutine on a small event loop with a virtual clock, so the tests are
+  # instant and the elapsed time is exact. You do not need to read it.
+  class _Selector:
+      def __init__(self, loop):
+          self.loop = loop
+
+      def select(self, timeout=None):
+          if timeout:
+              self.loop._now += timeout
+          return []
+
+      def close(self):
+          pass
+
+
+  class _VirtualLoop(asyncio.BaseEventLoop):
+      def __init__(self):
+          super().__init__()
+          self._now = 0.0
+          self._selector = _Selector(self)
+
+      def time(self):
+          return self._now
+
+      def _process_events(self, events):
+          pass
+
+      def _write_to_self(self):
+          pass
+
+
+  def run(coro):
+      outer = asyncio.events._get_running_loop()
+      asyncio.events._set_running_loop(None)
+      loop = _VirtualLoop()
+      try:
+          return loop.run_until_complete(coro)
+      finally:
+          pending = asyncio.all_tasks(loop)
+          for task in pending:
+              task.cancel()
+          if pending:
+              loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+          loop.close()
+          asyncio.events._set_running_loop(outer)
+
+
+  class StatusError(Exception):
+      pass
+
+
+  class FakeResponse:
+      def __init__(self, status_code, data):
+          self.status_code = status_code
+          self._data = data
+
+      def json(self):
+          return self._data
+
+      def raise_for_status(self):
+          if self.status_code >= 400:
+              raise StatusError(self.status_code)
+
+
+  class FakeClient:
+      """Answers like httpx: sleeps for `delay`, and raises TimeoutError if that is longer than the timeout."""
+
+      def __init__(self, status_code=200, data=None, delay=0.1):
+          self.response = FakeResponse(status_code, {"slots": ["09:00", "10:30"]} if data is None else data)
+          self.delay = delay
+          self.calls = []
+
+      async def get(self, url, timeout=None):
+          self.calls.append((url, timeout))
+          await asyncio.sleep(min(self.delay, timeout) if timeout is not None else self.delay)
+          if timeout is not None and self.delay > timeout:
+              raise TimeoutError("read timed out")
+          return self.response
+
+
+  def test_returns_the_slots():
+      client = FakeClient()
+      assert run(free_slots(client, "c-4")) == ["09:00", "10:30"]
+      assert client.calls[0][0] == "/calendars/c-4/slots"
+
+  def test_a_missing_calendar_gives_an_empty_list():
+      assert run(free_slots(FakeClient(404, {"detail": "no such calendar"}), "c-9")) == []
+
+  def test_a_server_error_is_raised():
+      try:
+          run(free_slots(FakeClient(503, {"detail": "down"}), "c-4"))
+      except StatusError:
+          return
+      raise AssertionError("a 503 should raise the error from raise_for_status()")
+hiddenTests: |
+  def caught(coro):
+      try:
+          run(coro)
+      except BaseException as error:
+          return error
+      return None
+
+
+  def test_the_default_timeout_is_five_seconds():
+      client = FakeClient()
+      run(free_slots(client, "c-4"))
+      assert client.calls == [("/calendars/c-4/slots", 5.0)]
+
+  def test_a_custom_timeout_is_passed_on():
+      client = FakeClient()
+      run(free_slots(client, "c-4", timeout=1.5))
+      assert client.calls[0][1] == 1.5
+
+  def test_a_slow_service_raises_timeout_error():
+      error = caught(free_slots(FakeClient(delay=8), "c-4"))
+      assert isinstance(error, TimeoutError), f"expected TimeoutError, got {error!r}"
+
+  def test_a_slow_service_is_fine_with_a_longer_timeout():
+      assert run(free_slots(FakeClient(delay=8), "c-4", timeout=10)) == ["09:00", "10:30"]
+
+  def test_other_client_errors_are_raised_not_hidden():
+      for status in (400, 401, 403, 429, 500):
+          error = caught(free_slots(FakeClient(status, {"detail": "no"}), "c-4"))
+          assert isinstance(error, StatusError), f"status {status} should raise, got {error!r}"
+
+  def test_an_empty_list_of_slots_is_a_valid_answer():
+      assert run(free_slots(FakeClient(200, {"slots": []}), "c-4")) == []
+
+  def test_a_success_status_other_than_200_is_not_an_error():
+      assert run(free_slots(FakeClient(201, {"slots": ["11:00"]}), "c-4")) == ["11:00"]
+feedback:
+  - test: test_the_default_timeout_is_five_seconds
+    message: 'Pass timeout=timeout to client.get. The parameter defaults to 5.0, and a call with no timeout is allowed to wait forever.'
+  - test: test_a_custom_timeout_is_passed_on
+    message: 'Use the timeout argument you were given. Do not write a fixed number in the call.'
+  - test: test_a_slow_service_raises_timeout_error
+    message: 'Without the timeout the fake service waits for as long as it wants. Pass timeout=timeout, and do not catch TimeoutError.'
+  - test: test_a_server_error_is_raised
+    message: 'Call response.raise_for_status() before you read the body. It raises for 4xx and 5xx statuses.'
+  - test: test_other_client_errors_are_raised_not_hidden
+    message: 'Only 404 means an empty list. Every other error status must still raise: call response.raise_for_status() and do not catch what it raises.'
+  - test: test_a_missing_calendar_gives_an_empty_list
+    message: 'Check for status 404 before raise_for_status(), and return [] for it.'
+hints:
+  - 'Which of the three outcomes (404, other error, success) is the only one that returns something other than the slots, and where in the code must the check for it sit?'
+  - 'Await client.get with timeout=timeout. If the status code is 404, return an empty list. Otherwise call raise_for_status(), then return the slots from the JSON body. Do not wrap anything in try.'
+  - |-
+    response = await client.get(f"/calendars/{calendar_id}/slots", ____=timeout)
+    if response.status_code == ____:
+        return []
+    response.____()
+    return response.json()["____"]
+referenceSolution: |
+  import asyncio
+
+
+  async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+      response = await client.get(f"/calendars/{calendar_id}/slots", timeout=timeout)
+      if response.status_code == 404:
+          return []
+      response.raise_for_status()
+      return response.json()["slots"]
+wrongSolutions:
+  - label: 'Forgets the timeout, so a stalled server is never given up on'
+    code: |
+      import asyncio
+
+
+      async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+          response = await client.get(f"/calendars/{calendar_id}/slots")
+          if response.status_code == 404:
+              return []
+          response.raise_for_status()
+          return response.json()["slots"]
+  - label: 'Writes a fixed timeout and ignores the argument'
+    code: |
+      import asyncio
+
+
+      async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+          response = await client.get(f"/calendars/{calendar_id}/slots", timeout=5.0)
+          if response.status_code == 404:
+              return []
+          response.raise_for_status()
+          return response.json()["slots"]
+  - label: 'Never calls raise_for_status, so a 503 is not reported as an error'
+    code: |
+      import asyncio
+
+
+      async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+          response = await client.get(f"/calendars/{calendar_id}/slots", timeout=timeout)
+          if response.status_code == 404:
+              return []
+          return response.json().get("slots", [])
+  - label: 'Hides every failure behind an empty list'
+    code: |
+      import asyncio
+
+
+      async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+          try:
+              response = await client.get(f"/calendars/{calendar_id}/slots", timeout=timeout)
+              response.raise_for_status()
+              return response.json()["slots"]
+          except Exception:
+              return []
+  - label: 'Treats 404 as an error like the others'
+    code: |
+      import asyncio
+
+
+      async def free_slots(client, calendar_id: str, timeout: float = 5.0) -> list:
+          response = await client.get(f"/calendars/{calendar_id}/slots", timeout=timeout)
+          response.raise_for_status()
+          return response.json()["slots"]
+explanation: |
+  The function does three things that every external call needs: it passes a timeout so a slow service cannot hang your code, it turns an error status into an exception with `raise_for_status()` so a failure is not mistaken for data, and it decides explicitly which status is an expected answer (404 here means "no such calendar", so an empty list). Letting `TimeoutError` and the status error propagate leaves the caller, usually a route, to choose the response, for example 504 for a timeout.
+
+  With the real client the code is the same, except `client` is an `httpx.AsyncClient`, the timeout can be an `httpx.Timeout(...)` object, and the errors are `httpx.TimeoutException` and `httpx.HTTPStatusError`. An alternative is to check `response.is_success` yourself, but `raise_for_status()` is the idiom and its exception carries the response for logging.

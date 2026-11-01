@@ -1,0 +1,323 @@
+---
+title: Building APIs with FastAPI
+description: Building routes with FastAPI and Pydantic, returning the right status codes and errors, testing with TestClient, calling other APIs with httpx and timeouts, and running several calls at once with async and await.
+sidebar:
+  order: 110
+lessonId: api-02
+week: 11
+track: api
+durationMin: 90
+anatomy: short
+competencies: [api.fastapi, api.client, py.async]
+prerequisites: [api-01, py-05, py-06]
+whyItMatters: >
+  Python appears in 61% of the postings you are targeting, REST APIs and webhooks in 54%, and LLM APIs in 32%. A booking
+  service, a tool that a voice agent calls and a webhook receiver are all small web APIs, and each one calls other APIs
+  that can be slow or down. Interviewers ask how requests are validated, which status code you return when something
+  fails, and how you keep a slow dependency from freezing your service.
+objectives:
+  - Build FastAPI routes with Pydantic models that validate request bodies and shape responses
+  - Return the right status codes and errors, and test routes with TestClient
+  - Call an external API with httpx, using a timeout and checking the status
+  - Use async and await to make several I/O calls at once, with one overall time limit
+sources:
+  - title: "FastAPI: Request body"
+    url: https://fastapi.tiangolo.com/tutorial/body/
+  - title: "FastAPI: Handling errors"
+    url: https://fastapi.tiangolo.com/tutorial/handling-errors/
+  - title: "FastAPI: Response model"
+    url: https://fastapi.tiangolo.com/tutorial/response-model/
+  - title: "FastAPI: Testing"
+    url: https://fastapi.tiangolo.com/tutorial/testing/
+  - title: "FastAPI: Concurrency and async / await"
+    url: https://fastapi.tiangolo.com/async/
+  - title: "Pydantic: Validators"
+    url: https://docs.pydantic.dev/latest/concepts/validators/
+  - title: "HTTPX: Timeouts"
+    url: https://www.python-httpx.org/advanced/timeouts/
+  - title: "HTTPX: Async support"
+    url: https://www.python-httpx.org/async/
+  - title: "Python documentation: Coroutines and tasks"
+    url: https://docs.python.org/3/library/asyncio-task.html
+---
+
+<WarmUp lesson="api-02" count={5} />
+
+## Why this matters
+
+Python appears in 61% of the postings you are targeting, REST APIs and webhooks in 54%, and LLM APIs in 32%. A booking service, a tool that a voice agent calls and a webhook receiver are all small web APIs, and each one calls other APIs that can be slow or down. Interviewers ask how requests are validated, which status code you return when something fails, and how you keep a slow dependency from freezing your service.
+
+## Objectives
+
+By the end of this lesson you can:
+
+1. Build FastAPI routes with Pydantic models that validate request bodies and shape responses.
+2. Return the right status codes and errors, and test routes with `TestClient`.
+3. Call an external API with httpx, using a timeout and checking the status.
+4. Use `async` and `await` to make several I/O calls at once, with one overall time limit.
+
+<Callout type="note" title="What runs where in this lesson">
+
+You know functions, classes and type hints (py-03 to py-05), pytest (py-06) and the HTTP rules of api-01. FastAPI needs a web server, and its `TestClient` needs threads. A browser page can start neither, and it cannot open network connections, so the routes run on your computer, in the checklist near the end. In this page the Pydantic exercise runs for real (the package loads when you open it), and the other exercises test plain functions and `async` code against fake clients. Code blocks in the text run without extra packages, so the ones that use FastAPI, Pydantic or httpx are marked `nocheck` and say why. All hosts end in example.com.
+
+</Callout>
+
+<Chunk n={1} title="Models, routes and errors">
+
+**FastAPI** is a Python web framework: you write one function per route, and it handles the HTTP. A route is a decorator (py-03) with a method and a path, and `status_code=201` sets the success code. A **Pydantic** model is a class whose fields carry type hints, and, unlike the hints in py-05, Pydantic checks them when the object is built. It converts what it can (the text `"4"` becomes 4), applies rules such as `Field(ge=1, le=12)`, and raises one `ValidationError` that lists every problem.
+
+When a route has a parameter whose type is a model, FastAPI reads the JSON body into it. A body that breaks a rule gets a **422** response with a `detail` list, and your function never runs. To refuse a request yourself, `raise HTTPException(status_code=404, detail="...")`; `return 404` would still send status 200. The return type, such as `-> Booking`, shapes the response, so fields it does not list are dropped (`response_model=Booking` in the decorator does the same).
+
+`TestClient` (from `fastapi.testclient`) sends requests into the app inside your test process, with no server and no network, and gives back a response with `.status_code` and `.json()`. Keep the decisions in a plain function that returns a status and a body, so you can test them without it.
+
+<Callout type="note" title="Primer: classmethod and model_dump">
+
+`@classmethod` makes a method receive the class (`cls`) instead of an instance. Pydantic validators use this form, so copy the pattern. `model_dump()` turns a model into a dict. `dict[str, dict]` is a hint for a dict with text keys and dict values.
+
+</Callout>
+
+**Worked example.** The models for `POST /bookings`. The first block is the request body, and the second is the shape of the answer.
+
+```python nocheck="needs the pydantic package, which code blocks in this page do not load; the first exercise below does"
+from pydantic import BaseModel, Field, field_validator
+
+
+class BookingIn(BaseModel):
+    customer: str
+    slot: str                                          # ISO 8601 text, such as 2026-11-12T09:00:00Z
+    party_size: int = Field(default=1, ge=1, le=12)    # rule: from 1 to 12, and 1 if left out
+
+    @field_validator("customer")                       # a rule you write as code
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("customer must not be blank")   # becomes an entry in the error list
+        return value.strip()                           # what you return replaces the field
+
+
+class Booking(BookingIn):                              # the answer: the same fields plus a ref
+    ref: str
+```
+
+The routes. A real server and a real `TestClient` are needed to run them, which is why they are not run here.
+
+```python nocheck="needs the fastapi package and a web server; run it on your computer (see the checklist)"
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+BOOKINGS: dict[str, dict] = {}                         # a stand-in for a database
+
+
+@app.post("/bookings", status_code=201)                # method, path and success code
+def create_booking(body: BookingIn) -> Booking:        # body is validated before this runs
+    if any(b["slot"] == body.slot for b in BOOKINGS.values()):
+        raise HTTPException(status_code=409, detail="Slot already booked")
+    ref = f"b-{len(BOOKINGS) + 1}"
+    BOOKINGS[ref] = {"ref": ref, **body.model_dump()}
+    return BOOKINGS[ref]
+
+
+@app.get("/bookings/{ref}")                            # {ref} becomes the argument
+def read_booking(ref: str) -> Booking:
+    if ref not in BOOKINGS:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    return BOOKINGS[ref]
+```
+
+And a test with `TestClient`.
+
+```python nocheck="needs fastapi and httpx, and TestClient starts threads, which this page cannot do"
+from fastapi.testclient import TestClient
+from main import app                                   # the file with the routes
+
+client = TestClient(app)
+
+
+def test_create_then_conflict():
+    body = {"customer": "Amara Okafor", "slot": "2026-11-12T09:00:00Z"}
+    assert client.post("/bookings", json=body).status_code == 201
+    assert client.post("/bookings", json=body).status_code == 409    # the same slot again
+    assert client.post("/bookings", json={"slot": "x"}).status_code == 422   # customer is missing
+```
+
+<Predict lesson="api-02" item="api-02-q-predict-create" />
+
+<Callout type="note" title="Write this yourself">
+
+Write the next exercise yourself. Claude can be your tutor (use the "I'm stuck" button) but not your author.
+
+</Callout>
+
+Now write a model yourself, with a different set of fields and rules.
+
+<Exercise id="api-02-make-ticket-model" />
+
+<Callout type="misconception" title="Common misconceptions in chunk 1">
+
+- "The type hints on a Pydantic model are only documentation, as in py-05." Pydantic checks and converts the values when the model is built, and it reports every broken rule.
+- "To answer 404, return 404." A returned value becomes the body, and the status stays 200. Raise `HTTPException` to set the status.
+- "A `TestClient` test needs a running server." It calls the app in the same process. It does need fresh state, so reset a shared store such as `BOOKINGS` in a fixture (py-06).
+
+</Callout>
+
+</Chunk>
+
+<Chunk n={2} title="Calling other APIs: httpx, async and timeouts">
+
+A call to another API mostly **waits** for the network. `async def` defines a **coroutine function**: calling it gives a coroutine (a paused call) and does not run the body, while `await` runs it and waits for the result. A **task** is a coroutine that the **event loop** (the scheduler) has started. While one task waits, the loop runs another, so waits overlap although only one task runs at a time. A blocking call such as `time.sleep` stalls every task, so use `await asyncio.sleep`.
+
+`asyncio.gather(a(), b(), c())` starts all three and returns their results in order, so three 2-second waits take about 2 seconds, not 6. If one raises, you get its error and the others keep running; `return_exceptions=True` returns errors as values instead of raising. `async with asyncio.timeout(seconds):` **cancels** (stops at its next `await`) unfinished work when time runs out and raises `TimeoutError`, and `asyncio.wait_for(x, t)` is a one-call timeout. `asyncio.timeout` needs Python 3.11 or later, as does `TaskGroup`, which wraps errors in an `ExceptionGroup` and is not used here.
+
+**httpx** is a Python HTTP client; use `httpx.AsyncClient` with `async with`, which closes its connections (like `with` in py-04). Its default timeout is 5 seconds per step, and `httpx.Timeout(5.0, connect=2.0)` sets limits per step, not for the whole call. httpx does not raise for 4xx or 5xx, so call `response.raise_for_status()`. If the service is too slow, answer 504 Gateway Timeout; if it sends an invalid reply or an error status, answer 502. A connection failure (`httpx.ConnectError`) is not handled below and would become a 500.
+
+<Callout type="note" title="Primer: async with, top-level await and async routes">
+
+`async with` is `with` (py-04) for objects that wait to open or close. In this page a code block may use `await` at its top level. In a script you would write `asyncio.run(main())` instead. FastAPI runs an `async def` route on the event loop, and a plain `def` route in a worker thread.
+
+</Callout>
+
+**Worked example.** Three lookups that wait for different times. The log shows that all three start before any ends.
+
+```python
+import asyncio
+
+log = []
+
+
+async def lookup(name: str, delay: float) -> str:
+    log.append(f"start {name}")
+    await asyncio.sleep(delay)             # waiting here lets the other lookups run
+    log.append(f"end {name}")
+    return name
+
+
+results = await asyncio.gather(lookup("customer", 0.06), lookup("slot", 0.02), lookup("price", 0.04))
+print(results)    # ['customer', 'slot', 'price']: in the order you passed them
+print(log)        # all three start first, then they end by delay: slot, price, customer
+```
+
+A time limit over a slow lookup.
+
+```python
+import asyncio
+
+
+async def slow_lookup() -> str:
+    await asyncio.sleep(5)                 # a service that takes 5 seconds
+    return "late"
+
+
+try:
+    async with asyncio.timeout(0.05):      # give up after 0.05 seconds
+        await slow_lookup()
+except TimeoutError:                       # the built-in error that asyncio.timeout raises
+    print("gave up")
+```
+
+And the same ideas in a route that calls a calendar service. It needs a package and a network, so it is not run here.
+
+```python nocheck="needs the httpx and fastapi packages and a real network connection"
+import httpx                               # this continues main.py: app and HTTPException come from above
+
+
+@app.get("/calendars/{calendar_id}/slots")
+async def slots(calendar_id: str) -> dict:
+    try:
+        async with httpx.AsyncClient(
+            base_url="https://calendar.example.com", timeout=httpx.Timeout(5.0, connect=2.0)
+        ) as client:
+            response = await client.get(f"/calendars/{calendar_id}/slots")
+            response.raise_for_status()    # a 4xx or 5xx becomes httpx.HTTPStatusError
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Calendar service timed out")
+    except httpx.HTTPStatusError:
+        raise HTTPException(status_code=502, detail="Calendar service sent an error")
+    return response.json()
+```
+
+<Predict lesson="api-02" item="api-02-q-predict-gather" />
+
+<Quiz lesson="api-02" chunk={2} />
+
+<Callout type="misconception" title="Common misconceptions in chunk 2">
+
+- "Async code runs in parallel, like threads." One task runs at a time. The waiting overlaps, which helps with network calls and does nothing for heavy calculation.
+- "A blocking call in an `async def` route only slows that request." It blocks the event loop for every request. Use an async client, or declare the route with plain `def`.
+- "`Timeout(5.0)` means the request ends within 5 seconds." Each step has its own limit, so the total can be longer. Put `asyncio.timeout` around the calls for one overall deadline.
+
+</Callout>
+
+</Chunk>
+
+## Write it yourself
+
+Now the async exercise, with a fake client that waits on a virtual clock. You use the ideas from chunk 2: start the lookups together and set one limit for all of them.
+
+<Callout type="note" title="Write this yourself">
+
+Write the next exercise yourself. Claude can be your tutor (use the "I'm stuck" button) but not your author.
+
+</Callout>
+
+<Exercise id="api-02-make-gather-lookups" />
+
+## Run it on your computer
+
+The routes need a server and `TestClient` needs threads, so this practice is a checklist. Use a scratch folder. Save the test file below as `test_bookings.py`: it is the provided suite for your `main.py`. It expects a module-level dict named `BOOKINGS`, as in the worked example. Checklists are self-assessed, so they never count as unaided evidence.
+
+```python nocheck="needs fastapi, httpx and pytest, and TestClient starts threads, which this page cannot do"
+import pytest
+from fastapi.testclient import TestClient
+
+import main                                    # your main.py
+
+
+@pytest.fixture
+def client():
+    main.BOOKINGS.clear()                      # a clean store for every test (py-06)
+    return TestClient(main.app)
+
+
+BODY = {"customer": "Amara Okafor", "slot": "2026-11-12T09:00:00Z", "party_size": 2}
+
+
+def test_create_returns_201_and_a_ref(client):
+    response = client.post("/bookings", json=BODY)
+    assert response.status_code == 201
+    assert response.json()["ref"] == "b-1"
+
+
+def test_invalid_body_returns_422(client):
+    assert client.post("/bookings", json={**BODY, "party_size": 0}).status_code == 422
+
+
+def test_same_slot_returns_409(client):
+    client.post("/bookings", json=BODY)
+    assert client.post("/bookings", json={**BODY, "customer": "Bo Lindqvist"}).status_code == 409
+
+
+def test_read_one_and_missing(client):
+    client.post("/bookings", json=BODY)
+    assert client.get("/bookings/b-1").json()["customer"] == "Amara Okafor"
+    assert client.get("/bookings/b-99").status_code == 404
+
+
+def test_list_returns_all(client):
+    client.post("/bookings", json=BODY)
+    client.post("/bookings", json={**BODY, "slot": "2026-11-12T10:00:00Z"})
+    assert len(client.get("/bookings").json()) == 2
+```
+
+<Checklist id="api-02-checklist-bookings-api" />
+
+## Mastery check
+
+<MasteryCheck lesson="api-02" count={6} />
+
+<InterviewCorner lesson="api-02" />
+
+## Further reading
+
+- [FastAPI: Handling errors](https://fastapi.tiangolo.com/tutorial/handling-errors/)
+- [HTTPX: Timeouts](https://www.python-httpx.org/advanced/timeouts/)
+- [Python documentation: Coroutines and tasks](https://docs.python.org/3/library/asyncio-task.html)

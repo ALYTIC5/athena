@@ -1,0 +1,297 @@
+id: api-02-make-ticket-model
+lesson: api-02
+runtime: python
+kind: make
+pools:
+  - lesson
+title: Validate a support ticket with a Pydantic model
+difficulty: 3
+competencies:
+  - api.fastapi
+  - api.status-codes
+timeoutMs: 8000
+estMin: 10
+packages:
+  - pydantic
+prompt: |
+  The support form of a booking assistant sends tickets as JSON. Write a Pydantic model `TicketIn` that checks them, the way a FastAPI route would before its own code runs.
+
+  - `title`: text, required. Spaces at the start and end are removed. After that it must not be blank, and it can be at most 80 characters long.
+  - `priority`: a whole number from 1 (urgent) to 4 (low). The default is 3.
+  - `contact`: text or `None`, default `None`. When it is given, it must contain exactly one `@`. This is a simple check, not full email validation.
+
+  Bad input must raise `pydantic.ValidationError`, and every problem must be reported together, not only the first. The model is built with `TicketIn.model_validate(payload)` or `TicketIn(**payload)`.
+
+  Example: `{"title": "  Printer jam ", "priority": "2"}` gives a ticket with title `"Printer jam"`, priority `2` and contact `None`.
+starter: |
+  from pydantic import BaseModel, Field, field_validator
+
+
+  class TicketIn(BaseModel):
+      ...
+visibleTests: |
+  from pydantic import BaseModel, ValidationError
+
+
+  def error_fields(payload):
+      try:
+          TicketIn.model_validate(payload)
+      except ValidationError as error:
+          return sorted(str(e["loc"][0]) for e in error.errors())
+      return []
+
+
+  def test_a_valid_ticket():
+      ticket = TicketIn.model_validate({"title": "Printer jam", "priority": 2})
+      assert ticket.title == "Printer jam"
+      assert ticket.priority == 2
+      assert ticket.contact is None
+
+  def test_the_default_priority_is_three():
+      assert TicketIn(title="Login fails").priority == 3
+
+  def test_a_blank_title_is_rejected():
+      assert error_fields({"title": "   "}) == ["title"]
+hiddenTests: |
+  def test_it_is_a_pydantic_model():
+      assert issubclass(TicketIn, BaseModel)
+
+  def test_spaces_around_the_title_are_removed():
+      assert TicketIn(title="  Printer jam ").title == "Printer jam"
+
+  def test_title_length_boundary():
+      assert TicketIn(title="x" * 80).title == "x" * 80
+      assert error_fields({"title": "x" * 81}) == ["title"]
+
+  def test_a_missing_title_is_an_error():
+      assert error_fields({"priority": 2}) == ["title"]
+
+  def test_priority_bounds():
+      assert TicketIn(title="a", priority=1).priority == 1
+      assert TicketIn(title="a", priority=4).priority == 4
+      assert error_fields({"title": "a", "priority": 0}) == ["priority"]
+      assert error_fields({"title": "a", "priority": 5}) == ["priority"]
+
+  def test_priority_text_that_is_a_number_is_converted():
+      assert TicketIn(title="a", priority="2").priority == 2
+
+  def test_priority_that_is_not_a_number_is_rejected():
+      assert error_fields({"title": "a", "priority": "high"}) == ["priority"]
+
+  def test_a_valid_contact_is_kept():
+      assert TicketIn(title="a", contact="amara@example.com").contact == "amara@example.com"
+
+  def test_contact_needs_exactly_one_at_sign():
+      assert error_fields({"title": "a", "contact": "amara.example.com"}) == ["contact"]
+      assert error_fields({"title": "a", "contact": "amara@@example.com"}) == ["contact"]
+      assert error_fields({"title": "a", "contact": "a@b@example.com"}) == ["contact"]
+
+  def test_an_explicit_none_contact_is_allowed():
+      assert TicketIn.model_validate({"title": "a", "contact": None}).contact is None
+
+  def test_every_problem_is_reported_together():
+      assert error_fields({"title": " ", "priority": 9, "contact": "x"}) == ["contact", "priority", "title"]
+
+  def test_the_fields_are_exactly_these_three():
+      assert TicketIn(title=" a ").model_dump() == {"title": "a", "priority": 3, "contact": None}
+feedback:
+  - test: test_a_valid_ticket
+    message: 'A valid payload must build a ticket whose title, priority and contact are the values given (contact is None when left out).'
+  - test: test_the_default_priority_is_three
+    message: 'Give priority a default of 3 with Field(default=3, ge=1, le=4).'
+  - test: test_priority_that_is_not_a_number_is_rejected
+    message: 'The text "high" is not a number, so priority must be an int field and fail with a ValidationError.'
+  - test: test_the_fields_are_exactly_these_three
+    message: 'The model should have exactly the fields title, priority and contact, with the defaults 3 and None, and a stripped title.'
+  - test: test_it_is_a_pydantic_model
+    message: 'TicketIn must inherit from BaseModel. A plain class or a dataclass does not check anything when it is built.'
+  - test: test_spaces_around_the_title_are_removed
+    message: 'A validator must return the cleaned value. Return value.strip(), not the original value, and make sure the validator returns something.'
+  - test: test_a_blank_title_is_rejected
+    message: 'A title of only spaces is blank. Strip it first, then raise ValueError when nothing is left. min_length=1 alone counts the spaces.'
+  - test: test_title_length_boundary
+    message: '80 characters are allowed and 81 are not. Add max_length=80 to the title Field, or check the length in the validator.'
+  - test: test_priority_bounds
+    message: 'Priority runs from 1 to 4 with both ends allowed. Use Field(default=3, ge=1, le=4). Check that you set both ge and le.'
+  - test: test_priority_text_that_is_a_number_is_converted
+    message: 'Pydantic converts the text "2" to the number 2 by default. Do not switch strict mode on or write your own type check.'
+  - test: test_contact_needs_exactly_one_at_sign
+    message: 'Count the @ signs: value.count("@") != 1 is an error. A test like "@" in value lets a@b@c through.'
+  - test: test_an_explicit_none_contact_is_allowed
+    message: 'A validator also runs when the caller passes contact=None. Return None unchanged before you call string methods on the value.'
+  - test: test_every_problem_is_reported_together
+    message: 'Let Pydantic collect the errors: put each rule in Field or in a field_validator, and do not check fields by hand in one place.'
+  - test: test_a_missing_title_is_an_error
+    message: 'title has no default, so leaving it out is an error. Do not give it a default value.'
+hints:
+  - 'Which of the rules can you state with Field(...) arguments, and which one needs code you write yourself?'
+  - 'Use Field for the length limit and for the priority range with its default. Add one field_validator for title that strips, then refuses a blank result, and one for contact that lets None through and counts the @ signs. Each validator must return the value.'
+  - |-
+    title: str = Field(max_length=____)
+    priority: int = Field(default=____, ge=____, le=____)
+    contact: str | None = None
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        value = value.____()
+        if not value:
+            raise ValueError("title must not be blank")
+        return ____
+
+    @field_validator("contact")
+    @classmethod
+    def check_contact(cls, value: str | None) -> str | None:
+        if value is not None and value.count("@") != ____:
+            raise ValueError("contact must contain exactly one @")
+        return value
+referenceSolution: |
+  from pydantic import BaseModel, Field, field_validator
+
+
+  class TicketIn(BaseModel):
+      title: str = Field(max_length=80)
+      priority: int = Field(default=3, ge=1, le=4)
+      contact: str | None = None
+
+      @field_validator("title")
+      @classmethod
+      def clean_title(cls, value: str) -> str:
+          value = value.strip()
+          if not value:
+              raise ValueError("title must not be blank")
+          return value
+
+      @field_validator("contact")
+      @classmethod
+      def check_contact(cls, value: str | None) -> str | None:
+          if value is not None and value.count("@") != 1:
+              raise ValueError("contact must contain exactly one @")
+          return value
+wrongSolutions:
+  - label: 'Only a lower bound on priority, so 5 is accepted'
+    code: |
+      from pydantic import BaseModel, Field, field_validator
+
+
+      class TicketIn(BaseModel):
+          title: str = Field(max_length=80)
+          priority: int = Field(default=3, ge=1)
+          contact: str | None = None
+
+          @field_validator("title")
+          @classmethod
+          def clean_title(cls, value: str) -> str:
+              value = value.strip()
+              if not value:
+                  raise ValueError("title must not be blank")
+              return value
+
+          @field_validator("contact")
+          @classmethod
+          def check_contact(cls, value: str | None) -> str | None:
+              if value is not None and value.count("@") != 1:
+                  raise ValueError("contact must contain exactly one @")
+              return value
+  - label: 'min_length=1 counts the spaces, so a blank title passes, and nothing is stripped'
+    code: |
+      from pydantic import BaseModel, Field, field_validator
+
+
+      class TicketIn(BaseModel):
+          title: str = Field(min_length=1, max_length=80)
+          priority: int = Field(default=3, ge=1, le=4)
+          contact: str | None = None
+
+          @field_validator("contact")
+          @classmethod
+          def check_contact(cls, value: str | None) -> str | None:
+              if value is not None and value.count("@") != 1:
+                  raise ValueError("contact must contain exactly one @")
+              return value
+  - label: 'The validator checks the stripped text but returns the original, so the spaces stay'
+    code: |
+      from pydantic import BaseModel, Field, field_validator
+
+
+      class TicketIn(BaseModel):
+          title: str = Field(max_length=80)
+          priority: int = Field(default=3, ge=1, le=4)
+          contact: str | None = None
+
+          @field_validator("title")
+          @classmethod
+          def clean_title(cls, value: str) -> str:
+              if not value.strip():
+                  raise ValueError("title must not be blank")
+              return value
+
+          @field_validator("contact")
+          @classmethod
+          def check_contact(cls, value: str | None) -> str | None:
+              if value is not None and value.count("@") != 1:
+                  raise ValueError("contact must contain exactly one @")
+              return value
+  - label: 'The contact validator does not allow None, so an explicit None crashes'
+    code: |
+      from pydantic import BaseModel, Field, field_validator
+
+
+      class TicketIn(BaseModel):
+          title: str = Field(max_length=80)
+          priority: int = Field(default=3, ge=1, le=4)
+          contact: str | None = None
+
+          @field_validator("title")
+          @classmethod
+          def clean_title(cls, value: str) -> str:
+              value = value.strip()
+              if not value:
+                  raise ValueError("title must not be blank")
+              return value
+
+          @field_validator("contact")
+          @classmethod
+          def check_contact(cls, value: str | None) -> str | None:
+              if value.count("@") != 1:
+                  raise ValueError("contact must contain exactly one @")
+              return value
+  - label: 'Checks only that an @ is present, so two of them pass'
+    code: |
+      from pydantic import BaseModel, Field, field_validator
+
+
+      class TicketIn(BaseModel):
+          title: str = Field(max_length=80)
+          priority: int = Field(default=3, ge=1, le=4)
+          contact: str | None = None
+
+          @field_validator("title")
+          @classmethod
+          def clean_title(cls, value: str) -> str:
+              value = value.strip()
+              if not value:
+                  raise ValueError("title must not be blank")
+              return value
+
+          @field_validator("contact")
+          @classmethod
+          def check_contact(cls, value: str | None) -> str | None:
+              if value is not None and "@" not in value:
+                  raise ValueError("contact must contain an @")
+              return value
+  - label: 'A plain class: nothing is checked when it is built'
+    code: |
+      class TicketIn:
+          def __init__(self, title, priority=3, contact=None):
+              self.title = title
+              self.priority = priority
+              self.contact = contact
+
+          @classmethod
+          def model_validate(cls, payload):
+              return cls(**payload)
+explanation: |
+  Pydantic checks the data when the object is built, so the rules live in one place and every problem is collected into one `ValidationError`. Field arguments such as `max_length`, `ge` and `le` cover the simple rules. A `field_validator` covers rules you write as code, and whatever it returns replaces the value, which is why it must return the cleaned text and why it must cope with `None` for an optional field.
+
+  An alternative for the title is `model_config = ConfigDict(str_strip_whitespace=True)` with `min_length=1` on the field. That is shorter, but it strips every text field in the model, and a custom message for the blank case needs a validator anyway. In a FastAPI route, a body that fails this model is answered with status 422 before your function starts.
