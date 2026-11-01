@@ -140,7 +140,7 @@
     - id: api-02
       title: 'Building APIs with FastAPI'
       durationMin: 90
-      status: planned
+      status: published
     - id: api-03
       title: 'Webhooks done right'
       durationMin: 75

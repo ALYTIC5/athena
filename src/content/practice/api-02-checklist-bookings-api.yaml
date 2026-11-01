@@ -1,0 +1,15 @@
+id: api-02-checklist-bookings-api
+lesson: api-02
+kind: checklist
+competencies: [api.fastapi, py.pytest]
+title: Run a small /bookings API on your computer and test it with TestClient
+estMin: 12
+steps:
+  - do: 'In an empty folder, create a virtual environment and install FastAPI with its standard extras (they include httpx, which TestClient needs, and the development server) and pytest: `python -m venv .venv`, activate it, then `pip install "fastapi[standard]" pytest`.'
+    expect: 'pip ends with "Successfully installed" and a list that includes fastapi, httpx and pytest.'
+  - do: 'Create `main.py` from the first two code blocks in chunk 1 (the models, then `app`, `BOOKINGS` and the two routes), one after the other. Save the provided test file from this page as `test_bookings.py` in the same folder, then run `pytest -q`.'
+    expect: 'The summary line says 1 failed and 4 passed. The failing test is `test_list_returns_all`, because `GET /bookings` does not exist yet and answers 405 Method Not Allowed (the path exists for POST but not for GET). The other four tests cover the routes you copied.'
+  - do: 'Add a route `GET /bookings` to `main.py` that returns `list(BOOKINGS.values())`, then run `pytest -q` again.'
+    expect: 'The summary line says 5 passed.'
+  - do: 'Start the development server with `fastapi dev main.py`, open `http://127.0.0.1:8000/docs` in a browser, and use "Try it out" on `POST /bookings` twice: first with a valid body, then with `party_size` set to 0.'
+    expect: 'The first request answers 201 with a `ref` of b-1. The second answers 422 with a `detail` list whose first entry has `loc` ending in `party_size`. Press Ctrl+C in the terminal to stop the server.'

@@ -1,0 +1,22 @@
+lesson: api-02
+questions:
+  - id: api-02-iq-validation
+    competencies: [api.fastapi, api.status-codes]
+    question: How does FastAPI validate a request body, and what does the client see when the body is wrong? How would you refuse a request for a business reason, such as a slot that is already booked?
+    modelAnswer: I declare a Pydantic model as the body parameter. FastAPI reads the JSON into the model before my function runs, using the type hints and rules such as ge and le, and it converts values where it can, for example the text "4" to the number 4. If the body breaks a rule, FastAPI answers 422 itself, with a detail list that gives the location and message of every problem, and my function never runs. For a business rule, I raise HTTPException with the right status, such as 409 with a short detail for a taken slot or 404 for a missing booking. I keep the decisions in a plain function that returns a status and a body, so I can test the rules without a server, and I use a few TestClient tests to check that the routes are wired up and that the status codes are right. I also declare a response model, so private fields never leave the API.
+    listenFor:
+      - Pydantic validates and converts before the route runs
+      - 422 with a detail list is automatic for a bad body
+      - HTTPException with 404 or 409 for rules in your own code, not a returned number
+      - tests with TestClient and a fixture that resets state, or plain functions for the rules
+      - a response model that controls what leaves the API
+  - id: api-02-iq-slow-upstream
+    competencies: [api.client, py.async, api.status-codes]
+    question: A route has to call three slow external APIs before it can answer. How do you make it fast and keep it from hanging, and what does your API return if one of them is too slow?
+    modelAnswer: The calls mostly wait on the network, so I make the route async and use one httpx AsyncClient with an explicit timeout, and I start the three calls together with asyncio.gather. The waits then overlap, and the route takes about as long as the slowest call and not the sum. I set the httpx timeout for each step, and I wrap the gather in asyncio.timeout so the whole route has one deadline, because the httpx limits apply to steps and not to the total. I call raise_for_status so an error response is not mistaken for data. If an upstream is too slow, I answer 504 Gateway Timeout, and 502 if it sent a bad reply or an error status, with a short detail and no internal error text. I never put a blocking call such as time.sleep or a synchronous library inside an async route, because it would stall every request on the event loop.
+    listenFor:
+      - gather overlaps the waits, so the time is about the slowest call and not the sum
+      - explicit httpx timeouts, and the point that they are per step, with asyncio.timeout for a total deadline
+      - raise_for_status, or another check, so a failed response is not used as data
+      - 504 for a timeout and 502 for a bad reply or error status, without leaking details
+      - no blocking calls on the event loop

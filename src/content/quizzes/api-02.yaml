@@ -1,0 +1,491 @@
+lesson: api-02
+items:
+  # ---- Chunk 1: models, routes and errors (objectives 1 and 2) ----
+  - id: api-02-q-predict-create
+    pools: [check, mastery]
+    chunk: 1
+    objective: 2
+    type: predict
+    competencies: [api.fastapi, api.status-codes]
+    code: |
+      BOOKED = {"2026-11-12T09:00"}
+
+      def create(slot: str, party_size: int) -> int:
+          if not 1 <= party_size <= 12:
+              return 422
+          if slot in BOOKED:
+              return 409
+          BOOKED.add(slot)
+          return 201
+
+      print(create("2026-11-12T09:00", 2))
+      print(create("2026-11-12T10:00", 2))
+      print(create("2026-11-12T10:00", 2))
+      print(create("2026-11-13T10:00", 0))
+    investigate:
+      - Why does the third call answer 409 when the second call, with the same arguments, answered 201?
+      - What would a call with party_size 0 and a slot that is already booked get, and why is it better to check the body before the slot?
+  - id: api-02-q-validation-422
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.fastapi]
+    stem: 'A FastAPI route declares `body: BookingIn`, and the model says `party_size` must be from 1 to 12. A client sends a JSON body with `party_size` set to 0. What happens?'
+    options:
+      - text: FastAPI answers 422 with a `detail` list that names the field, and your route function does not run
+        correct: true
+        why: FastAPI builds the model from the body before it calls your function. The failed rule becomes a 422 response that lists the location and message of each problem.
+      - text: Your function runs with `party_size` equal to 0, and it has to check the value itself
+        correct: false
+        why: This is what happens with a plain dict. When the parameter is a Pydantic model, the rules run first and the function only sees valid data.
+      - text: FastAPI answers 200, because 0 is a valid integer
+        correct: false
+        why: The type alone is fine, but the model also has the rule 1 to 12 (`ge=1, le=12`), and a broken rule is a validation error.
+      - text: The server crashes with a 500, because Pydantic raises a ValidationError
+        correct: false
+        why: FastAPI catches the ValidationError and turns it into a 422 response. A 500 would mean a bug in your own code.
+  - id: api-02-q-hints-enforced
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.fastapi]
+    stem: In py-05 you learned that Python does not enforce type hints. What is different about the hints on the fields of a Pydantic model?
+    options:
+      - text: Pydantic reads them and checks the values when the object is built
+        correct: true
+        why: 'This is the point of the library. `party_size: int` makes Pydantic accept 4 or "4" (converted to 4) and reject "four" with a ValidationError.'
+      - text: Nothing is different, because hints stay documentation that Python ignores while the program runs
+        correct: false
+        why: For plain functions and classes this is right. A Pydantic model uses its field hints to build the validation.
+      - text: Python itself checks them once, when the module is imported by the program
+        correct: false
+        why: Python never checks hints by itself. A type checker reads them before you run the code, and Pydantic reads them while the program runs.
+      - text: They are checked only when you call a separate `validate()` method after building the model
+        correct: false
+        why: Building the model already validates. A model that exists is a model that passed its rules.
+  - id: api-02-q-validator-bug
+    pools: [mastery]
+    chunk: 1
+    objective: 1
+    type: bug
+    competencies: [api.fastapi]
+    code: |
+      from pydantic import BaseModel, field_validator
+      class TicketIn(BaseModel):
+          title: str
+          @field_validator("title")
+          @classmethod
+          def clean_title(cls, value: str) -> str:
+              if not value.strip():
+                  raise ValueError("title must not be blank")
+              value.strip()
+    buggyLine: 9
+    explanation: A validator must return the value, and whatever it returns replaces the field. Line 9 strips the text and throws the result away, so the function ends without a return and the title becomes None. The fix is `return value.strip()`.
+  - id: api-02-q-conflict-status
+    pools: [mastery, warmup]
+    chunk: 1
+    objective: 2
+    type: single
+    competencies: [api.fastapi, api.status-codes]
+    stem: A client posts a valid booking, but the slot already belongs to another booking. Which response fits best?
+    options:
+      - text: '409 with `detail`: "Slot already booked"'
+        correct: true
+        why: The request is well formed, but it clashes with data that is already stored. That is what 409 Conflict is for (api-01).
+      - text: '422, because the slot is invalid'
+        correct: false
+        why: 422 is for a body that breaks the rules of its own format, such as a missing field. This body is fine, and the clash comes from the stored data.
+      - text: '404, because the free slot was not found'
+        correct: false
+        why: 404 means nothing exists at the requested path. The path /bookings exists.
+      - text: '200 with an empty body, so the client does not worry'
+        correct: false
+        why: A success code tells the client its booking was made. The client would believe it has the slot.
+  - id: api-02-q-httpexception
+    pools: [mastery]
+    chunk: 1
+    objective: 2
+    type: single
+    competencies: [api.fastapi, api.status-codes]
+    stem: Inside a route, the booking is not in the store. Which line makes the client receive a 404?
+    options:
+      - text: 'return 404'
+        correct: false
+        why: A returned value becomes the response body. The client would get status 200 with the body `404`.
+      - text: 'raise HTTPException(status_code=404, detail="Booking not found")'
+        correct: true
+        why: 'Raising HTTPException stops the function and FastAPI sends that status with the body `{"detail": "Booking not found"}`.'
+      - text: 'return {"error": "Booking not found"}'
+        correct: false
+        why: This is a normal return, so the status stays 200 and a client that only reads the status code thinks the call worked.
+      - text: 'print("Booking not found")'
+        correct: false
+        why: Printing writes to the server's console. The client still receives the function's return value, or a 200 with null if there is none.
+  - id: api-02-q-testclient-what
+    pools: [mastery]
+    chunk: 1
+    objective: 2
+    type: single
+    competencies: [api.fastapi]
+    stem: What does `TestClient(app)` let a test do?
+    options:
+      - text: Start the app on port 8000 and send real network requests to it from the test
+        correct: false
+        why: That would need a running server. The test client avoids this on purpose.
+      - text: Send requests into the app in the same process, with no server and no network
+        correct: true
+        why: The request goes through routing, validation and your function, exactly as a real one would, which makes route tests fast and repeatable.
+      - text: Call the route function directly with plain arguments, skipping routing and validation
+        correct: false
+        why: Calling `create_booking(...)` yourself would skip the 422 checks and the status code from the decorator. TestClient sends a request instead.
+      - text: Replace your route functions with fakes that return canned answers for each test
+        correct: false
+        why: TestClient runs your real functions. You replace dependencies such as a database or a remote API, not the routes.
+  - id: api-02-q-testclient-state
+    pools: [mastery]
+    chunk: 1
+    objective: 2
+    type: single
+    competencies: [api.fastapi, py.pytest]
+    stem: Two route tests each create a booking for the slot "2026-11-12T09:00" in a module-level `BOOKINGS` dict. Each passes alone, but the second fails when both run (it gets 409). What is the cleanest fix?
+    options:
+      - text: Add a pytest fixture that clears `BOOKINGS` before each test
+        correct: true
+        why: Tests must not depend on each other (py-06). A fixture gives every test a fresh store, whatever the order.
+      - text: Run the second test later, with a short sleep before it
+        correct: false
+        why: The first test's booking is still in the dict. Waiting does not change the state.
+      - text: Give the two tests different port numbers
+        correct: false
+        why: TestClient uses no port. The shared state is the dict inside the process.
+      - text: Change the route so it never answers 409
+        correct: false
+        why: This removes a rule of the API to hide a problem in the tests.
+  - id: api-02-q-response-model
+    pools: [mastery]
+    chunk: 1
+    objective: 1
+    type: single
+    competencies: [api.fastapi]
+    stem: 'A route is declared `-> Booking`, where `Booking` has the fields `ref`, `customer`, `slot` and `party_size`. The function returns a dict that also holds `"staff_note": "VIP"`. What does the client receive?'
+    options:
+      - text: All five keys, because the dict is sent as it is
+        correct: false
+        why: With a declared return type, FastAPI passes the value through that model, and the model only has four fields.
+      - text: A 500 error, because the dict has an unknown key
+        correct: false
+        why: Extra keys are not an error. They are left out.
+      - text: Only `ref`, `customer`, `slot` and `party_size`
+        correct: true
+        why: The return type is the shape of the response. This keeps private fields, such as a staff note, from leaking to the client.
+      - text: A 422, because the output failed validation
+        correct: false
+        why: A 422 describes a bad request body. Extra fields in what you return are dropped, not rejected.
+  - id: api-02-q-order-post
+    pools: [mastery]
+    chunk: 1
+    objective: 1
+    type: order
+    competencies: [api.fastapi]
+    stem: Put in order what happens when a client sends a valid `POST /bookings`.
+    steps:
+      - The client sends the method, the path and a JSON body
+      - FastAPI matches the method and path to your route
+      - Pydantic builds the model from the body and checks its rules
+      - Your function runs with the valid model and returns a value
+      - FastAPI turns the value into JSON using the return type
+      - The client receives the status code from the decorator (201) and the body
+  - id: api-02-q-short-httpexception
+    pools: [mastery]
+    chunk: 1
+    objective: 2
+    type: short
+    competencies: [api.fastapi, api.status-codes]
+    stem: Which exception class do you raise inside a FastAPI route to answer with an error status such as 404?
+    accepted:
+      - HTTPException
+      - fastapi.HTTPException
+      - raise HTTPException
+    patterns:
+      - ^(raise )?(fastapi\.)?HTTPException(\(.*\))?$
+    explanation: '`HTTPException(status_code=..., detail=...)` stops the function and makes FastAPI send that status with `{"detail": ...}`.'
+  - id: api-02-q-plain-function
+    pools: [mastery]
+    chunk: 1
+    objective: 2
+    type: single
+    competencies: [api.fastapi, py.pytest]
+    stem: A team keeps the booking rules in a plain function, `handle_create(bookings, payload)`, that returns `(status, body)`, and the route only calls it. What is the main benefit?
+    options:
+      - text: The rules can be tested with plain asserts, without a server or a TestClient
+        correct: true
+        why: A function with plain inputs and outputs needs no framework (py-06). A few route tests with TestClient can then check the wiring.
+      - text: FastAPI cannot run a route that has logic inside it
+        correct: false
+        why: Routes can hold any Python. Keeping them thin is a choice that makes testing and reuse easier.
+      - text: The function runs faster than a route
+        correct: false
+        why: Speed is not the reason. The cost of a function call is tiny next to network time.
+      - text: Pydantic only works inside plain functions
+        correct: false
+        why: Pydantic models work anywhere, in routes, scripts and tests.
+
+  # ---- Chunk 2: calling other APIs, async and timeouts (objectives 3 and 4) ----
+  - id: api-02-q-predict-gather
+    pools: [check, mastery]
+    chunk: 2
+    objective: 4
+    type: predict
+    competencies: [py.async]
+    code: |
+      import asyncio
+
+
+      async def step(name, delay, log):
+          await asyncio.sleep(delay)
+          log.append(name)
+          return name
+
+
+      async def main():
+          log = []
+          try:
+              async with asyncio.timeout(0.05):
+                  await asyncio.gather(step("a", 0.01, log), step("b", 1, log))
+          except TimeoutError:
+              log.append("timeout")
+          return log
+
+
+      print(await main())
+    investigate:
+      - Why is "b" missing from the list, and what happened to step b when the time ran out?
+      - Why did "a" finish even though the gather as a whole failed?
+  - id: api-02-q-gather-time
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 4
+    type: single
+    competencies: [py.async]
+    stem: Three lookups take 2, 3 and 1 seconds to answer. About how long does `await asyncio.gather(a(), b(), c())` take, compared with awaiting them one after another?
+    options:
+      - text: About 6 seconds for both, because each lookup still has to wait
+        correct: false
+        why: The waits overlap. While one lookup waits for the network, the event loop starts or resumes the others.
+      - text: About 3 seconds with gather, and about 6 seconds one after another
+        correct: true
+        why: Overlapping waits take as long as the slowest one. One after another, the waits add up to 2 + 3 + 1.
+      - text: About 1 second with gather, because the fastest lookup wins
+        correct: false
+        why: gather waits for all the awaitables, not the first. The slowest sets the time.
+      - text: About 3 seconds for both, because the event loop runs them in parallel anyway
+        correct: false
+        why: Awaiting each call in turn finishes one before the next starts, so nothing overlaps. You must start them together with gather.
+  - id: api-02-q-forgot-await
+    pools: [mastery]
+    chunk: 2
+    objective: 4
+    type: bug
+    competencies: [py.async]
+    code: |
+      async def get_slots(calendar_id):
+          return ["09:00", "10:30"]
+      async def show_count():
+          slots = get_slots("c-1")
+          print(len(slots))
+    buggyLine: 4
+    explanation: Calling an `async def` function does not run it. It returns a coroutine object, and `len()` of that raises a TypeError. Write `slots = await get_slots("c-1")` so the body runs and you receive the list.
+  - id: api-02-q-time-sleep
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 4
+    type: single
+    competencies: [py.async]
+    stem: Inside an `async def` function you want to pause for one second while other tasks keep running. Which line does that?
+    options:
+      - text: time.sleep(1)
+        correct: false
+        why: This blocks the whole thread, and the event loop with it, so no other task runs for that second.
+      - text: asyncio.sleep(1)
+        correct: false
+        why: Without `await` this only creates a coroutine object. The function does not pause at all.
+      - text: await time.sleep(1)
+        correct: false
+        why: time.sleep returns None, and awaiting None raises a TypeError. It would also have blocked first.
+      - text: await asyncio.sleep(1)
+        correct: true
+        why: The task pauses at the await, and the event loop is free to run other tasks until the second is over.
+  - id: api-02-q-gather-fail
+    pools: [mastery]
+    chunk: 2
+    objective: 4
+    type: single
+    competencies: [py.async]
+    stem: With the default settings, one of three gathered lookups raises a `KeyError`. What does `await asyncio.gather(...)` do?
+    options:
+      - text: Raises the KeyError to you, and the other two keep running
+        correct: true
+        why: By default, the first exception is passed to the code that awaits gather. The other awaitables continue unless something cancels them.
+      - text: Returns a list in which the failed lookup's place holds the KeyError object
+        correct: false
+        why: That is the behaviour of `return_exceptions=True`, which you have to ask for.
+      - text: Cancels the other two lookups first and then raises the KeyError
+        correct: false
+        why: gather does not cancel its siblings when one fails. A timeout or a cancel of the gather itself does.
+      - text: Ignores the failure and quietly returns just the other two results
+        correct: false
+        why: The error is never hidden by default, because a missing result would look like a successful answer.
+  - id: api-02-q-timeout-exc
+    pools: [mastery]
+    chunk: 2
+    objective: 4
+    type: single
+    competencies: [py.async]
+    stem: What happens when the time given to `async with asyncio.timeout(2):` runs out?
+    options:
+      - text: The code inside the block finishes anyway, and its result is discarded
+        correct: false
+        why: The work inside is cancelled at its next `await`. It does not finish.
+      - text: The unfinished work is cancelled, and `TimeoutError` is raised when the block exits
+        correct: true
+        why: Cancelling stops the waiting, and the error tells your code that the deadline passed, so it can answer with a 504 or try something else.
+      - text: The block returns None and the program goes on without any error
+        correct: false
+        why: A silent None would hide the failure. The exception is the signal.
+      - text: The whole program stops
+        correct: false
+        why: Only the block is affected, and you can catch TimeoutError outside it.
+  - id: api-02-q-short-gather
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 4
+    type: short
+    competencies: [py.async]
+    stem: Which asyncio function starts several awaitables together and returns their results in the order you passed them?
+    accepted:
+      - gather
+      - asyncio.gather
+      - asyncio.gather()
+    patterns:
+      - ^(asyncio\.)?gather(\(.*\))?$
+    explanation: '`asyncio.gather(a(), b(), c())` waits for all three and returns `[result_a, result_b, result_c]`, in the order given, whichever finishes first.'
+  - id: api-02-q-async-def-route
+    pools: [mastery]
+    chunk: 2
+    objective: 4
+    type: single
+    competencies: [api.fastapi, py.async]
+    stem: A FastAPI route is declared `async def` and calls `time.sleep(5)` inside it. What is the effect on the other requests the server is handling?
+    options:
+      - text: None, because each request has its own thread
+        correct: false
+        why: An `async def` route runs on the event loop, which is one thread shared by all requests. A plain `def` route is the one that FastAPI runs in a worker thread.
+      - text: They all wait, because the blocked event loop cannot run anything else for 5 seconds
+        correct: true
+        why: A blocking call inside async code freezes every task on that loop. Use `await asyncio.sleep` or an async client instead, or declare the route with plain `def`.
+      - text: Only requests to the same path wait
+        correct: false
+        why: The event loop does not know about paths. It is blocked for every task.
+      - text: FastAPI raises an error to stop you
+        correct: false
+        why: Python allows the call. You only notice because the server stalls.
+  - id: api-02-q-httpx-default
+    pools: [mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [api.client]
+    stem: Your code calls `await client.get(url)` with an httpx client and sets no timeout. The server accepts the connection and then never answers. What happens?
+    options:
+      - text: The call waits forever, as it would with no limit
+        correct: false
+        why: Some libraries behave this way, which is why you set a timeout there. httpx has a default.
+      - text: httpx gives up after its default 5 seconds and raises `httpx.TimeoutException`
+        correct: true
+        why: The default is 5 seconds for each step (connecting, reading, writing). Set your own `timeout` so the limit matches what the caller can bear.
+      - text: httpx returns a response with status 504 after a while
+        correct: false
+        why: A 504 is something a server sends. httpx raises an exception when the wait runs out, and no response exists.
+      - text: httpx returns None after the wait is over
+        correct: false
+        why: A timeout is an error, and an error is raised, not returned.
+  - id: api-02-q-raise-for-status
+    pools: [check, mastery, warmup]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [api.client]
+    stem: An httpx call returns a response with status 503, and the code goes straight on to `response.json()["slots"]`. What is missing?
+    options:
+      - text: A call to `response.raise_for_status()` before the body is used
+        correct: true
+        why: httpx does not raise for 4xx or 5xx on its own. Without the call, a failed request looks like data, and you read the error page as if it were the answer.
+      - text: Nothing, because httpx has already raised an error for the 503
+        correct: false
+        why: A 503 is a valid HTTP response, so httpx returns it. You choose to turn it into an exception.
+      - text: A longer timeout
+        correct: false
+        why: The server did answer, with an error. Waiting longer does not change that answer.
+      - text: A second request with the same arguments
+        correct: false
+        why: A retry may help with a 503, but it is no substitute for noticing the failure first (retries come in api-03).
+  - id: api-02-q-timeout-stages
+    pools: [mastery]
+    chunk: 2
+    objective: 3
+    type: multiple
+    competencies: [api.client]
+    stem: 'A client uses `httpx.Timeout(5.0, connect=2.0)`. Which statements are true? Choose all that apply.'
+    options:
+      - text: Opening the connection may take up to 2 seconds
+        correct: true
+        why: The connect limit is set separately, to 2 seconds.
+      - text: Waiting for each part of the reply may take up to 5 seconds
+        correct: true
+        why: The 5.0 is the default for the other steps (read, write and waiting for a connection), and each one has its own clock.
+      - text: The whole request is guaranteed to finish within 5 seconds
+        correct: false
+        why: The limits apply to the steps, not to the total. A server that sends a byte every 4 seconds never trips the read limit.
+      - text: To limit the total time of several calls, wrap them in `asyncio.timeout(...)`
+        correct: true
+        why: That puts one deadline over the whole block, however many httpx calls it holds.
+      - text: Setting `timeout=None` is a safe way to avoid failures
+        correct: false
+        why: It removes the limit. A stalled service would then hold your code, and your caller, indefinitely.
+  - id: api-02-q-upstream-504
+    pools: [mastery]
+    chunk: 2
+    objective: 3
+    type: single
+    competencies: [api.client, api.status-codes]
+    stem: Your API's route calls a calendar service, which does not answer in time, so the httpx call raises a timeout exception. Which response should your own API send?
+    options:
+      - text: 504 Gateway Timeout, with a short `detail`
+        correct: true
+        why: Your API is acting as a gateway to the calendar service, and the service did not answer in time. 504 says exactly that, and a client knows a retry may work.
+      - text: 422, because the request was invalid
+        correct: false
+        why: The client's request was fine. The failure is on the server side of the chain.
+      - text: 404, because no slots came back
+        correct: false
+        why: 404 means the path does not exist. It would send the client looking for a mistake that is not there.
+      - text: 200 with an empty list of slots
+        correct: false
+        why: This hides a failure as a normal answer, and the client would conclude that there are no free slots.
+  - id: api-02-q-parsons-fetch
+    pools: [mastery]
+    chunk: 2
+    objective: 3
+    type: parsons
+    competencies: [api.client, py.async]
+    lines:
+      - 'async def get_slots(calendar_id: str) -> list[str]:'
+      - '    async with httpx.AsyncClient(timeout=5.0) as client:'
+      - '        response = await client.get(f"https://api.example.com/calendars/{calendar_id}/slots")'
+      - '        response.raise_for_status()'
+      - '        return response.json()["slots"]'
+    distractors:
+      - '        response = client.get(f"https://api.example.com/calendars/{calendar_id}/slots")'
+      - '    with httpx.AsyncClient(timeout=5.0) as client:'

@@ -1,0 +1,74 @@
+lesson: api-02
+cards:
+  - id: api-02-c-422
+    type: explain
+    competencies: [api.fastapi]
+    front: 'A FastAPI route takes `body: BookingIn`, a Pydantic model. What does the client get when the body breaks a rule, and does your function run?'
+    back: FastAPI builds the model before it calls your function. A broken rule becomes a 422 response whose `detail` lists the location and message of every problem, and your function does not run.
+  - id: api-02-c-hints-vs-pydantic
+    type: explain
+    competencies: [api.fastapi]
+    front: How does a Pydantic model differ from a dataclass with the same type hints?
+    back: Python never enforces hints, so a dataclass accepts anything. A Pydantic model checks the values when it is built, converts what it can (the text "4" becomes 4), and raises one ValidationError that lists every problem.
+  - id: api-02-c-validator-return
+    type: basic
+    competencies: [api.fastapi]
+    front: What must a `field_validator` do with the value it receives?
+    back: Return the value, cleaned if needed. Whatever it returns replaces the field, so a validator that forgets `return` sets the field to None. To reject a value, it raises ValueError.
+  - id: api-02-c-httpexception
+    type: explain
+    competencies: [api.fastapi, api.status-codes]
+    front: How does a route answer 404, and why is `return 404` wrong?
+    back: '`raise HTTPException(status_code=404, detail="...")` stops the function and sends that status with `{"detail": ...}`. `return 404` only sets the response body, so the status stays 200 and a client that reads the status thinks the call worked.'
+  - id: api-02-c-testclient
+    type: explain
+    competencies: [api.fastapi]
+    front: What does `TestClient(app)` do, and what must each test do about the app's state?
+    back: It sends requests into the app in the same process, with no server and no network, through the real routing, validation and route functions, and returns a response with `status_code` and `json()`. A fixture should reset shared state such as a module-level dict, so tests do not depend on each other.
+  - id: api-02-c-await
+    type: explain
+    competencies: [py.async]
+    front: What do you get when you call an `async def` function without `await`, and what does `await` do?
+    back: You get a coroutine object, and the body has not run. `await` runs the coroutine and waits for its result, and while it waits, the event loop can run other tasks.
+  - id: api-02-c-predict-gather
+    type: predict
+    competencies: [py.async]
+    front: |
+      import asyncio
+
+      async def f(x):
+          await asyncio.sleep(0.05 if x == 1 else 0.01)
+          return x
+
+      print(await asyncio.gather(f(1), f(2), f(3)))
+    back: gather returns the results in the order the awaitables were passed, not the order they finished. The call for 1 finishes last, but its result is still first in the list.
+  - id: api-02-c-gather-time
+    type: explain
+    competencies: [py.async]
+    front: Three lookups take 2, 3 and 1 seconds. Why does `asyncio.gather` finish in about 3 seconds, and awaiting them one by one in about 6?
+    back: A lookup mostly waits for the network. gather starts all three, so their waits overlap and the slowest decides the time. Awaiting each one before starting the next adds the waits. Nothing runs in parallel; the waiting overlaps.
+  - id: api-02-c-blocking
+    type: explain
+    competencies: [py.async]
+    front: Why is `time.sleep(5)` harmful inside `async def` code, and what do you use instead?
+    back: It blocks the thread that runs the event loop, so every other task waits for five seconds. Use `await asyncio.sleep(5)` or an async client. A FastAPI route declared with plain `def` runs in a worker thread, so blocking there holds up only that thread.
+  - id: api-02-c-httpx-timeout
+    type: basic
+    competencies: [api.client]
+    front: What is httpx's default timeout, and what does `httpx.Timeout(5.0, connect=2.0)` limit?
+    back: The default is 5 seconds for each step, and a stall raises `httpx.TimeoutException`. `Timeout(5.0, connect=2.0)` allows 2 seconds to connect and 5 seconds for each other step. The limits are per step, not for the whole request.
+  - id: api-02-c-raise-for-status
+    type: cloze
+    competencies: [api.client]
+    front: 'httpx does not raise an error for a 4xx or 5xx response by itself. Call `response.____()` before you use the body.'
+    back: raise_for_status
+  - id: api-02-c-asyncio-timeout
+    type: basic
+    competencies: [py.async]
+    front: What happens when the time given to `async with asyncio.timeout(2):` runs out?
+    back: The unfinished work inside the block is cancelled, and `TimeoutError` is raised when the block exits. Use it to put one deadline over several calls.
+  - id: api-02-c-504
+    type: basic
+    competencies: [api.client, api.status-codes]
+    front: Your route calls another service. The service times out, or it sends back an invalid reply. Which status does your API answer with in each case?
+    back: 504 Gateway Timeout when the service does not answer in time, and 502 Bad Gateway when it sends an invalid reply or an error status. Both tell the client that the fault is behind your API, not in the client's request.
