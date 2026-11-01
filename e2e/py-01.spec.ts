@@ -64,10 +64,13 @@ test('a faded exercise passes with the keyboard and records full credit', async 
   expect(saved.exercises['py-01-faded-alias'].bestCredit).toBe(1);
 });
 
-test('the warm-up is skipped while no earlier lesson supplies five items', async ({ page }) => {
+test('the warm-up draws five items from the earlier published lessons', async ({ page }) => {
   await page.goto('lessons/py-01/');
   await hydrateAll(page);
-  await expect(page.getByRole('heading', { name: 'Warm-up', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Warm-up', exact: true })).toBeVisible();
+  await expect(page.locator('section[aria-labelledby="warmup-py-01"] [data-question]')).toHaveCount(
+    5,
+  );
 });
 
 test('py-01 has no axe violations', async ({ page }) => {

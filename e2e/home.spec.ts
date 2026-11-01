@@ -1,5 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { parse } from 'yaml';
 import { createDefault, type LearnerData } from '../src/lib/store/store';
 import { saved, seedStore } from './helpers';
 
@@ -23,9 +25,7 @@ test('before a start date: three setup steps and no week', async ({ page }) => {
   await expect(page.getByTestId('week-heading')).toHaveCount(0);
 });
 
-test('this week comes from the curriculum: published lessons link, planned ones say coming soon', async ({
-  page,
-}) => {
+test('this week comes from the curriculum: published lessons link', async ({ page }) => {
   await seedStore(
     page,
     store((d) => (d.settings.startDate = '2026-10-12')),
@@ -35,10 +35,37 @@ test('this week comes from the curriculum: published lessons link, planned ones 
   await expect(page.getByTestId('week-heading')).toHaveText('Week 1 of 28');
   const lessons = page.getByTestId('week-lessons');
   await expect(lessons).toContainText('How Athena works');
-  await expect(lessons).toContainText('(coming soon)');
+  await expect(lessons.getByRole('link', { name: /How Athena works/ })).toBeVisible();
   await expect(page.getByTestId('week-gym')).toContainText('Think-aloud approach');
   // Job search starts in week 2.
   await expect(page.getByTestId('week-jobs')).toHaveCount(0);
+});
+
+interface CurriculumWeek {
+  lessons?: { status: string }[];
+}
+
+/** The first week that still has a planned lesson, found from the curriculum so the test needs no edit as lessons publish. */
+function firstWeekWithPlannedLesson(): number | undefined {
+  const doc = parse(readFileSync('src/content/curriculum.yaml', 'utf8')) as
+    CurriculumWeek[] | { weeks: CurriculumWeek[] };
+  const weeks = Array.isArray(doc) ? doc : doc.weeks;
+  const index = weeks.findIndex((w) => (w.lessons ?? []).some((l) => l.status === 'planned'));
+  return index < 0 ? undefined : index + 1;
+}
+
+test('a planned lesson in this week says coming soon', async ({ page }) => {
+  const week = firstWeekWithPlannedLesson();
+  test.skip(week === undefined, 'every lesson is published');
+  const wednesday = new Date(Date.UTC(2026, 9, 12 + ((week as number) - 1) * 7 + 2));
+  await seedStore(
+    page,
+    store((d) => (d.settings.startDate = '2026-10-12')),
+  );
+  await today(page, wednesday.toISOString().slice(0, 10));
+  await page.goto('./');
+  await expect(page.getByTestId('week-heading')).toHaveText(`Week ${week} of 28`);
+  await expect(page.getByTestId('week-lessons')).toContainText('(coming soon)');
 });
 
 test('week 2 adds the job-search targets and the week-9 lab milestone links to its page', async ({
